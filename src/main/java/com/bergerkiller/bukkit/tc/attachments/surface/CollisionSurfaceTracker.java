@@ -6,23 +6,34 @@ import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import org.bukkit.block.BlockFace;
 import org.bukkit.util.Vector;
 
+import java.util.ArrayList;
 import java.util.EnumMap;
+import java.util.List;
 
 /**
  * Keeps track of the collision surface created to represent various
- * {@link CollisionSurface} instances. This tracker is per player.
+ * {@link CollisionSurface} instances. This tracker is per player.<br>
+ * <br>
+ * For moving surfaces, keeps players on these surfaces using the player movement
+ * controller. For non-moving surfaces, spawns shulkers so the player can walk on them/
+ * can't walk through walls. There is also some logic for the interaction between
+ * the two (jumping from surface onto shulkers).
  */
 public class CollisionSurfaceTracker {
+    /** How many ticks of no movement until a surface is considered "not moving" */
+    private static final int TICKS_UNTIL_NOT_MOVING = 2;
+
     private final AttachmentViewer viewer;
-    private final int viewDistance;
+    private final int shulkerViewDistance;
     private final PlayerPusher playerPusher;
     private final ShulkerTracker shulkerCache;
     private final CollisionFloorTileGrid floorTiles;
     private final EnumMap<BlockFace, CollisionWallTileGrid> wallTiles;
+    private final List<CollisionSurfaceImpl> surfaces = new ArrayList<>();
 
-    public CollisionSurfaceTracker(AttachmentViewer viewer, int viewDistance) {
+    public CollisionSurfaceTracker(AttachmentViewer viewer, int shulkerViewDistance) {
         this.viewer = viewer;
-        this.viewDistance = viewDistance;
+        this.shulkerViewDistance = shulkerViewDistance;
 
         this.playerPusher = new PlayerPusher(viewer);
         this.shulkerCache = new ShulkerTracker();
@@ -36,12 +47,21 @@ public class CollisionSurfaceTracker {
      * (that have not received further updates).
      */
     public void update() {
+        // Update all surfaces, and if they are not moving, spawn in shulkers for them
+        for (CollisionSurfaceImpl surface : surfaces) {
+            surface.nextUpdate();
+
+            if (!surface.isMoving()) {
+                surface.spawnShulkers();
+            }
+        }
+
+        // This actually spawns/moves/destroys the shulkers applied in the previous step
         floorTiles.update();
         wallTiles.values().removeIf(wallTiles -> {
             wallTiles.update();
             return wallTiles.isEmpty();
         });
-
         shulkerCache.update(viewer, playerPusher);
     }
 
@@ -61,15 +81,87 @@ public class CollisionSurfaceTracker {
 
     private class CollisionSurfaceImpl implements CollisionSurface {
         private int updateCounter = 0;
+        private OrientedBoundingBox shape;
+        private int moveDetectedAtCount = 0;
+        private boolean isMoving = false;
 
+        public boolean isMoving() {
+            return isMoving;
+        }
+
+        public void nextUpdate() {
+            if (isMoving && (updateCounter - moveDetectedAtCount) >= TICKS_UNTIL_NOT_MOVING) {
+                isMoving = false;
+            }
+            ++updateCounter;
+        }
+
+        @Override
         public int getUpdateCounter() {
             return updateCounter;
         }
 
         @Override
-        public void addSurface(OrientedBoundingBox surface) {
+        public void remove() {
+            setShape(null);
+        }
+
+        @Override
+        public void setShape(OrientedBoundingBox shape) {
+            // Handle removal/clear with null
+            if (shape == null) {
+                if (this.shape != null) {
+                    surfaces.remove(this);
+                    this.shape = null;
+                    ++updateCounter;
+                }
+                return;
+            }
+
+            // When no shape was known before (=removed), add this surface to be updated
+            // Do not yet spawn the shulkers, because we might find next tick that this shape is moving
+            if (this.shape == null) {
+                this.shape = new OrientedBoundingBox(shape.getPosition(), shape.getSize(), shape.getOrientation());
+                surfaces.add(this);
+
+                // Assume initially not moving to allow shulkers to spawn in right away
+                this.isMoving = false;
+                return;
+            }
+
+            // Check if the shape only moved downwards (elevator style) and did not change orientation or size
+            // In that case, it's fine to keep using shulkers to represent this surface.
+            // Do not set moveDetectedAtCount in that case, to allow shulkers to be used.
+            if (
+                    this.shape.getOrientation().equals(shape.getOrientation()) &&
+                    this.shape.getSize().equals(shape.getSize())
+            ) {
+                Vector oldPos = this.shape.getPosition();
+                Vector newPos = shape.getPosition();
+                if (newPos.getX() == oldPos.getX() && newPos.getZ() == oldPos.getZ()) {
+                    if (newPos.getY() == oldPos.getY()) {
+                        // No change at all. Ignore.
+                        return;
+                    } else if (newPos.getY() < oldPos.getY()) {
+                        // Moving downwards
+                        this.shape.setPosition(newPos);
+                        return;
+                    }
+                }
+            }
+
+            // Shape changed position/orientation/size in a way that acts as a moving surface
+            // This despawns shulkers / keeps shulkers de-spawned and switches to movement control
+            this.moveDetectedAtCount = this.updateCounter;
+            this.isMoving = true;
+            this.shape.setPosition(shape.getPosition());
+            this.shape.setOrientation(shape.getOrientation());
+            this.shape.setSize(shape.getSize());
+        }
+
+        public void spawnShulkers() {
             Vector playerPos = viewer.getPlayer().getLocation().toVector();
-            OBBSurfaceContext context = new OBBSurfaceContext(surface, playerPos, viewDistance);
+            OBBSurfaceContext context = new OBBSurfaceContext(shape, playerPos, shulkerViewDistance);
             if (context.isFullyClipped) {
                 return;
             }
@@ -103,22 +195,54 @@ public class CollisionSurfaceTracker {
             }
         }
 
-        @Override
+        /**
+         * Adds or updates a single shaped floor tile that is a part of this surface.
+         * Only a single tile can exist per x/z coordinate.
+         *
+         * @param x X-block coordinate
+         * @param z Z-block coordinate
+         * @param shape CollisionFloorTileShape
+         */
         public void addFloorTile(int x, int z, CollisionFloorTileShape shape) {
             floorTiles.addFloorTile(this, x, z, shape);
         }
 
-        @Override
+        /**
+         * Removes any shaped floor tile that was added at a particular x/z block
+         * coordinate previously. Can be called to undo a previous added shape.
+         * Practically not used, since you can just call clear() and add all shapes
+         * after, which is a lot more reliable.
+         *
+         * @param x X-block coordinate
+         * @param z Z-block coordinate
+         */
         public void removeFloorTile(int x, int z) {
             floorTiles.removeFloorTile(this, x, z);
         }
 
-        @Override
+        /**
+         * Adds a full-block wall tile, facing into a particular direction.
+         * The x/y are relative to the facing direction (horizontally y==y and x is the
+         * other axis, vertically the x==x and y is z).
+         *
+         * @param face Face direction of the player looking at the wall (opposite of normal)
+         * @param x Face-relative X tile
+         * @param y Face-relative Y tile
+         * @param value Axis value of the wall, depending on facing (the other axis)
+         */
         public void addWallTile(BlockFace face, int x, int y, double value) {
             getWallTiles(face).addWallTile(this, x, y, value);
         }
 
-        @Override
+        /**
+         * Removes a previously added full-block wall tile, facing into a particular direction.
+         * The x/y are relative to the facing direction (horizontally y==y and x is the
+         * other axis, vertically the x==x and y is z).
+         *
+         * @param face Face direction of the player looking at the wall (opposite of normal)
+         * @param x Face-relative X tile
+         * @param y Face-relative Y tile
+         */
         public void removeWallTile(BlockFace face, int x, int y) {
             getWallTiles(face).removeWallTile(this, x, y);
         }
@@ -301,11 +425,6 @@ public class CollisionSurfaceTracker {
                     addFloorTile(x, z, new CollisionFloorTileShape.Level(y));
                 }
             }
-        }
-
-        @Override
-        public void clear() {
-            ++updateCounter;
         }
     }
 }

@@ -8,21 +8,16 @@ import com.bergerkiller.bukkit.common.math.Vector3;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
-import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentManager;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import com.bergerkiller.bukkit.tc.attachments.helper.HelperMethods;
 import com.bergerkiller.bukkit.tc.attachments.particle.VirtualBoundingBox;
 import com.bergerkiller.bukkit.tc.attachments.surface.CollisionSurface;
-import com.bergerkiller.bukkit.tc.attachments.surface.CollisionSurfaceTracker;
 import org.bukkit.ChatColor;
-import org.bukkit.Location;
 import org.bukkit.util.Vector;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 /**
  * A 2D plane (can tilt) above which players are kept positioned. The
@@ -31,6 +26,7 @@ import java.util.Map;
  */
 public class CartAttachmentPlatformPlane extends CartAttachmentPlatform {
     private final OrientedBoundingBox bbox = new OrientedBoundingBox();
+    private final List<PlayerSurface> playerSurfaces = new ArrayList<>();
     private Plane plane = null; // Null if not spawned
 
     @Override
@@ -58,6 +54,10 @@ public class CartAttachmentPlatformPlane extends CartAttachmentPlatform {
         if (plane != null) {
             plane.makeVisible(viewer);
         }
+
+        PlayerSurface ps = new PlayerSurface(viewer, viewer.createCollisionSurface());
+        ps.surface.setShape(bbox);
+        playerSurfaces.add(ps);
     }
 
     @Override
@@ -66,10 +66,14 @@ public class CartAttachmentPlatformPlane extends CartAttachmentPlatform {
             plane.makeHidden(viewer);
         }
 
-        CollisionSurface surface = surfacesOfViewers.remove(viewer);
-        if (surface != null) {
-            surface.clear();
-        }
+        playerSurfaces.removeIf(ps -> {
+            if (ps.viewer.equals(viewer)) {
+                ps.surface.remove();
+                return true;
+            } else {
+                return false;
+            }
+        });
     }
 
     public void setPlaneColor(ChatColor color) {
@@ -101,17 +105,6 @@ public class CartAttachmentPlatformPlane extends CartAttachmentPlatform {
         setPlaneColor(null);
     }
 
-    private final List<LockedPlayer> lockedPlayers = new ArrayList<>();
-
-    private boolean isLocked(AttachmentViewer viewer) {
-        for (LockedPlayer player : lockedPlayers) {
-            if (player.viewer.getPlayer() == viewer.getPlayer()) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     @Override
     public void onTick() {
         if (plane != null && !this.isFocused() &&
@@ -119,57 +112,6 @@ public class CartAttachmentPlatformPlane extends CartAttachmentPlatform {
         ) {
             plane.entity.destroyForAll();
             plane = null;
-        }
-
-        if (!HelperMethods.hasInactiveParent(this) && isActive()) {
-            spawnSurfaces();
-        }
-    }
-
-    private Map<AttachmentViewer, CollisionSurface> surfacesOfViewers = new HashMap<>();
-
-    private void spawnSurfaces() {
-        for (AttachmentViewer viewer : getAttachmentViewers()) {
-            CollisionSurface surface = surfacesOfViewers.computeIfAbsent(viewer, AttachmentViewer::createCollisionSurface);
-            surface.clear();
-            surface.addSurface(bbox);
-        }
-    }
-
-    private void lockPlayers() {
-        Vector halfSize = bbox.getSize().clone().multiply(0.5);
-        for (AttachmentViewer viewer : getAttachmentViewers()) {
-            if (isLocked(viewer)) {
-                continue;
-            }
-
-            Quaternion q = bbox.getOrientation();
-            Vector pos = viewer.getPlayer().getLocation().toVector();
-            pos.subtract(bbox.getPosition());
-            q.invTransformPoint(pos);
-            if (
-                    Math.abs(pos.getX()) < halfSize.getX()
-                            && Math.abs(pos.getZ()) < halfSize.getZ()
-                            && pos.getY() >= 0.0 && pos.getY() <= 3.0
-            ) {
-                System.out.println("LOCK: " + pos);
-                lockedPlayers.add(new LockedPlayer(viewer, pos.getX(), pos.getZ()));
-            }
-        }
-
-        lockedPlayers.removeIf(p -> {
-            if (p.isUnlocked()) {
-                p.unlock();
-                return true;
-            } else {
-                return false;
-            }
-        });
-
-        // lock em
-        for (LockedPlayer player : lockedPlayers) {
-            player.updatePlayerMovement(bbox);
-            player.lock(bbox);
         }
     }
 
@@ -181,6 +123,7 @@ public class CartAttachmentPlatformPlane extends CartAttachmentPlatform {
         if (plane != null) {
             plane.update(bbox);
         }
+        playerSurfaces.forEach(ps -> ps.surface.setShape(bbox));
     }
 
     @Override
@@ -190,78 +133,17 @@ public class CartAttachmentPlatformPlane extends CartAttachmentPlatform {
         }
     }
 
-    private static class LockedPlayer {
+    /**
+     * This bbox tracked using the attachments collision surface API.
+     * Must be kept updated when the shape changes.
+     */
+    private static class PlayerSurface {
         public final AttachmentViewer viewer;
-        public double rx, rz;
-        public AttachmentViewer.MovementController movementController;
+        public final CollisionSurface surface;
 
-        public LockedPlayer(AttachmentViewer viewer, double rx, double rz) {
+        public PlayerSurface(AttachmentViewer viewer, CollisionSurface surface) {
             this.viewer = viewer;
-            this.rx = rx;
-            this.rz = rz;
-        }
-
-        public boolean isUnlocked() {
-            return !viewer.getPlayer().isValid() || viewer.getPlayer().isSneaking();
-        }
-
-        public void lock(OrientedBoundingBox bbox) {
-            if (movementController == null) {
-                movementController = viewer.controlMovement();
-            }
-
-            Vector pos = new Vector(rx, 0.0, rz);
-            bbox.getOrientation().transformPoint(pos);
-            pos.add(bbox.getPosition());
-
-            movementController.update(pos);
-        }
-
-        public void unlock() {
-            if (movementController != null) {
-                movementController.stop();
-            }
-        }
-
-        public void updatePlayerMovement(OrientedBoundingBox bbox) {
-            if (movementController == null) {
-                return;
-            }
-
-            AttachmentViewer.Input input = movementController.getInput();
-            double speed = 0.15;
-            if (input.sprinting()) {
-                speed *= 1.5;
-            }
-
-            if (input.hasWalkInput()) {
-                Location eyeLoc = viewer.getPlayer().getEyeLocation();
-                Quaternion orientation = Quaternion.fromYawPitchRoll(0.0, eyeLoc.getYaw(), 0.0);
-
-                Quaternion relative = orientation.clone();
-                relative.divide(bbox.getOrientation());
-
-                Vector fwd = relative.forwardVector();
-                fwd.setY(0.0);
-                fwd.normalize();
-                fwd.multiply(speed);
-                if (input.hasDiagonalWalkInput()) {
-                    fwd.multiply(MathUtil.HALFROOTOFTWO);
-                }
-                fwd.multiply(input.forwardsSigNum());
-
-                Vector side = relative.rightVector();
-                side.setY(0.0);
-                side.normalize();
-                side.multiply(speed);
-                if (input.hasDiagonalWalkInput()) {
-                    side.multiply(MathUtil.HALFROOTOFTWO);
-                }
-                side.multiply(input.sidewaysSigNum());
-
-                rx += fwd.getX() + side.getX();
-                rz += fwd.getZ() + side.getZ();
-            }
+            this.surface = surface;
         }
     }
 

@@ -15,7 +15,6 @@ import com.bergerkiller.bukkit.common.wrappers.RelativeFlags;
 import com.bergerkiller.bukkit.tc.attachments.VirtualDisplayItemEntity;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import com.bergerkiller.bukkit.tc.attachments.particle.VirtualBoundingBox;
-import com.bergerkiller.bukkit.tc.attachments.surface.CollisionSurface;
 import com.bergerkiller.bukkit.tc.commands.annotations.CommandTargetTrain;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroupStore;
@@ -669,17 +668,6 @@ public class DebugCommands {
 
         // Spawn the surface itself (stays until player logs off)
         // Refresh it every tick so that it properly switches between front / back
-        final CollisionSurface surface = viewer.createCollisionSurface(Integer.MAX_VALUE);
-        new Task(plugin) {
-            @Override
-            public void run() {
-                surface.clear();
-                if (!viewer.isConnected()) {
-                    stop();
-                    return;
-                }
-                surface.addSurface(bbox);
-            }
-        }.start(1, 1);
+        viewer.createCollisionSurface(Integer.MAX_VALUE).setShape(bbox);
     }
 }

@@ -2,6 +2,7 @@ package com.bergerkiller.bukkit.tc.attachments.api;
 
 import com.bergerkiller.bukkit.common.Common;
 import com.bergerkiller.bukkit.common.internal.CommonCapabilities;
+import com.bergerkiller.bukkit.common.math.OrientedBoundingBox;
 import com.bergerkiller.bukkit.common.protocol.PacketListener;
 import com.bergerkiller.bukkit.common.protocol.PacketType;
 import com.bergerkiller.bukkit.tc.TrainCarts;
@@ -369,38 +370,31 @@ public interface AttachmentViewer extends TrainCarts.Provider {
 
     /**
      * Creates a new CollisionSurface instance for this player that is used to built up a collision
-     * geometry the player can walk on / prevents movement. Surface changes can be applied to
-     * the returned surface and stay available until {@link CollisionSurface#clear()} is
-     * called.<br>
-     * <br>
-     * A typical update loop involves calling clear, followed by adding the surfaces/tiles
-     * that should be visible to the player.<br>
-     * <br>
-     * Uses the default view range (8), so this should be refreshed every tick.
+     * geometry the player can walk on / prevents movement. Call
+     * {@link CollisionSurface#setShape(OrientedBoundingBox)} to initialize the
+     * surface. Call {@link CollisionSurface#remove()} to disable the surface again (de-spawn).
      *
      * @return CollisionSurface
      */
     default CollisionSurface createCollisionSurface() {
-        return createCollisionSurface(CollisionSurface.DEFAULT_VIEW_RANGE);
+        return createCollisionSurface(CollisionSurface.DEFAULT_SHULKER_VIEW_DISTANCE);
     }
 
     /**
      * Creates a new CollisionSurface instance for this player that is used to built up a collision
-     * geometry the player can walk on / prevents movement. Surface changes can be applied to
-     * the returned surface and stay available until {@link CollisionSurface#clear()} is
-     * called.<br>
-     * <br>
-     * A typical update loop involves calling clear, followed by adding the surfaces/tiles
-     * that should be visible to the player.
+     * geometry the player can walk on / prevents movement. Call
+     * {@link CollisionSurface#setShape(OrientedBoundingBox)} to initialize the
+     * surface. Call {@link CollisionSurface#remove()} to disable the surface again (de-spawn).
      *
-     * @param viewRange Distance in blocks from which players can see this surface spawn in.
-     *                  Set to Integer.MAX_VALUE if it should always be visible.
+     * @param shulkerViewDistance Distance in blocks from which players can see this surface spawn in
+     *                            as shulker boxes when the surface is not moving.
+     *                            Set to Integer.MAX_VALUE if it should always be visible.
      * @return CollisionSurface
      */
-    default CollisionSurface createCollisionSurface(int viewRange) {
+    default CollisionSurface createCollisionSurface(int shulkerViewDistance) {
         TrainCarts plugin = getTrainCarts();
         if (plugin.isEnabled() && isConnected()) {
-            return plugin.getAttachmentViewer(getPlayer()).createCollisionSurface(viewRange);
+            return plugin.getAttachmentViewer(getPlayer()).createCollisionSurface(shulkerViewDistance);
         } else {
             return CollisionSurface.DISABLED;
         }
