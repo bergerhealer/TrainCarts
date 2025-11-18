@@ -1,7 +1,10 @@
 package com.bergerkiller.bukkit.tc.signactions.util;
 
+import com.bergerkiller.bukkit.common.Common;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
+import com.bergerkiller.bukkit.tc.events.signactions.SignActionRegisterEvent;
+import com.bergerkiller.bukkit.tc.events.signactions.SignActionUnregisterEvent;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bergerkiller.bukkit.tc.signactions.TrainCartsSignAction;
 
@@ -14,7 +17,6 @@ import java.util.NavigableMap;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
-import java.util.function.Predicate;
 
 /**
  * Lookup table for sign actions, matched by the sign action events. Has an optimized
@@ -171,6 +173,12 @@ class SignActionLookupMapImpl implements SignActionLookupMap {
             nonTrainCartsEntries.add(entry);
         }
 
+        // Fire register event so that all signs can be refreshed on the server
+        // Extra guards so that this also works under test
+        if (!Common.IS_TEST_MODE) {
+            CommonUtil.callEvent(new SignActionRegisterEvent(action, priority));
+        }
+
         return action;
     }
 
@@ -197,6 +205,12 @@ class SignActionLookupMapImpl implements SignActionLookupMap {
             }
         } else {
             nonTrainCartsEntries.remove(e);
+        }
+
+        // Fire unregister event so that all signs can be refreshed on the server
+        // Extra guards so that this also works under test
+        if (!Common.IS_TEST_MODE) {
+            CommonUtil.callEvent(new SignActionUnregisterEvent(action));
         }
     }
 

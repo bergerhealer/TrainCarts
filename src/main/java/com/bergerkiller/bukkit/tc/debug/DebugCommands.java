@@ -279,7 +279,8 @@ public class DebugCommands {
     @CommandDescription("Forcibly recalculates all cached sign information near the player")
     private void commandDebugFixSigns(
             final Player player,
-            final TrainCarts plugin
+            final TrainCarts plugin,
+            final @Flag("redetect_actions") boolean redetectSignActions
     ) {
         if (!TCConfig.enableVanillaActionSigns) {
             player.sendMessage(ChatColor.RED + "Vanilla action signs are disabled in TrainCarts config.yml!");
@@ -307,6 +308,11 @@ public class DebugCommands {
             if (result.numAdded > 0) {
                 player.sendMessage(ChatColor.YELLOW.toString() + result.numAdded + " signs were missing and have been added to the cache!");
             }
+        }
+
+        if (redetectSignActions) {
+            plugin.redetectSignActions();
+            player.sendMessage(ChatColor.GREEN + "Recalculated the registered sign action for all signs on the server");
         }
     }
 

@@ -314,16 +314,25 @@ public abstract class SignTracker {
                     // Fire enter for new sign
                     onSignChange(currActiveSign, true);
                 }
-            } else if (currActiveSign.sign != newActiveSign.sign) {
-                // If old and new signs have identical text, don't fire any events
-                if (currActiveSign.sign.hasIdenticalText(newActiveSign.sign)) {
-                    // Silent update
-                    currActiveSign.setSign(newActiveSign.sign);
-                    continue;
+            } else {
+                // Did the assigned registered action change?
+                // If so, perform a re-activation
+                if (currActiveSign.getAction() == newActiveSign.sign.getAction()) {
+                    // Same sign?
+                    if (currActiveSign.sign == newActiveSign.sign) {
+                        continue;
+                    }
+
+                    // If old and new signs have identical text, don't fire any events
+                    if (currActiveSign.sign.hasIdenticalText(newActiveSign.sign)) {
+                        // Silent update
+                        currActiveSign.setSign(newActiveSign.sign);
+                        continue;
+                    }
                 }
 
                 // Ask SignAction (if available) whether we should trigger a change here
-                SignAction action = currActiveSign.sign.getAction();
+                SignAction action = currActiveSign.getAction();
                 boolean fireEvents = true;
                 if (action != null && newActiveSign.sign.getAction() == action) {
                     SignActionEvent event = newActiveSign.sign.createEvent(SignActionType.NONE);
@@ -462,12 +471,14 @@ public abstract class SignTracker {
      */
     public static final class ActiveSign {
         private TrackedSign sign;
+        private SignAction action;
         private Object uniqueKey;
         private RailState enterState;
         private boolean detected;
 
         public ActiveSign(TrackedSign sign, RailState enterState) {
             this.sign = sign;
+            this.action = sign.getAction();
             this.uniqueKey = sign.getUniqueKey();
             this.enterState = enterState;
             this.detected = true;
@@ -482,8 +493,20 @@ public abstract class SignTracker {
             return sign;
         }
 
+        /**
+         * Gets the SignAction that is executed for this sign, at the time this sign
+         * was detected by the train. This could differ from {@link TrackedSign#getAction()}
+         * if actions were modified previously.
+         *
+         * @return SignAction
+         */
+        public SignAction getAction() {
+            return action;
+        }
+
         private void setSign(TrackedSign sign) {
             this.sign = sign;
+            this.action = sign.getAction();
             this.uniqueKey = sign.getUniqueKey();
         }
 

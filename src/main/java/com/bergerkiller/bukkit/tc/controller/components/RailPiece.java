@@ -264,6 +264,18 @@ public class RailPiece {
     }
 
     /**
+     * Re-detects the SignAction registered for the {@link #signs()}, if any
+     * of this was cached. This is called when a sign action is registered or un-registered
+     * while the server is running.
+     */
+    public void redetectSignActions() {
+        RailLookup.CachedRailPiece cached = this.cached;
+        if (cached != null) {
+            cached.redetectSignActions();
+        }
+    }
+
+    /**
      * Retrieves an array of all detector regions active for this rail
      *
      * @return array of detector regions

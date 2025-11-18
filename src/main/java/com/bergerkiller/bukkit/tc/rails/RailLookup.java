@@ -176,6 +176,17 @@ public final class RailLookup {
     }
 
     /**
+     * Re-detects the SignAction registered for all signs cached on the server.
+     * This is called when a sign action is registered or un-registered
+     * while the server is running.
+     */
+    public static void redetectSignActions() {
+        for (WorldRailLookup world : byWorld.values()) {
+            world.redetectSignActions();
+        }
+    }
+
+    /**
      * Forces all cached rail information about the specified Rail Type to be unloaded. In the event
      * persistent metadata is tied to it, like members, the data is lost. Members should refresh
      * this information as needed.
@@ -375,6 +386,17 @@ public final class RailLookup {
          */
         public final TrackedSign[] cachedSigns() {
             return this.signs;
+        }
+
+        @Override
+        public final void redetectSignActions() {
+            // For existing tracked sign instances, force action to be re-calculated
+            for (TrackedSign sign : signs) {
+                sign.redetectSignAction();
+            }
+
+            // Now also discover any new signs (it filters signs without actions by default)
+            forceCacheVerification();
         }
 
         /**
@@ -598,6 +620,15 @@ public final class RailLookup {
                 cachedActionSet = true;
                 return cachedAction = SignAction.getSignAction(this.createEvent(SignActionType.NONE));
             }
+        }
+
+        /**
+         * Forces the SignAction to be re-detected the next time it is asked of this tracked
+         * sign.
+         */
+        public void redetectSignAction() {
+            cachedActionSet = false;
+            cachedAction = null;
         }
 
         /**

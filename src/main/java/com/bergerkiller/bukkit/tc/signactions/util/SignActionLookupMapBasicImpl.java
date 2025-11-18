@@ -1,7 +1,10 @@
 package com.bergerkiller.bukkit.tc.signactions.util;
 
+import com.bergerkiller.bukkit.common.Common;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
+import com.bergerkiller.bukkit.tc.events.signactions.SignActionRegisterEvent;
+import com.bergerkiller.bukkit.tc.events.signactions.SignActionUnregisterEvent;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
 
 import java.util.ArrayList;
@@ -34,6 +37,13 @@ class SignActionLookupMapBasicImpl implements SignActionLookupMap {
         } else {
             entries.add(new SimpleEntry(action));
         }
+
+        // Fire unregister event so that all signs can be refreshed on the server
+        // Extra guards so that this also works under test
+        if (!Common.IS_TEST_MODE) {
+            CommonUtil.callEvent(new SignActionRegisterEvent(action, priority));
+        }
+
         return action;
     }
 
@@ -43,6 +53,12 @@ class SignActionLookupMapBasicImpl implements SignActionLookupMap {
             SimpleEntry entry = iter.next();
             if (entry.action.equals(action)) {
                 iter.remove();
+
+                // Fire unregister event so that all signs can be refreshed on the server
+                // Extra guards so that this also works under test
+                if (!Common.IS_TEST_MODE) {
+                    CommonUtil.callEvent(new SignActionUnregisterEvent(action));
+                }
                 return;
             }
         }

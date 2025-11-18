@@ -407,6 +407,11 @@ final class WorldRailLookupImpl implements WorldRailLookup {
         return RailPiece.NONE;
     }
 
+    @Override
+    public void redetectSignActions() {
+        forAllBuckets(RailLookup.CachedRailPiece::redetectSignActions);
+    }
+
     private void forAllBuckets(Consumer<Bucket> callback) {
         for (Bucket bucket : cacheValues) {
             for (Bucket next = bucket; next != null; next = next.next) {

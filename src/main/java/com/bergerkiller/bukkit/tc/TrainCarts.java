@@ -42,6 +42,7 @@ import com.bergerkiller.bukkit.tc.commands.Commands;
 import com.bergerkiller.bukkit.tc.commands.selector.SelectorHandlerRegistry;
 import com.bergerkiller.bukkit.tc.commands.selector.TCSelectorHandlerRegistry;
 import com.bergerkiller.bukkit.tc.controller.*;
+import com.bergerkiller.bukkit.tc.controller.components.RailTracker;
 import com.bergerkiller.bukkit.tc.controller.global.ActionSignHighlighter;
 import com.bergerkiller.bukkit.tc.controller.global.EffectLoopPlayerController;
 import com.bergerkiller.bukkit.tc.controller.global.SignController;
@@ -1233,6 +1234,18 @@ public class TrainCarts extends PluginBase {
             }
         }
         entities.forEach(CommonEntity::clearControllers);
+    }
+
+    /**
+     * Re-detects all sign actions on all signs on the server, everywhere this information is cached.
+     * This is automatically called when a sign action is registered or un-registered.
+     */
+    public void redetectSignActions() {
+        getSignController().redetectSignActions();
+        RailLookup.redetectSignActions();
+        for (MinecartGroup group : MinecartGroupStore.getGroups()) {
+            group.getSignTracker().updatePosition();
+        }
     }
 
     /**

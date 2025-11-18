@@ -400,6 +400,18 @@ public class SignControllerWorld {
     }
 
     /**
+     * Refreshes whether the signs on this world have particular sign actions. Called after a sign action
+     * is registered or un-registered.
+     */
+    public void redetectSignActions() {
+        for (SignControllerChunk chunk : signChunks.values()) {
+            for (Entry entry : chunk.getEntries()) {
+                entry.redetectSignActions();
+            }
+        }
+    }
+
+    /**
      * Starts tracking a newly placed sign. Initializes power state, but does not fire any events.
      * If the sign was already tracked, returns the existing entry instead. If the sign could not
      * be found at this block, returns null.

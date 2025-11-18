@@ -220,6 +220,13 @@ public interface WorldRailLookup {
     RailPiece discoverRailPieceFromSign(Block signblock);
 
     /**
+     * Re-detects the SignAction registered for all signs cached for this world.
+     * This is called when a sign action is registered or un-registered
+     * while the server is running.
+     */
+    void redetectSignActions();
+
+    /**
      * Sets/stores the Detector Regions that should be activated at particular rail block
      * coordinates.
      *

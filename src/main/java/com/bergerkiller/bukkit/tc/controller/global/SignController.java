@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.tc.controller.global;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.IdentityHashMap;
@@ -602,6 +603,16 @@ public class SignController implements LibraryComponent, Listener {
     }
 
     /**
+     * Refreshes whether the signs on this world have particular sign actions. Called after a sign action
+     * is registered or un-registered.
+     */
+    public void redetectSignActions() {
+        for (SignControllerWorld world : new ArrayList<>(byWorld.values())) {
+            world.redetectSignActions();
+        }
+    }
+
+    /**
      * Checks whether the BlockPhysicsEvent fires for signs on the current server in use.
      * This stuff broke on Minecraft 1.19
      *
@@ -948,6 +959,20 @@ public class SignController implements LibraryComponent, Listener {
         }
 
         /**
+         * Refreshes whether this sign has sign actions. Called after a sign action
+         * is registered or un-registered.
+         */
+        void redetectSignActions() {
+            boolean hadSignActions = hasSignActionEvents();
+            front.detectSignAction();
+            back.detectSignAction();
+            boolean nowHasSignActions = hasSignActionEvents();
+            if (hadSignActions != nowHasSignActions) {
+                chunk.updateEntryHasSignActions(this, nowHasSignActions);
+            }
+        }
+
+        /**
          * Called when a new sign is placed by a Player at the same position as an existing sign.
          * Verifies the sign is still there, and fires a removal event if so.
          *
@@ -1162,7 +1187,7 @@ public class SignController implements LibraryComponent, Listener {
                 this.lineFunc = lineFunc;
                 this.headerLine = lineFunc.getLine(sign, 0);
                 this.cachedHeader = SignActionHeader.parse(Util.cleanSignLine(headerLine));
-                this.detectSignAction(this.cachedHeader);
+                this.detectSignAction();
                 this.powered = false; // Initialized later on
                 this.activated = false; // Activated when neighbouring chunks load as well
             }
@@ -1196,6 +1221,10 @@ public class SignController implements LibraryComponent, Listener {
 
             public boolean hasLoadedChangeHandler() {
                 return hasLoadedChangeHandler;
+            }
+
+            public void detectSignAction() {
+                detectSignAction(cachedHeader);
             }
 
             private void detectSignAction(SignActionHeader header) {

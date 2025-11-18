@@ -111,6 +111,10 @@ final class WorldRailLookupNone implements WorldRailLookup {
     }
 
     @Override
+    public void redetectSignActions() {
+    }
+
+    @Override
     public void storeDetectorRegions(IntVector3 coordinates, DetectorRegion[] regions) {
         throw new ClosedException();
     }

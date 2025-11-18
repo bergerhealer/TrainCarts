@@ -25,6 +25,8 @@ import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
 import com.bergerkiller.bukkit.tc.debug.DebugTool;
 import com.bergerkiller.bukkit.tc.editor.TCMapControl;
+import com.bergerkiller.bukkit.tc.events.signactions.SignActionRegisterEvent;
+import com.bergerkiller.bukkit.tc.events.signactions.SignActionUnregisterEvent;
 import com.bergerkiller.bukkit.tc.pathfinding.PathNode;
 import com.bergerkiller.bukkit.tc.portals.PortalDestination;
 import com.bergerkiller.bukkit.tc.rails.RailLookup;
@@ -750,5 +752,15 @@ public class TCListener implements Listener {
         }
         // Remove path node from path finding
         PathNode.remove(railsBlock);
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onLateSignRegistered(SignActionRegisterEvent event) {
+        plugin.redetectSignActions();
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onLateSignUnregistered(SignActionUnregisterEvent event) {
+        plugin.redetectSignActions();
     }
 }

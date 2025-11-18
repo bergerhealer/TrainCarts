@@ -147,7 +147,8 @@ public class SignSkipTracker {
                 Map.Entry<TrackedSign, Boolean> e = iter.next();
                 boolean found = false;
                 for (ActiveSign sign : signs) {
-                    if (sign.getSign().equals(e.getKey())) {
+                    TrackedSign trackedSign = e.getKey();
+                    if (sign.getSign().equals(trackedSign)) {
                         found = true;
                         break;
                     }
