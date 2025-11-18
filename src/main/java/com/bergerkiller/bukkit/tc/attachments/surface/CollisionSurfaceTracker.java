@@ -1,8 +1,15 @@
 package com.bergerkiller.bukkit.tc.attachments.surface;
 
 import com.bergerkiller.bukkit.common.math.OrientedBoundingBox;
+import com.bergerkiller.bukkit.common.math.Quaternion;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
+import com.bergerkiller.bukkit.common.utils.MathUtil;
+import com.bergerkiller.bukkit.common.wrappers.RelativeFlags;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
+import com.bergerkiller.bukkit.tc.controller.player.pmc.PlayerMovementController;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutPositionHandle;
+import com.bergerkiller.generated.net.minecraft.server.level.EntityPlayerHandle;
+import org.bukkit.Location;
 import org.bukkit.block.BlockFace;
 import org.bukkit.util.Vector;
 
@@ -30,6 +37,9 @@ public class CollisionSurfaceTracker {
     private final CollisionFloorTileGrid floorTiles;
     private final EnumMap<BlockFace, CollisionWallTileGrid> wallTiles;
     private final List<CollisionSurfaceImpl> surfaces = new ArrayList<>();
+    private ActiveSurface activeSurface = null;
+    private AttachmentViewer.MovementController pmc = null;
+    private boolean initialUpdate = true;
 
     public CollisionSurfaceTracker(AttachmentViewer viewer, int shulkerViewDistance) {
         this.viewer = viewer;
@@ -63,6 +73,151 @@ public class CollisionSurfaceTracker {
             return wallTiles.isEmpty();
         });
         shulkerCache.update(viewer, playerPusher);
+
+        // Check the active surface is still valid (has a shape) or was removed (null)
+        // When removed, we disable the player movement controller managing it and 'release' the player
+        // Normal world physics take over then.
+        if (activeSurface != null) {
+            if (activeSurface.surface.shape == null) {
+                leaveSurface(true);
+            } else {
+                activeSurface.lastKnownShape = activeSurface.surface.shape;
+            }
+        }
+
+        // If player has no previous position, see if the player is really close to a surface (spawning in / teleported)
+        // If so right away put the player onto that surface to avoid falling through
+        if (initialUpdate && activeSurface == null) {
+            Vector currPos = viewer.getPlayer().getLocation().toVector();
+            for (CollisionSurfaceImpl surface : surfaces) {
+                if (!surface.isMoving()) {
+                    continue;
+                }
+
+                Vector relativePos = surface.computeRelativePosition(currPos);
+                if (Math.abs(relativePos.getY()) < 0.01) {
+                    Vector halfSize = surface.shape.getSize().clone().multiply(0.5);
+                    if (Math.abs(relativePos.getX()) <= halfSize.getX() && Math.abs(relativePos.getZ()) <= halfSize.getZ()) {
+                        relativePos.setY(0.0);
+                        setOnSurface(surface, relativePos);
+                        break;
+                    }
+                }
+            }
+        }
+
+        Vector newPlayerPosition;
+        if (activeSurface != null) {
+            // If the player has an active surface, update physics relative to it
+            if (pmc == null) {
+                pmc = viewer.controlMovement();
+            }
+
+            activeSurface.updatePhysics(viewer, pmc);
+            newPlayerPosition = activeSurface.getAbsolutePosition();
+            if (!pmc.update(newPlayerPosition, activeSurface.airborne)) {
+                // Hit a block, disable the surface, don't sync position though
+                leaveSurface(false);
+            }
+
+        } else {
+            // If not, let world physics take care of it and simply track the player's actual position
+            newPlayerPosition = viewer.getPlayer().getLocation().toVector();
+        }
+
+        // If the player is not on a surface or is airborne, test whether the player is intersecting with
+        // a surface as part of movement. If so, set this intersected surface as the new active surface.
+        //
+        // Do not do this while walking on a surface, as there is no point.
+        if (activeSurface == null || activeSurface.airborne) {
+            double bestTheta = Double.MAX_VALUE;
+            CollisionSurfaceImpl bestSurface = null;
+            Vector bestPosOnSurface = null;
+            for (CollisionSurfaceImpl s : surfaces) {
+                Vector oldRelativePosition = s.lastRelativePosition;
+                Vector newRelativePosition = s.computeRelativePosition(newPlayerPosition);
+                s.lastRelativePosition = newRelativePosition;
+
+                // If no previous relative position is known, initialize it right now
+                if (oldRelativePosition == null) {
+                    continue;
+                }
+
+                // If y did not change sign then we are still on the same side of the shape and did not pass through it
+                if ((oldRelativePosition.getY() >= 0.0) == (newRelativePosition.getY() >= 0.0)) {
+                    continue;
+                }
+
+                //TODO: More advanced check where on the surface we intersected
+                double intersectTheta = 1.0;
+                Vector intersectPosition = newRelativePosition.clone().setY(0.0);
+                Vector halfSize = s.shape.getSize().clone().multiply(0.5);
+                if (Math.abs(intersectPosition.getX()) > halfSize.getX() || Math.abs(intersectPosition.getZ()) > halfSize.getZ()) {
+                    continue;
+                }
+
+                // Keep best
+                if (intersectTheta < bestTheta) {
+                    bestTheta = intersectTheta;
+                    bestSurface = s;
+                    bestPosOnSurface = intersectPosition;
+                }
+            }
+
+            if (bestSurface != null) {
+                setOnSurface(bestSurface, bestPosOnSurface);
+            }
+
+        } else {
+            // Ensure made invalid
+            surfaces.forEach(s -> s.lastRelativePosition = null);
+        }
+    }
+
+    private void leaveSurface(boolean applyPosition) {
+        if (pmc != null) {
+            pmc.stop();
+            pmc = null;
+        }
+
+        if (activeSurface != null) {
+            Vector pos = applyPosition ? activeSurface.getAbsolutePosition() : new Vector();
+            Vector vel = activeSurface.getAbsoluteVelocity();
+            activeSurface = null;
+
+            EntityPlayerHandle epHandle = EntityPlayerHandle.fromBukkit(viewer.getPlayer());
+            if (applyPosition) {
+                epHandle.setPosition(pos.getX(), pos.getY(), pos.getZ());
+            }
+            epHandle.setMotVector(vel);
+
+            RelativeFlags flags = RelativeFlags.ABSOLUTE_POSITION
+                    .withRelativeRotation()
+                    .withAbsoluteDelta();
+            if (!applyPosition) {
+                flags = flags.withRelativePosition();
+            }
+            PacketPlayOutPositionHandle packet = PacketPlayOutPositionHandle.createNew(
+                    pos.getX(), pos.getY(), pos.getZ(), 0.0f, 0.0f,
+                    vel.getX(), vel.getY(), vel.getZ(), flags);
+            viewer.send(packet);
+        }
+    }
+
+    private void setOnSurface(CollisionSurfaceImpl surface, Vector relativePosition) {
+        if (this.activeSurface == null) {
+            checkSurfaceValid(surface);
+            Vector vel = viewer.getPlayer().getVelocity();
+            velocityRotation(surface.shape).invTransformPoint(vel);
+            this.activeSurface = new ActiveSurface(surface, relativePosition, vel);
+        } else if (this.activeSurface.surface != surface) {
+            Vector vel = this.activeSurface.getAbsoluteVelocity();
+            velocityRotation(surface.shape).invTransformPoint(vel);
+            this.activeSurface = new ActiveSurface(surface, relativePosition, vel);
+        } else {
+            this.activeSurface.airborne = false;
+            MathUtil.setVector(this.activeSurface.relativePosition, relativePosition);
+        }
     }
 
     /**
@@ -79,11 +234,125 @@ public class CollisionSurfaceTracker {
         return wallTiles.computeIfAbsent(face, f -> new CollisionWallTileGrid(shulkerCache, f));
     }
 
+    private ActiveSurface getAbsoluteSurface(CollisionSurfaceImpl surface, Vector playerLocation, Vector playerVelocity) {
+        checkSurfaceValid(surface);
+
+        OrientedBoundingBox shape = surface.shape;
+
+        // Calculate the position on the surface the player had
+        Vector relativePosition = playerLocation.clone();
+        relativePosition.subtract(shape.getPosition());
+        shape.getOrientation().invTransformPoint(relativePosition);
+
+        // Calculate the forward-relative velocity on the surface.
+        // Y stays the same (jump) but the X/Z needs to be rotated the same way the surface is (yaw)
+        Vector relativeVelocity = playerVelocity.clone();
+        velocityRotation(shape).invTransformPoint(relativeVelocity);
+
+        return new ActiveSurface(surface, relativePosition, relativeVelocity);
+    }
+
+    /**
+     * The surface a player is actively walking on. The last surface the player is on
+     * is 'tagged' and from then on all player movement is relative to it. This ensures the
+     * player can walk on a moving surface (train).<br>
+     * <br>
+     * It's possible for the surface the player walks on to be de-spawned, in which case the
+     * player is 'freed' automatically and normal physics take over until the player collides
+     * with a different surface.
+     */
+    private static class ActiveSurface {
+        /** Surface relative to which the player is moving */
+        public final CollisionSurfaceImpl surface;
+        /** Last bounding box shape of the surface (before it was removed...) */
+        public OrientedBoundingBox lastKnownShape;
+        /** Position of the player relative to the surface */
+        public final Vector relativePosition;
+        /** Velocity of the player relative to the surface (except Y, which is still world-absolute) */
+        public final Vector relativeVelocity;
+        /** When the player jumps, the player is set airborne and can land on another surface */
+        public boolean airborne;
+
+        public ActiveSurface(CollisionSurfaceImpl surface, Vector relativePosition, Vector relativeVelocity) {
+            checkSurfaceValid(surface);
+
+            // Assign surface
+            this.surface = surface;
+            this.lastKnownShape = surface.shape;
+            this.relativePosition = relativePosition;
+            this.relativeVelocity = relativeVelocity;
+            this.airborne = false;
+        }
+
+        public void updatePhysics(AttachmentViewer viewer, AttachmentViewer.MovementController pmc) {
+            AttachmentViewer.Input input = pmc.getInput();
+            if (input.hasWalkInput()) {
+                Vector vel = new Vector(0.1 * input.sidewaysSigNum(), 0.0, 0.1 * input.forwardsSigNum());
+                Quaternion.fromLookDirection(viewer.getPlayer().getEyeLocation().getDirection().setY(0.0), new Vector(0, 1, 0))
+                        .transformPoint(vel);
+                velocityRotation(lastKnownShape).invTransformPoint(vel);
+                this.relativeVelocity.add(vel);
+            }
+
+            this.relativePosition.add(this.relativeVelocity);
+            this.relativeVelocity.multiply(0.6);
+
+            Vector halfSize = lastKnownShape.getSize().clone().multiply(0.5);
+
+            if (airborne) {
+                // Gravity
+                this.relativeVelocity.setY(this.relativeVelocity.getY() - 0.15);
+
+            } else if (input.jumping() && !input.sneaking()) {
+                this.relativeVelocity.setY(this.relativeVelocity.getY() + 1.8);
+                airborne = true;
+            } else if (Math.abs(this.relativePosition.getX()) > halfSize.getX() || Math.abs(this.relativePosition.getZ()) > halfSize.getZ()) {
+                airborne = true;
+            } else {
+                // No vertical velocity
+                this.relativeVelocity.setY(0.0);
+                this.relativePosition.setY(0.0);
+            }
+        }
+
+        public Vector getAbsolutePosition() {
+            Vector pos = relativePosition.clone();
+            lastKnownShape.getOrientation().transformPoint(pos);
+            pos.add(lastKnownShape.getPosition());
+            return pos;
+        }
+
+        public Vector getAbsoluteVelocity() {
+            Vector rot = relativeVelocity.clone();
+            velocityRotation(lastKnownShape).transformPoint(rot);
+            return rot;
+        }
+    }
+
+    private static void checkSurfaceValid(CollisionSurfaceImpl surface) {
+        if (surface == null) {
+            throw new IllegalArgumentException("Surface is null");
+        }
+        if (surface.shape == null) {
+            throw new IllegalStateException("Surface was removed (shape is null)");
+        }
+    }
+
+    private static Quaternion velocityRotation(OrientedBoundingBox shape) {
+        return Quaternion.fromLookDirection(shape.getOrientation().forwardVector().setY(0.0));
+    }
+
+    /**
+     * A single collision surface spawned in using the API for this viewer
+     */
     private class CollisionSurfaceImpl implements CollisionSurface {
         private int updateCounter = 0;
         private OrientedBoundingBox shape;
         private int moveDetectedAtCount = 0;
         private boolean isMoving = false;
+
+        /** The last-known relative position of the viewer to this surface shape */
+        private Vector lastRelativePosition = null;
 
         public boolean isMoving() {
             return isMoving;
@@ -94,6 +363,13 @@ public class CollisionSurfaceTracker {
                 isMoving = false;
             }
             ++updateCounter;
+        }
+
+        public Vector computeRelativePosition(Vector absolutePosition) {
+            Vector rel = absolutePosition.clone();
+            rel.subtract(shape.getPosition());
+            shape.getOrientation().invTransformPoint(rel);
+            return rel;
         }
 
         @Override
