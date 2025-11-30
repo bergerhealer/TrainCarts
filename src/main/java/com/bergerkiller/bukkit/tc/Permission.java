@@ -55,6 +55,7 @@ public enum Permission implements IPermissionEnum {
     PROPERTY_EXIT_OFFSET("train.property.exitoffset", PermissionDefault.OP, "The player can change where players are ejected relative to the train"),
     PROPERTY_WAIT("train.property.wait", PermissionDefault.TRUE, "The player can change the wait distance, acceleration and deceleration of trains"),
 
+    COMMAND_EDIT("train.command.edit", PermissionDefault.TRUE, "The player can use the /train edit command to select trains. Owner permissions also apply."),
     COMMAND_DESTROY("train.command.destroy", PermissionDefault.OP, "The player can destroy owned carts through commands"),
     COMMAND_DESTROYALL("train.command.destroyall", PermissionDefault.OP, "The player can destroy all trains on the server"),
     COMMAND_FIXBUGGED("train.command.fixbugged", PermissionDefault.OP, "The player can destroy all bugged minecarts on the server"),

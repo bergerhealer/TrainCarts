@@ -394,6 +394,7 @@ public class GlobalCommands {
         sender.sendMessage(ChatColor.YELLOW + "TrainCarts' information has been saved to file.");
     }
 
+    @CommandRequiresPermission(Permission.COMMAND_EDIT)
     @Command("train edit")
     @CommandDescription("Selects a train the player is looking at for editing")
     private void commandEditLookingAt(

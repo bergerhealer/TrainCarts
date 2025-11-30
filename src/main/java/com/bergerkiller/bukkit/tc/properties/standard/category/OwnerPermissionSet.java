@@ -50,6 +50,7 @@ public final class OwnerPermissionSet extends FieldBackedStandardCartProperty<Se
         }
     }
 
+    @PropertyCheckPermission("ownerperms")
     @Command("cart owners permission")
     @CommandDescription("Display the owner permissions set for a cart")
     private void getProperty(
@@ -131,6 +132,7 @@ public final class OwnerPermissionSet extends FieldBackedStandardCartProperty<Se
         sender.sendMessage(ChatColor.GREEN + "Permission rules cleared.");
     }
 
+    @PropertyCheckPermission("ownerperms")
     @Command("train owners permission")
     @CommandDescription("Display the owner permissions set for a train")
     private void getProperty(
