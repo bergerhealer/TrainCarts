@@ -1228,6 +1228,10 @@ public class SignController implements LibraryComponent, Listener {
             }
 
             private void detectSignAction(SignActionHeader header) {
+                if (sign.isRemoved()) {
+                    return;
+                }
+
                 Optional<SignActionLookupMap.Entry> actionEntry = SignAction.getLookup().lookup(
                         this.createSignActionEvent(header, RailPiece.NONE /* ignore */));
 
