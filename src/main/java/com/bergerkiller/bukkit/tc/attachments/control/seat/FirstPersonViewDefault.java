@@ -1,7 +1,6 @@
 package com.bergerkiller.bukkit.tc.attachments.control.seat;
 
-import com.bergerkiller.bukkit.tc.Util;
-import com.bergerkiller.generated.net.minecraft.network.protocol.PacketHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundPlayerRotationPacketHandle;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.EquipmentSlot;
@@ -86,7 +85,7 @@ public class FirstPersonViewDefault extends FirstPersonView {
             } else if (seat.isRotationLocked()) {
                 // Body is locked, make the player face forwards according to the eye transform
                 HeadRotation rot = HeadRotation.compute(eyeTransform).ensureLevel();
-                viewer.send(Util.createAbsoluteRotationPacket(rot.yaw, rot.pitch));
+                viewer.send(ClientboundPlayerRotationPacketHandle.createAbsolute(rot.yaw, rot.pitch));
             }
 
             if (useFakeCamera) {
@@ -191,13 +190,13 @@ public class FirstPersonViewDefault extends FirstPersonView {
             if (Math.abs(pyr.getX()) > 1e-5 || Math.abs(pyr.getY()) > 1e-5) {
                 if (getViewer().supportRelativeRotationUpdate()) {
                     // Relative update
-                    PacketHandle p = Util.createRelativeRotationPacket((float) pyr.getY(), (float) pyr.getX());
-                    this._playerPitchRemainder = (pyr.getX() - Util.getRotationPacketPitch(p));
-                    this._playerYawRemainder = (pyr.getY() - Util.getRotationPacketYaw(p));
+                    ClientboundPlayerRotationPacketHandle p = ClientboundPlayerRotationPacketHandle.createRelative((float) pyr.getY(), (float) pyr.getX());
+                    this._playerPitchRemainder = (pyr.getX() - p.getPitch());
+                    this._playerYawRemainder = (pyr.getY() - p.getYaw());
                     this.player.send(p);
                 } else {
                     // Must do it with an absolute update. Ew! Breaks client behavior a bit.
-                    PacketHandle p = Util.createAbsoluteRotationPacket(
+                    ClientboundPlayerRotationPacketHandle p = ClientboundPlayerRotationPacketHandle.createAbsolute(
                             (float) (pyr.getY() + player_pyr.getY()),
                             (float) (pyr.getX() - player_pyr.getX()));
                     this._playerPitchRemainder = 0.0;

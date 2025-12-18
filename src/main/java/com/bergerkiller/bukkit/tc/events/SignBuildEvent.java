@@ -124,7 +124,6 @@ public class SignBuildEvent extends SignChangeActionEvent {
 
     /**
      * Used for handling a BKCommonLib {@link SignEditTextEvent} as a SignBuildEvent.
-     * This will probably be removed when BKCommonLib 1.21.1-v2+ is a hard-dependency.
      */
     public static class BKCLSignEditBuildEvent extends SignBuildEvent {
 

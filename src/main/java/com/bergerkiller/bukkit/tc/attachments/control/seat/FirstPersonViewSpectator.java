@@ -7,8 +7,8 @@ import com.bergerkiller.bukkit.common.protocol.PacketType;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.wrappers.RelativeFlags;
-import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.player.network.PlayerPacketListener;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundPlayerRotationPacketHandle;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayInFlyingHandle;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutPositionHandle;
 import com.bergerkiller.generated.net.minecraft.server.level.EntityPlayerHandle;
@@ -389,7 +389,7 @@ public class FirstPersonViewSpectator extends FirstPersonView {
         protected void makeAdjustment(SpectatorInput.YawPitch newYawPitch, final float pitchAdjustment) {
             player.getClientSynchronizer().synchronizeBundle(
                     Collections.singletonList(
-                            Util.createRelativeRotationPacket(0.0f, pitchAdjustment)
+                            ClientboundPlayerRotationPacketHandle.createRelative(0.0f, pitchAdjustment)
                     ),
                     this::ackPitchAdjustStart,
                     () -> ackPitchAdjustDone(pitchAdjustment));
@@ -435,7 +435,7 @@ public class FirstPersonViewSpectator extends FirstPersonView {
         protected void makeAdjustment(final SpectatorInput.YawPitch newYawPitch, final float pitchAdjustment) {
             player.getClientSynchronizer().synchronizeBundle(
                     Collections.singletonList(
-                            Util.createAbsoluteRotationPacket(newYawPitch.yaw, 0.0f)
+                            ClientboundPlayerRotationPacketHandle.createAbsolute(newYawPitch.yaw, 0.0f)
                     ),
                     this::ackPitchAdjustStart,
                     () -> ackAbsoluteRotationAdjust(newYawPitch.yaw, pitchAdjustment));

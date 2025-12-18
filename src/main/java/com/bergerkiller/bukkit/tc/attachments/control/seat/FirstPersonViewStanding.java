@@ -1,6 +1,6 @@
 package com.bergerkiller.bukkit.tc.attachments.control.seat;
 
-import com.bergerkiller.bukkit.tc.Util;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundPlayerRotationPacketHandle;
 import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity;
@@ -31,7 +31,7 @@ public class FirstPersonViewStanding extends FirstPersonViewDefault {
         if (!isReload && seat.isRotationLocked()) {
             // Body is locked, make the player face forwards according to the eye transform
             HeadRotation rot = HeadRotation.compute(getEyeTransform()).ensureLevel();
-            viewer.send(Util.createAbsoluteRotationPacket(rot.yaw, rot.pitch));
+            viewer.send(ClientboundPlayerRotationPacketHandle.createAbsolute(rot.yaw, rot.pitch));
         }
 
         // Move the player to where the player should be

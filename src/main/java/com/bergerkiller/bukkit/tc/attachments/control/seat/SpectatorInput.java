@@ -1,6 +1,6 @@
 package com.bergerkiller.bukkit.tc.attachments.control.seat;
 
-import com.bergerkiller.bukkit.tc.Util;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundPlayerRotationPacketHandle;
 import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
@@ -127,7 +127,7 @@ class SpectatorInput {
     }
 
     private void sendRotation(float pitch, float yaw) {
-        player.send(Util.createAbsoluteRotationPacket(yaw, pitch));
+        player.send(ClientboundPlayerRotationPacketHandle.createAbsolute(yaw, pitch));
     }
 
     private static boolean isUpsideDown(Quaternion q) {

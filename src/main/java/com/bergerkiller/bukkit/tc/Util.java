@@ -22,17 +22,11 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.logging.Level;
 
-import com.bergerkiller.bukkit.common.Common;
-import com.bergerkiller.bukkit.common.wrappers.RelativeFlags;
-import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
 import com.bergerkiller.bukkit.tc.utils.QuoteEscapedString;
-import com.bergerkiller.generated.net.minecraft.network.protocol.PacketHandle;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundPlayerRotationPacketHandle;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityEquipmentHandle;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutPositionHandle;
 import com.bergerkiller.generated.net.minecraft.server.network.PlayerConnectionHandle;
 import com.bergerkiller.mountiplex.reflection.util.FastMethod;
 import org.bukkit.Bukkit;
@@ -2113,97 +2107,6 @@ public class Util {
     @Deprecated
     public static String escapeQuotedArgument(String text) {
         return QuoteEscapedString.quoteEscape(text).getEscaped();
-    }
-
-    /**
-     * Creates a relative rotation update packet for a player. Beware: does not work on all
-     * versions of the game!
-     *
-     * @param relativeYaw Relative yaw change
-     * @param relativePitch Relative pitch change
-     * @return Relative rotation packet
-     * @see AttachmentViewer#supportRelativeRotationUpdate()
-     */
-    public static PacketHandle createRelativeRotationPacket(float relativeYaw, float relativePitch) {
-        return PLAYER_ROTATION_PACKET_CREATOR.create(relativeYaw, true, relativePitch, true);
-    }
-
-    public static PacketHandle createAbsoluteRotationPacket(float yaw, float pitch) {
-        return PLAYER_ROTATION_PACKET_CREATOR.create(yaw, false, pitch, false);
-    }
-
-    public static float getRotationPacketYaw(PacketHandle p) {
-        return PLAYER_ROTATION_PACKET_CREATOR.getYaw(p);
-    }
-
-    public static float getRotationPacketPitch(PacketHandle p) {
-        return PLAYER_ROTATION_PACKET_CREATOR.getPitch(p);
-    }
-
-    // Can be removed once BKCommonLib 1.21.2-v2 or later is a hard-dependency
-    private static final PlayerRotationPacketCreator PLAYER_ROTATION_PACKET_CREATOR = getPlayerRotationPacketCreator();
-    private static PlayerRotationPacketCreator getPlayerRotationPacketCreator() {
-        if (Common.hasCapability("Common:Packet:PlayerRotationPacket")) {
-            return new PlayerRotationPacketCreator() {
-                @Override
-                public PacketHandle create(float yaw, boolean isYawRelative, float pitch, boolean isPitchRelative) {
-                    return ClientboundPlayerRotationPacketHandle.createNew(yaw, isYawRelative, pitch, isPitchRelative);
-                }
-
-                @Override
-                public float getYaw(PacketHandle p) {
-                    return ((ClientboundPlayerRotationPacketHandle) p).getYaw();
-                }
-
-                @Override
-                public float getPitch(PacketHandle p) {
-                    return ((ClientboundPlayerRotationPacketHandle) p).getPitch();
-                }
-            };
-        } else {
-            final FastMethod<RelativeFlags> fromFlags =  new FastMethod<>();
-            try {
-                fromFlags.init(RelativeFlags.class.getDeclaredMethod("fromFlags", int.class));
-                fromFlags.forceInitialization();
-            } catch (Throwable t) {
-                fromFlags.initUnavailable("Error: " + t.getMessage());
-                TrainCarts.plugin.getLogger().log(Level.SEVERE, "Failed to load up rotation packet handler", t);
-            }
-
-            return new PlayerRotationPacketCreator() {
-                @Override
-                public PacketHandle create(float yaw, boolean isYawRelative, float pitch, boolean isPitchRelative) {
-                    // I was stupid and did not include a separate yaw/pitch withType function
-                    // So we got to compose it ourselves using the int flags mask...
-                    int flagsMask = 1 | (1 << 1) | (1 << 2); // x y z
-                    if (isYawRelative) {
-                        flagsMask |= (1 << 3);
-                    }
-                    if (isPitchRelative) {
-                        flagsMask |= (1 << 4);
-                    }
-
-                    RelativeFlags flags = fromFlags.invoke(null, flagsMask);
-                    return PacketPlayOutPositionHandle.createNew(
-                            0.0, 0.0, 0.0, yaw, pitch, flags);
-                }
-
-                @Override
-                public float getYaw(PacketHandle p) {
-                    return ((PacketPlayOutPositionHandle) p).getYaw();
-                }
-
-                @Override
-                public float getPitch(PacketHandle p) {
-                    return ((PacketPlayOutPositionHandle) p).getPitch();
-                }
-            };
-        }
-    }
-    private interface PlayerRotationPacketCreator {
-        PacketHandle create(float yaw, boolean isYawRelative, float pitch, boolean isPitchRelative);
-        float getYaw(PacketHandle p);
-        float getPitch(PacketHandle p);
     }
 
     private static final EnumMap<ChatColor, Color> COLOR_TO_RGB = new EnumMap<>(ChatColor.class);

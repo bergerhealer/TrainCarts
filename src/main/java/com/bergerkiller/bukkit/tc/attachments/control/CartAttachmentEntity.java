@@ -36,7 +36,7 @@ import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlay
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutSpawnEntityLivingHandle;
 import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
 import com.bergerkiller.generated.net.minecraft.world.entity.decoration.EntityArmorStandHandle;
-import com.bergerkiller.generated.net.minecraft.world.entity.vehicle.EntityBoatHandle;
+import com.bergerkiller.generated.net.minecraft.world.entity.vehicle.boat.EntityBoatHandle;
 
 /**
  * A cart attachment that is a standard Entity.
