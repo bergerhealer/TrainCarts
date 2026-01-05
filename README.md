@@ -32,57 +32,13 @@ For custom ride enthusiasts, trains can be fully animated. This means you can ha
 #### Demo Resource Pack
 <img src="https://raw.githubusercontent.com/bergerhealer/TrainCarts/master/misc/train_banner.png"/>
 
+[Download](https://packs.traincarts.net/)
+
 TrainCarts has a demo resource pack that you can download that includes a couple of train and rollercoaster cart models. You can already play around with these without having to delve into Blockbench yourself
 
 The locomotive and carriages were made by Nullblox. Maxi made the different color rollercoaster carts.
 
-<details>
-<summary>Installation Instructions 1.19.3</summary>
-
-#### Option A Configure the resource pack in server.properties
-The preferred way is to configure the resource pack on the server end. This way not only will clients automatically load the resource pack, Traincarts can read the resource pack and show the models ingame in the attachment editor. This also makes the models listable under <code>/train model search</code> and automatically loads the saved trains from them.
-```
-resource-pack=http://resourcepack.host/dl/7WhMys1sduesiVlWz0m521zXkg5OU46L/TrainCarts_Demo_TP_v4.zip
-resource-pack-sha1=CB87E9E06E3CC72627F5A9A597688845CA3C3CD4
-```
-
-#### Option B Download the resource pack and host it yourself
-[Download it from Dropbox here](https://www.dropbox.com/s/rq1f43g5stb9c9b/TrainCarts_Demo_TP_v4.zip?dl=1)
-
-Host the zip file somewhere on a FTP, your own server, a public resource pack host or some form of cloud storage that allows for a direct download. Then add the URL to your **server.properties**:<br>
-<code>resource-pack=https://your-domain/path/to/TrainCarts_Demo_TP_v4.zip</code>
-</details>
-
-<details>
-<summary>Installation Instructions (Old Minecraft Versions)</summary>
-
-#### 1. Download the resource pack
-[Download it from Dropbox here](https://www.dropbox.com/s/th8ei3crc01bfx2/TrainCarts_Demo_TP_v3.zip?dl=1)
-
-#### 2.A: Host it
-Host the zip file somewhere on a FTP, your own server, a public resource pack host or some form of cloud storage that allows for a direct download. Then add the URL to your **server.properties**:<br>
-<code>resource-pack=https://your-domain/path/to/TrainCarts_Demo_TP_v3.zip</code>
-
-This is the recommended way, as this way the train models also show properly inside the attachment editor.
-
-#### 2.B: Enable it in your client
-You can follow [this tutorial](https://minecraft.wiki/w/Tutorials/Loading_a_resource_pack) on the Minecraft Wiki to install the zip file as a resource pack in your Minecraft client.
-
-**Important note**: you will get a warning about the resource pack being outdated, but it works just fine on modern versions of Minecraft. That warning can be ignored.
-
-#### 3. Download the train configurations
-[Download a zip file with the configuration from Dropbox here](https://www.dropbox.com/s/l9uglizl6gbunxe/TrainCarts_Demo_ST_v1.zip?dl=0)
-
-#### 4. Extract the zip file
-Extract the zip file, you should now have a fairly large _tcdemo.yml_ file. This file is going to be installed on the server.
-
-#### 5. Install the tcdemo.yml
-Install this file at <code>plugins/Train_Carts/savedTrainModules/tcdemo.yml</code>
-
-#### 6. Reload saved trains
-Either restart the server, or use <code>/train globalconfig reload --savedtrainproperties</code>
-***
-</details>
+You can download the zip file from here or use the server.properties configuration shown on the webpage: [packs.traincarts.net](https://packs.traincarts.net/)
 
 <details>
 <summary>Usage Instructions</summary>
@@ -102,6 +58,21 @@ The new models are bound to durability values of the golden pickaxe. You can spa
 * spinner - Animated spinning ride with 3 controllable animations ('spin', 'turn' and 'arm')
 * rolr / rolg / rolb - Rollercoaster carts with 4 seats
 ***
+</details>
+
+<details>
+<summary>Saved Train Configurations</summary>
+
+#### Extracting
+
+The pack zip file includes saved train configurations at _assets/traincarts/saved_train_properties/tcdemo.yml_.
+When the resource pack is configured in _server.properties_ this file is automatically detected by TrainCarts and the trains inside are made available under _/savedtrain list_ and such.
+
+If for some reason this mechanism doesn't work (because you are merging resource packs or such):
+1. Extract this _tcdemo.yml_ yourself and place it at <code>plugins/Train_Carts/savedTrainModules/tcdemo.yml</code>
+2. Run <code>/train globalconfig reload --savedtrainproperties</code>
+
+Normally you don't have to do this.
 </details>
 
 ## Physics
