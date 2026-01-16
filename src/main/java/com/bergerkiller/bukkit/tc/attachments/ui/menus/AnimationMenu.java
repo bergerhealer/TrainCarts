@@ -74,6 +74,11 @@ public class AnimationMenu extends MapWidgetMenu implements AnimationFramesImpor
     private final MapWidgetAnimationView animView = new MapWidgetAnimationView() {
         @Override
         public void onAnimationChanged(Animation animation) {
+            // Ignore empty menu
+            if (animation == null) {
+                return;
+            }
+
             String old_name = animSelectionBox.getSelectedItem();
             String new_name = animation.getOptions().getName();
             boolean is_name_change = (old_name != null && !old_name.equals(new_name));
