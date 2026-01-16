@@ -1,10 +1,15 @@
 package com.bergerkiller.bukkit.tc.attachments.ui.animation;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
 
+import com.bergerkiller.bukkit.common.internal.CommonCapabilities;
+import com.bergerkiller.bukkit.common.utils.LogicUtil;
+import com.bergerkiller.bukkit.tc.attachments.ui.AnimationFramesImportExport;
 import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.events.map.MapKeyEvent;
@@ -22,7 +27,7 @@ import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetTooltip;
  * Displays all animation nodes, a header and a scrollbar
  * in one view
  */
-public class MapWidgetAnimationView extends MapWidget {
+public class MapWidgetAnimationView extends MapWidget implements AnimationFramesImportExport {
     private static final int SCROLL_WIDTH = 3;
     private static final int LOOP_TICK_DELAY = 20;
     private MapWidgetAnimationHeader _header;
@@ -52,6 +57,15 @@ public class MapWidgetAnimationView extends MapWidget {
     public MapWidgetAnimationView() {
         this.focusEditTooltip.setDepthOffset(2);
         this.focusEditTooltip.setBounds(1, 28, 106, 10);
+    }
+
+    /**
+     * Called every time {@link #setAnimation(Animation)} is called with a change in animation.
+     * Implementers should perform things like saving to configuration here.
+     *
+     * @param animation New animation configuration
+     */
+    public void onAnimationChanged(Animation animation) {
     }
 
     /**
@@ -102,6 +116,8 @@ public class MapWidgetAnimationView extends MapWidget {
         this._animation = animation;
         this.setFocusable(animation != null && animation.getNodeCount() > 0);
         this.updateView();
+
+        this.onAnimationChanged(animation);
         return this;
     }
 
@@ -360,9 +376,9 @@ public class MapWidgetAnimationView extends MapWidget {
     }
 
     /**
-     * Gets a list of all the Animation Node entries currently selected
+     * Gets an unmodifiable list of all the Animation Node entries currently selected
      * 
-     * @return list of selected nodes
+     * @return unmodifiable list of selected nodes
      */
     public List<AnimationNode> getSelectedNodes() {
         if (this._animation == null) return Collections.emptyList();
@@ -381,7 +397,136 @@ public class MapWidgetAnimationView extends MapWidget {
                 result.add(this._animation.getNode(i));
             }
         }
-        return result;
+        return Collections.unmodifiableList(result);
+    }
+
+    /**
+     * Gets an unmodifiable list of all the Animation Nodes shown in this menu
+     *
+     * @return unmodifiable list of nodes
+     */
+    public List<AnimationNode> getAllNodes() {
+        if (this._animation == null) return Collections.emptyList();
+        return Collections.unmodifiableList(new ArrayList<>(Arrays.asList(this._animation.getNodeArray())));
+    }
+
+
+    /**
+     * Updates the value of an existing animation node.
+     * Sends a preview update as well
+     *
+     * @param nodes Node values to replace it with
+     */
+    public void updateAnimationNodes(List<AnimationNode> nodes) {
+        updateAnimationNodes(nodes, false);
+    }
+
+    /**
+     * Updates the value of an existing animation node.
+     * Sends a preview update as well
+     *
+     * @param nodes Node values to replace it with
+     * @param replaceAllNodes Whether to replace just the selected nodes (false),
+     *                        or all animation nodes (true)
+     */
+    public void updateAnimationNodes(List<AnimationNode> nodes, boolean replaceAllNodes) {
+        Animation old_anim = this.getAnimation();
+        if (old_anim == null) {
+            return;
+        }
+
+        int start = this.getSelectionStart();
+        int end = this.getSelectionEnd();
+
+        // System.out.println("NODE[" + index + "] = " + node.serializeToString());
+
+        AnimationNode[] old_nodes = old_anim.getNodeArray();
+        AnimationNode[] new_nodes;
+        if (replaceAllNodes) {
+            new_nodes = nodes.toArray(new AnimationNode[0]);
+        } else if ((end - start + 1) == nodes.size()) {
+            // Minor optimization when the number of nodes does not change
+            new_nodes = old_nodes.clone();
+            for (int i = 0; i < nodes.size(); i++) {
+                int new_i = start + i;
+                if (new_i >= 0 && new_i <= end && new_i < new_nodes.length) {
+                    new_nodes[new_i] = nodes.get(i);
+                }
+            }
+        } else {
+            // Create a new list entirely
+            List<AnimationNode> new_nodes_list = new ArrayList<>(old_nodes.length + nodes.size());
+            for (int i = 0; i < start; i++) {
+                new_nodes_list.add(old_nodes[i]);
+            }
+            new_nodes_list.addAll(nodes);
+            for (int i = end + 1; i < old_nodes.length; i++) {
+                new_nodes_list.add(old_nodes[i]);
+            }
+            new_nodes = new_nodes_list.toArray(new AnimationNode[0]);
+        }
+
+        Animation replacement = new Animation(old_anim.getOptions().getName(), new_nodes);
+        replacement.setOptions(old_anim.getOptions().clone());
+        this.setAnimation(replacement);
+
+        // Trigger preview
+        onSelectionChanged();
+    }
+
+    /**
+     * Duplicates the node at the index and inserts a clone at index+1.
+     */
+    public void duplicateAnimationNodes() {
+        insertNewAnimationNodes(this.getSelectedNodes());
+    }
+
+    /**
+     * Inserts new animation nodes below the player's current selection
+     *
+     * @param nodes List of AnimationNode to insert
+     */
+    public void insertNewAnimationNodes(List<AnimationNode> nodes) {
+        if (nodes.isEmpty()) {
+            return;
+        }
+
+        Animation old_anim = this.getAnimation();
+        if (old_anim == null) {
+            return;
+        }
+
+        // Avoid duplicate scene names. Clone without scene name if already used.
+        // In the case of duplicate() this will always clone without scene name.
+        HashSet<String> usedSceneNames = new HashSet<>(old_anim.getSceneNames());
+        List<AnimationNode> originalNodes = Arrays.asList(old_anim.getNodeArray());
+        int newGroupStartIndex = this.getSelectionEnd() + 1;
+        ArrayList<AnimationNode> tmp = new ArrayList<AnimationNode>(originalNodes.size() + nodes.size());
+        tmp.addAll(originalNodes.subList(0, newGroupStartIndex));
+        for (AnimationNode node : nodes) {
+            if (!node.hasSceneMarker() || usedSceneNames.add(node.getSceneMarker())) {
+                tmp.add(node.clone());
+            } else {
+                tmp.add(node.cloneWithoutSceneMarker());
+            }
+        }
+        tmp.addAll(originalNodes.subList(newGroupStartIndex, originalNodes.size()));
+
+        AnimationNode[] new_nodes = LogicUtil.toArray(tmp, AnimationNode.class);
+        Animation replacement = new Animation(old_anim.getOptions().getName(), new_nodes);
+        replacement.setOptions(old_anim.getOptions().clone());
+        this.setAnimation(replacement);
+
+        // Note: if multiple were selected, selects the entire newly created group
+        this.setSelectedIndex(newGroupStartIndex);
+        this.setSelectedItemRange(nodes.size() - 1);
+
+        // Feedback tune
+        if (CommonCapabilities.KEYED_EFFECTS) {
+            display.playSound(SoundEffect.fromName("block.note_block.snare"));
+        } else {
+            display.playSound(SoundEffect.fromName("note.snare"));
+        }
     }
 
     /**
@@ -651,5 +796,31 @@ public class MapWidgetAnimationView extends MapWidget {
             buffer[i] = colors[rand.nextInt(colors.length)];
         }
         return result;
+    }
+
+    @Override
+    public String getAnimationName() {
+        Animation anim = this.getAnimation();
+        return anim != null ? anim.getOptions().getName() : null;
+    }
+
+    @Override
+    public List<AnimationNode> exportAnimationFrames() {
+        // Preserve multi-selection but otherwise export everything
+        List<AnimationNode> selected = this.getSelectedNodes();
+        return (selected.size() > 1) ? selected : this.getAllNodes();
+    }
+
+    @Override
+    public void importAnimationFrames(List<AnimationNode> frames, boolean insert) {
+        if (insert) {
+            insertNewAnimationNodes(frames);
+        } else if (this.getSelectedNodes().size() > 1) {
+            // User made a (multi-) selection, so only replace those
+            updateAnimationNodes(frames, false);
+        } else {
+            // User has not made a selection, replace entire animation
+            updateAnimationNodes(frames, true);
+        }
     }
 }

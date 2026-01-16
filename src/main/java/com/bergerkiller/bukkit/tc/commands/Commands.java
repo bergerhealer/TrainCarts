@@ -94,6 +94,7 @@ public class Commands {
     private final TrainChestCommands commands_train_chest = new TrainChestCommands();
     private final TrainLocatorCommands commands_train_locator = new TrainLocatorCommands();
     private final TicketCommands commands_train_ticket = new TicketCommands();
+    private final TrainAnimationCommands commands_train_animation = new TrainAnimationCommands();
     private final SavedTrainCommands commands_savedtrain = new SavedTrainCommands();
     private final ModelStoreCommands commands_modelstore = new ModelStoreCommands();
 
@@ -281,6 +282,7 @@ public class Commands {
         cloud.annotations(commands_train_chest);
         cloud.annotations(commands_train_locator);
         cloud.annotations(commands_train_ticket);
+        cloud.annotations(commands_train_animation);
         cloud.annotations(commands_savedtrain);
         cloud.annotations(commands_modelstore);
 

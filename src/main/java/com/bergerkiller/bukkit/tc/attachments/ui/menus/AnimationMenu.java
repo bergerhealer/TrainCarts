@@ -2,12 +2,12 @@ package com.bergerkiller.bukkit.tc.attachments.ui.menus;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashSet;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
+import com.bergerkiller.bukkit.tc.attachments.ui.AnimationFramesImportExport;
 import org.bukkit.entity.Player;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
@@ -35,7 +35,7 @@ import com.bergerkiller.bukkit.tc.attachments.ui.animation.ConfirmAnimationDelet
 import com.bergerkiller.bukkit.tc.attachments.ui.animation.MapWidgetAnimationView;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 
-public class AnimationMenu extends MapWidgetMenu {
+public class AnimationMenu extends MapWidgetMenu implements AnimationFramesImportExport {
     private PlaybackMode playbackMode = PlaybackMode.ENTIRE_ANIMATION;
     private boolean playForAll = false;
     private final MapWidgetSelectionBox animSelectionBox = new MapWidgetSelectionBox() { // anchor
@@ -72,6 +72,36 @@ public class AnimationMenu extends MapWidgetMenu {
         }
     };
     private final MapWidgetAnimationView animView = new MapWidgetAnimationView() {
+        @Override
+        public void onAnimationChanged(Animation animation) {
+            String old_name = animSelectionBox.getSelectedItem();
+            String new_name = animation.getOptions().getName();
+            boolean is_name_change = (old_name != null && !old_name.equals(new_name));
+
+            // If name was changed, delete the original animation
+            if (is_name_change) {
+                getAnimRootConfig().remove(old_name);
+            }
+
+            // Save to configuration
+            animation.saveToParentConfig(getAnimRootConfig());
+
+            if (is_name_change) {
+                // If name change, add the new name and select it, then delete the old item
+                // This prevents too many unneeded reloading
+                animSelectionBox.addItem(new_name);
+                animSelectionBox.setSelectedItem(new_name);
+                animSelectionBox.removeItem(old_name);
+            } else if (!animSelectionBox.getItems().contains(new_name)) {
+                // Add the new animation and select it
+                animSelectionBox.addItem(new_name);
+                animSelectionBox.setSelectedItem(new_name);
+            }
+
+            // Sync() right away. This will cause the live attachments to reload the animation
+            AnimationMenu.this.sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
+        }
+
         @Override
         public void onSelectionActivated() {
             List<AnimationNode> nodes = this.getSelectedNodes();
@@ -435,56 +465,16 @@ public class AnimationMenu extends MapWidgetMenu {
      * Duplicates the node at the index and inserts a clone at index+1.
      */
     public void duplicateAnimationNodes() {
-        insertNewAnimationNodes(this.animView.getSelectedNodes());
+        animView.duplicateAnimationNodes();
     }
 
     /**
-     * Inserts the nodes specified below the current selection.
-     * Selects the newly inserted nodes.
+     * Inserts new animation nodes below the player's current selection
      *
-     * @param nodes
+     * @param nodes List of AnimationNode to insert
      */
     public void insertNewAnimationNodes(List<AnimationNode> nodes) {
-        if (nodes.isEmpty()) {
-            return;
-        }
-
-        Animation old_anim = this.animView.getAnimation();
-        if (old_anim == null) {
-            return;
-        }
-
-        // Avoid duplicate scene names. Clone without scene name if already used.
-        // In the case of duplicate() this will always clone without scene name.
-        HashSet<String> usedSceneNames = new HashSet<>(old_anim.getSceneNames());
-        List<AnimationNode> originalNodes = Arrays.asList(old_anim.getNodeArray());
-        int newGroupStartIndex = this.animView.getSelectionEnd() + 1;
-        ArrayList<AnimationNode> tmp = new ArrayList<AnimationNode>(originalNodes.size() + nodes.size());
-        tmp.addAll(originalNodes.subList(0, newGroupStartIndex));
-        for (AnimationNode node : nodes) {
-            if (!node.hasSceneMarker() || usedSceneNames.add(node.getSceneMarker())) {
-                tmp.add(node.clone());
-            } else {
-                tmp.add(node.cloneWithoutSceneMarker());
-            }
-        }
-        tmp.addAll(originalNodes.subList(newGroupStartIndex, originalNodes.size()));
-
-        AnimationNode[] new_nodes = LogicUtil.toArray(tmp, AnimationNode.class);
-        Animation replacement = new Animation(old_anim.getOptions().getName(), new_nodes);
-        replacement.setOptions(old_anim.getOptions().clone());
-        setAnimation(replacement);
-
-        // Note: if multiple were selected, selects the entire newly created group
-        animView.setSelectedIndex(newGroupStartIndex);
-        animView.setSelectedItemRange(nodes.size() - 1);
-
-        // Feedback tune
-        if (CommonCapabilities.KEYED_EFFECTS) {
-            display.playSound(SoundEffect.fromName("block.note_block.snare"));
-        } else {
-            display.playSound(SoundEffect.fromName("note.snare"));
-        }
+        animView.insertNewAnimationNodes(nodes);
     }
 
     /**
@@ -517,33 +507,23 @@ public class AnimationMenu extends MapWidgetMenu {
     /**
      * Updates the value of an existing animation node.
      * Sends a preview update as well
-     * 
+     *
      * @param nodes Node values to replace it with
      */
     public void updateAnimationNodes(List<AnimationNode> nodes) {
-        Animation old_anim = this.animView.getAnimation();
-        if (old_anim == null) {
-            return;
-        }
+        this.animView.updateAnimationNodes(nodes);
+    }
 
-        int start = this.animView.getSelectionStart();
-        int end = this.animView.getSelectionEnd();
-
-        // System.out.println("NODE[" + index + "] = " + node.serializeToString());
-
-        AnimationNode[] new_nodes = old_anim.getNodeArray().clone();
-        for (int i = 0; i < nodes.size(); i++) {
-            int new_i = start + i;
-            if (new_i >= 0 && new_i <= end && new_i < new_nodes.length) {
-                new_nodes[new_i] = nodes.get(i);
-            }
-        }
-
-        Animation replacement = new Animation(old_anim.getOptions().getName(), new_nodes);
-        replacement.setOptions(old_anim.getOptions().clone());
-        setAnimation(replacement);
-
-        previewAnimationNode(this.animView.getSelectedIndex(), this.animView.getSelectedNode());
+    /**
+     * Updates the value of an existing animation node.
+     * Sends a preview update as well
+     *
+     * @param nodes Node values to replace it with
+     * @param replaceAllNodes Whether to replace just the selected nodes (false),
+     *                        or all animation nodes (true)
+     */
+    public void updateAnimationNodes(List<AnimationNode> nodes, boolean replaceAllNodes) {
+        this.animView.updateAnimationNodes(nodes, replaceAllNodes);
     }
 
     /**
@@ -620,35 +600,8 @@ public class AnimationMenu extends MapWidgetMenu {
     }
 
     public void setAnimation(Animation animation) {
-        String old_name = this.animSelectionBox.getSelectedItem();
-        String new_name = animation.getOptions().getName();
-        boolean is_name_change = (old_name != null && !old_name.equals(new_name));
-
-        // If name was changed, delete the original animation
-        if (is_name_change) {
-            getAnimRootConfig().remove(old_name);
-        }
-
-        // Save to configuration
-        animation.saveToParentConfig(getAnimRootConfig());
-
-        if (is_name_change) {
-            // If name change, add the new name and select it, then delete the old item
-            // This prevents too many unneeded reloading
-            this.animSelectionBox.addItem(new_name);
-            this.animSelectionBox.setSelectedItem(new_name);
-            this.animSelectionBox.removeItem(old_name);
-        } else if (this.animSelectionBox.getItems().contains(new_name)) {
-            // Refresh animation view only
-            this.animView.setAnimation(animation);
-        } else {
-            // Add the new animation and select it
-            this.animSelectionBox.addItem(new_name);
-            this.animSelectionBox.setSelectedItem(new_name);
-        }
-
-        // Sync() right away. This will cause the live attachments to reload the animation
-        sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
+        // Propagated to onAnimationChanged where other logic, like renames, are handled.
+        this.animView.setAnimation(animation);
     }
 
     public ConfigurationNode getAnimRootConfig() {
@@ -657,6 +610,21 @@ public class AnimationMenu extends MapWidgetMenu {
 
     public MapWidgetAttachmentNode getAttachment() {
         return this.attachment;
+    }
+
+    @Override
+    public String getAnimationName() {
+        return this.animSelectionBox.getSelectedItem();
+    }
+
+    @Override
+    public List<AnimationNode> exportAnimationFrames() {
+        return animView.exportAnimationFrames();
+    }
+
+    @Override
+    public void importAnimationFrames(List<AnimationNode> frames, boolean insert) {
+        animView.importAnimationFrames(frames, insert);
     }
 
     private class MapWidgetPlaybackOptionsMenu extends MapWidgetMenu {

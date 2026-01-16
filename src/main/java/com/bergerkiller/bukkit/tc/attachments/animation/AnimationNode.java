@@ -19,6 +19,7 @@ public class AnimationNode implements Cloneable {
     private Quaternion _rotationQuat; // rotation as Quaternion
     private final boolean _active;
     private final double _duration;
+    private final boolean _hasValidDuration;
     private final String _scene; // null if not a scene start marker
 
     /**
@@ -29,14 +30,15 @@ public class AnimationNode implements Cloneable {
      * @param position, null to deactivate the attachment
      * @param rotationQuaternion
      * @param active whether the attachment is active (and visible) when this node is reached
-     * @param duration
+     * @param duration Delta-time (t) in seconds between the previous frame and this animation frame
      */
     public AnimationNode(Vector position, Quaternion rotationQuaternion, boolean active, double duration) {
         this._position = position;
         this._rotationVec = null;
         this._rotationQuat = rotationQuaternion;
         this._active = active;
-        this._duration = duration;
+        this._hasValidDuration = !Double.isNaN(duration);
+        this._duration = this._hasValidDuration ? duration : 0.0;
         this._scene = null;
     }
 
@@ -48,14 +50,15 @@ public class AnimationNode implements Cloneable {
      * @param position, null to deactivate the attachment
      * @param rotationVector
      * @param active whether the attachment is active (and visible) when this node is reached
-     * @param duration
+     * @param duration Delta-time (t) in seconds between the previous frame and this animation frame
      */
     public AnimationNode(Vector position, Vector rotationVector, boolean active, double duration) {
         this._position = position;
         this._rotationVec = rotationVector;
         this._rotationQuat = null;
         this._active = active;
-        this._duration = duration;
+        this._hasValidDuration = !Double.isNaN(duration);
+        this._duration = this._hasValidDuration ? duration : 0.0;
         this._scene = null;
     }
 
@@ -67,7 +70,7 @@ public class AnimationNode implements Cloneable {
      * @param position, null to deactivate the attachment
      * @param rotationVector
      * @param active whether the attachment is active (and visible) when this node is reached
-     * @param duration
+     * @param duration Delta-time (t) in seconds between the previous frame and this animation frame
      * @param scene Scene start marker, null for none
      */
     public AnimationNode(Vector position, Vector rotationVector, boolean active, double duration, String scene) {
@@ -75,7 +78,8 @@ public class AnimationNode implements Cloneable {
         this._rotationVec = rotationVector;
         this._rotationQuat = null;
         this._active = active;
-        this._duration = duration;
+        this._hasValidDuration = !Double.isNaN(duration);
+        this._duration = this._hasValidDuration ? duration : 0.0;
         this._scene = scene;
     }
 
@@ -169,6 +173,18 @@ public class AnimationNode implements Cloneable {
      */
     public double getDuration() {
         return this._duration;
+    }
+
+    /**
+     * Gets whether this node had a duration set when it was last deserialized.
+     * Primarily used at parsing time to filter out invalid nodes parsed from lines
+     * of text that do not at all contain animations.
+     *
+     * @return True if a duration was set. False if duration was not set (NaN).
+     *         If false, then {@link #getDuration()} will return 0.0 as a default.
+     */
+    public boolean hasValidDuration() {
+        return this._hasValidDuration;
     }
 
     /**
@@ -364,7 +380,7 @@ public class AnimationNode implements Cloneable {
         private Vector rotation = new Vector();
         private String scene = null;
         private boolean active = true;
-        private double time = 1.0;
+        private double duration = Double.NaN;
 
         public Parser(String config) {
             this.config = config;
@@ -442,7 +458,7 @@ public class AnimationNode implements Cloneable {
                     }
 
                     if ("t".equals(name)) {
-                        time = value;
+                        duration = value;
                     } else if ("x".equals(name)) {
                         position.setX(value);
                     } else if ("y".equals(name)) {
@@ -461,7 +477,7 @@ public class AnimationNode implements Cloneable {
                 }
             }
 
-            return new AnimationNode(position, rotation, active, time, scene);
+            return new AnimationNode(position, rotation, active, duration, scene);
         }
 
         @FunctionalInterface
