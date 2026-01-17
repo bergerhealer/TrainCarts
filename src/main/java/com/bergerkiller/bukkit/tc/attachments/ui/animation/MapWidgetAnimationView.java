@@ -259,6 +259,18 @@ public class MapWidgetAnimationView extends MapWidget implements AnimationFrames
     @Override
     public void onKeyPressed(MapKeyEvent event) {
         boolean activated = this.isActivated();
+
+        // Don't de-activate if multi-select or re-ordering is active and player uses back
+        // Only de-activate these functions then
+        if (activated && this._multiSelectActive && event.getKey() == MapPlayerInput.Key.BACK) {
+            stopMultiSelect();
+            return;
+        }
+        if (activated && this._reorderActive && event.getKey() == MapPlayerInput.Key.BACK) {
+            stopReordering();
+            return;
+        }
+
         super.onKeyPressed(event);
         if (!activated) {
             return;
@@ -305,6 +317,7 @@ public class MapWidgetAnimationView extends MapWidget implements AnimationFrames
                 this.setSelectedItemRange(this.getSelectedItemRange()+1);
             } else if (event.getKey() == MapPlayerInput.Key.ENTER) {
                 this.stopMultiSelect();
+                this.onSelectionActivated();
             }
         } else {
             if (event.getKey() == MapPlayerInput.Key.UP) {
@@ -518,8 +531,9 @@ public class MapWidgetAnimationView extends MapWidget implements AnimationFrames
         this.setAnimation(replacement);
 
         // Note: if multiple were selected, selects the entire newly created group
-        this.setSelectedIndex(newGroupStartIndex);
-        this.setSelectedItemRange(nodes.size() - 1);
+        this.setSelection(newGroupStartIndex, nodes.size() - 1);
+        this.stopReordering();
+        this.stopMultiSelect();
 
         // Feedback tune
         if (CommonCapabilities.KEYED_EFFECTS) {
@@ -587,14 +601,21 @@ public class MapWidgetAnimationView extends MapWidget implements AnimationFrames
         }
 
         if (count != this._selectedNodeRange) {
-            this._selectedNodeRange = count;
-            this.updateView();
-            this.updateSceneMarkerTooltip();
-            this.onSelectionChanged();
+            this.setSelection(this._selectedNodeIndex, count);
             display.playSound(SoundEffect.CLICK_WOOD);
         }
 
         return this;
+    }
+
+    public void setSelection(int selectionNodeIndex, int selectedNodeRange) {
+        if (this._selectedNodeIndex != selectionNodeIndex || this._selectedNodeRange != selectedNodeRange) {
+            this._selectedNodeIndex = selectionNodeIndex;
+            this._selectedNodeRange = selectedNodeRange;
+            this.updateView();
+            this.updateSceneMarkerTooltip();
+            this.onSelectionChanged();
+        }
     }
 
     /**
@@ -623,21 +644,22 @@ public class MapWidgetAnimationView extends MapWidget implements AnimationFrames
      * From then on, behavior resumes as normal.
      */
     public void startMultiSelect() {
-        this._multiSelectActive = true;
-        display.playSound(SoundEffect.PISTON_EXTEND);
-        this.updateView();
+        if (!this._multiSelectActive) {
+            this._multiSelectActive = true;
+            display.playSound(SoundEffect.PISTON_EXTEND);
+            this.updateView();
+        }
     }
 
     /**
      * Stops multi-select mode. See {@link #startMultiSelect()}
      */
     public void stopMultiSelect() {
-        this._multiSelectActive = false;
-        display.playSound(SoundEffect.PISTON_CONTRACT);
-        this.updateView();
-
-        // Automatically open edit dialog, as that is going to be the user intention 99% of the time
-        this.onSelectionActivated();
+        if (this._multiSelectActive) {
+            this._multiSelectActive = false;
+            display.playSound(SoundEffect.PISTON_CONTRACT);
+            this.updateView();
+        }
     }
 
     /**
@@ -646,18 +668,22 @@ public class MapWidgetAnimationView extends MapWidget implements AnimationFrames
      * this mode is automatically exited.
      */
     public void startReordering() {
-        _reorderActive = true;
-        display.playSound(SoundEffect.PISTON_EXTEND);
-        updateView();
+        if (!_reorderActive) {
+            _reorderActive = true;
+            display.playSound(SoundEffect.PISTON_EXTEND);
+            updateView();
+        }
     }
 
     /**
      * Exits re-ordering mode.
      */
     public void stopReordering() {
-        _reorderActive = false;
-        display.playSound(SoundEffect.PISTON_CONTRACT);
-        updateView();
+        if (_reorderActive) {
+            _reorderActive = false;
+            display.playSound(SoundEffect.PISTON_CONTRACT);
+            updateView();
+        }
     }
 
     private void updateView() {
@@ -816,11 +842,20 @@ public class MapWidgetAnimationView extends MapWidget implements AnimationFrames
         if (insert) {
             insertNewAnimationNodes(frames);
         } else if (this.getSelectedNodes().size() > 1) {
+            int start = getSelectionStart();
+
             // User made a (multi-) selection, so only replace those
             updateAnimationNodes(frames, false);
+
+            // Select the frames we've inserted
+            setSelection(start, frames.size() - 1);
         } else {
             // User has not made a selection, replace entire animation
+            // Do not select what we've inserted so that repeated inserts behave the same way
             updateAnimationNodes(frames, true);
         }
+
+        stopReordering();
+        stopMultiSelect();
     }
 }
