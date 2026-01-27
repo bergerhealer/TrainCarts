@@ -258,7 +258,13 @@ public class ResourcePackModelListing extends ListedRootLoader {
                         continue;
                     }
                     if (model.model.startsWith("minecraft:")) {
-                        continue;
+                        if (!CAN_CHECK_VANILLA) {
+                            continue;
+                        }
+
+                        if (isVanillaModel(resourcePack, model.model)) {
+                            continue;
+                        }
                     }
                     if (strictNameSpaceCheck && !model.model.contains(":")) {
                         continue;
@@ -285,6 +291,7 @@ public class ResourcePackModelListing extends ListedRootLoader {
     }
 
     private static final boolean CAN_SORT_DUPLICATE_ITEMS = Common.hasCapability("Common:CommonItemStack:ItemModel");
+    private static final boolean CAN_CHECK_VANILLA = Common.hasCapability("Common:MapResourcePack:OpenResource");
 
     private static class DuplicateItemComparator implements Comparator<CommonItemStack> {
         @Override
@@ -303,6 +310,18 @@ public class ResourcePackModelListing extends ListedRootLoader {
 
             return 0;
         }
+    }
+
+    // Since BKCommonLib 1.21.11-v2
+    // Only called for models with a minecraft: namespace, in case user's custom resource pack
+    // have models stored in that namespace.
+    private static boolean isVanillaModel(MapResourcePack resourcePack, String modelName) {
+        if (!CAN_CHECK_VANILLA) {
+            return true; // Assume all models (with minecraft: namespace) are vanilla models
+        }
+
+        MapResourcePack.Resource resource = resourcePack.openResource(ResourceType.MODELS, modelName);
+        return resource != null && !resource.isVanilla();
     }
 
     @Deprecated
