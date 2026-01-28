@@ -321,7 +321,7 @@ public class ResourcePackModelListing extends ListedRootLoader {
         }
 
         MapResourcePack.Resource resource = resourcePack.openResource(ResourceType.MODELS, modelName);
-        return resource != null && !resource.isVanilla();
+        return resource == null || resource.isVanilla();
     }
 
     @Deprecated
