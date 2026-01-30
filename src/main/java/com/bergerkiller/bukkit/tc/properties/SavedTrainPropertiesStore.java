@@ -408,7 +408,7 @@ public abstract class SavedTrainPropertiesStore implements TrainCarts.Provider {
 
         @Override
         public SavedTrainPropertiesStore getDefaultModule() {
-            return createModule(modularConfig.getDefaultModule());
+            return new ModuleStore(modularConfig.traincarts, modularConfig.getDefaultModule());
         }
 
         @Override

@@ -616,7 +616,7 @@ public class SavedTrainCommands {
             final CommandSender sender,
             final TrainCarts plugin,
             final @Flag(value="all", description="Show all trains on this server, not just those owned by the player") boolean showAll,
-            final @Flag(value="module", suggestions="savedtrainmodules", description="Selects a module to list the saved trains of") String moduleName
+            final @Quoted @Flag(value="module", suggestions="savedtrainmodules", description="Selects a module to list the saved trains of") String moduleName
     ) {
         SavedTrainPropertiesStore module = plugin.getSavedTrains();
         MessageBuilder builder = new MessageBuilder();
@@ -632,7 +632,11 @@ public class SavedTrainCommands {
                 return;
             }
 
-            builder.blue("The following saved trains are stored in module '" + moduleName + "':");
+            if (moduleName.isEmpty()) {
+                builder.blue("The following saved trains are not stored in any specific module:");
+            } else {
+                builder.blue("The following saved trains are stored in module '" + moduleName + "':");
+            }
         } else {
             builder.yellow("The following saved trains are available:");
         }
