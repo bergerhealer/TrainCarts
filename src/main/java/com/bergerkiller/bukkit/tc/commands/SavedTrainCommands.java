@@ -622,7 +622,11 @@ public class SavedTrainCommands {
         MessageBuilder builder = new MessageBuilder();
         builder.newLine();
         if (moduleName != null) {
-            module = module.getModule(moduleName);
+            if (moduleName.isEmpty()) {
+                module = module.getDefaultModule();
+            } else {
+                module = module.getModule(moduleName);
+            }
             if (module == null) {
                 sender.sendMessage(ChatColor.RED + "Module '" + moduleName + "' does not exist");
                 return;

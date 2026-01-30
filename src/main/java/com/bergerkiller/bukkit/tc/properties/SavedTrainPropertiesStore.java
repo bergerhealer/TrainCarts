@@ -98,6 +98,14 @@ public abstract class SavedTrainPropertiesStore implements TrainCarts.Provider {
     public abstract SavedTrainPropertiesStore getModule(String moduleName);
 
     /**
+     * Gets the default module, which stores trains not in any specific module.
+     * This is different from the store itself, which is a view on all modules.
+     *
+     * @return default module
+     */
+    public abstract SavedTrainPropertiesStore getDefaultModule();
+
+    /**
      * Checks to see what module a train is saved in.
      * If it is saved in the default place, null is returned.
      * 
@@ -399,6 +407,11 @@ public abstract class SavedTrainPropertiesStore implements TrainCarts.Provider {
         }
 
         @Override
+        public SavedTrainPropertiesStore getDefaultModule() {
+            return createModule(modularConfig.getDefaultModule());
+        }
+
+        @Override
         public void setModuleNameOfTrain(String name, String module) {
             ModularConfigurationEntry<SavedTrainProperties> entry = modularConfig.getIfExists(name);
             if (entry != null) {
@@ -450,6 +463,11 @@ public abstract class SavedTrainPropertiesStore implements TrainCarts.Provider {
         @Override
         public SavedTrainPropertiesStore getModule(String moduleName) {
             return null;
+        }
+
+        @Override
+        public SavedTrainPropertiesStore getDefaultModule() {
+            return this;
         }
 
         @Override
