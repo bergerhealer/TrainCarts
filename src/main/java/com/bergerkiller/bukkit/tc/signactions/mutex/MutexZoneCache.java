@@ -158,7 +158,6 @@ public class MutexZoneCache {
         root.findChild("mutex-zones-state").ifPresent(stateData -> {
             // Load pathing mutexes
             for (MutexZonePath pathMutex : MutexZonePath.readAll(plugin, stateData)) {
-                System.out.println("Load path mutex: " + pathMutex);
                 forWorld(pathMutex.signBlock.getWorld()).add(pathMutex);
             }
 
