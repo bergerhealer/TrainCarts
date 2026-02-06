@@ -237,7 +237,8 @@ public class SavedTrainCommands {
             final CommandSender sender,
             final TrainCarts plugin,
             final @SavedTrainRequiresAccess  @Argument("savedtrainname") SavedTrainProperties savedTrain,
-            final @Argument(value="newmodulename", suggestions="savedtrainmodules") String newModuleName
+            final @Argument(value="newmodulename", suggestions="savedtrainmodules") String newModuleName,
+            final @Flag(value="force", description="Force changing the module for a train claimed by someone else") boolean force
     ) {
         if (newModuleName.isEmpty()) {
             commandSetDefaultModule(sender, plugin, savedTrain);
@@ -455,7 +456,8 @@ public class SavedTrainCommands {
     @CommandRequiresPermission(Permission.COMMAND_SAVEDTRAIN_CLAIM)
     private void commandClaimSelf(
             final Player sender,
-            final @SavedTrainRequiresAccess @Argument("savedtrainname") SavedTrainProperties savedTrain
+            final @SavedTrainRequiresAccess @Argument("savedtrainname") SavedTrainProperties savedTrain,
+            final @Flag("force") boolean force
     ) {
         // Retrieve current list of claims
         Set<SavedClaim> oldClaims = savedTrain.getClaims();
