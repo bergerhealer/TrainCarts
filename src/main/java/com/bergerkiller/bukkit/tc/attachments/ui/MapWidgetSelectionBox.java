@@ -20,6 +20,7 @@ import com.bergerkiller.bukkit.common.resources.SoundEffect;
 public class MapWidgetSelectionBox extends MapWidget {
     private List<String> items = new ArrayList<String>();
     private int selectedIndex = -1;
+    private boolean loopAround = false;
     private final MapWidgetArrow nav_left = new MapWidgetArrow(BlockFace.WEST);
     private final MapWidgetArrow nav_right = new MapWidgetArrow(BlockFace.EAST);
     private MapFont<Character> font = MapFont.MINECRAFT;
@@ -49,6 +50,19 @@ public class MapWidgetSelectionBox extends MapWidget {
     public MapWidgetSelectionBox setFont(MapFont<Character> font) {
         this.font = font;
         this.invalidate();
+        return this;
+    }
+
+    /**
+     * Sets whether the selection box should loop around when reaching the end of the list. If true,
+     * pressing right on the last item will select the first item, and pressing left on the first item
+     * will select the last item.
+     *
+     * @param loopAround True to enable loop around, false to disable
+     * @return this
+     */
+    public MapWidgetSelectionBox setLoopAround(boolean loopAround) {
+        this.loopAround = loopAround;
         return this;
     }
 
@@ -157,28 +171,35 @@ public class MapWidgetSelectionBox extends MapWidget {
 
     @Override
     public void onKeyPressed(MapKeyEvent event) {
+        boolean selectionChanged = false;
         if (event.getKey() == MapPlayerInput.Key.LEFT) {
             nav_left.sendFocus();
             if (this.selectedIndex > 0) {
                 this.selectedIndex--;
-                this.invalidate();
-                this.onSelectedItemChanged();
-                if (this.display != null) {
-                    this.display.playSound(SoundEffect.CLICK);
-                }
+                selectionChanged = true;
+            } else if (this.loopAround && this.items.size() >= 2) {
+                this.selectedIndex = this.items.size() - 1;
+                selectionChanged = true;
             }
         } else if (event.getKey() == MapPlayerInput.Key.RIGHT) {
             nav_right.sendFocus();
             if (this.selectedIndex < (this.items.size() - 1)) {
                 this.selectedIndex++;
-                this.invalidate();
-                this.onSelectedItemChanged();
-                if (this.display != null) {
-                    this.display.playSound(SoundEffect.CLICK);
-                }
+                selectionChanged = true;
+            } else if (this.loopAround && this.items.size() >= 2) {
+                this.selectedIndex = 0;
+                selectionChanged = true;
             }
         } else {
             super.onKeyPressed(event);
+        }
+
+        if (selectionChanged) {
+            this.invalidate();
+            this.onSelectedItemChanged();
+            if (this.display != null) {
+                this.display.playSound(SoundEffect.CLICK);
+            }
         }
     }
 
