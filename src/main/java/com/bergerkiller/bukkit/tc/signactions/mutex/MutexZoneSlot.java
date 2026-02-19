@@ -664,10 +664,12 @@ public class MutexZoneSlot {
                                     ((LoadedEnteredGroup) enteredGroup).group,
                                     slot, railBlock);
                             this.occupiedTick = this.probeTick;
-                        } else {
                             return hadConflict ? EnterResult.CONFLICT_ONGOING : EnterResult.CONFLICT;
                         }
-                        return hadConflict ? EnterResult.CONFLICT_ONGOING : EnterResult.CONFLICT;
+
+                        // If there was a conflict set already. then we can indicate an ongoing conflict.
+                        // If not, indicate occupied, since we don't have an actual conflict object to store yet.
+                        return hadConflict ? EnterResult.CONFLICT_ONGOING : EnterResult.OCCUPIED;
                     }
                 }
 
