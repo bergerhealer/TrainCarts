@@ -7,7 +7,8 @@ multiverse = "4.2.0"
 myworlds = "1.11.2-v2-SNAPSHOT"
 neznamy-tab-hider = "1.02"
 preloader = "1.10"
-shadow = "8.1.1"
+# Use GradleUp Shadow continuation for Gradle 9+ compatibility
+shadow = "9.3.2"
 signlink = "1.21.1-v1-SNAPSHOT"
 smoothcoasters-api = "1.11"
 spigot = "1.20.1-R0.1-SNAPSHOT"
@@ -40,4 +41,5 @@ worldedit-bukkit = { module = "com.sk89q.worldedit:worldedit-bukkit", version.re
 cloud = ["cloud-paper", "cloud-annotations", "cloud-minecraft-extras"]
 
 [plugins]
-shadow = { id = "com.github.johnrengelman.shadow", version.ref = "shadow" }
+# Use the GradleUp Shadow plugin id
+shadow = { id = "com.gradleup.shadow", version.ref = "shadow" }
