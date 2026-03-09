@@ -266,6 +266,9 @@ public class Animation implements Cloneable {
             } else {
                 // We omit the original dt to keep animation synchronized with movement
                 dt = control.update(speedControlTransform);
+                if (this._options.getMovementControl() == AnimationMovementControl.FORWARD_ONLY) {
+                    dt = Math.abs(dt);
+                }
             }
         }
 

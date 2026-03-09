@@ -23,8 +23,8 @@ public class AnimationOptions implements Cloneable {
     private boolean _hasLoopOption;
     private boolean _reset;
     private boolean _queue;
-    private boolean _hasMovementControlledOption;
-    private boolean _movementControlled;
+    private AnimationMovementControl _movementControl;
+    private boolean _hasMovementControlOption;
     private boolean _autoplay;
 
     protected AnimationOptions(AnimationOptions source) {
@@ -38,8 +38,8 @@ public class AnimationOptions implements Cloneable {
         this._hasLoopOption = source._hasLoopOption;
         this._reset = source._reset;
         this._queue = source._queue;
-        this._hasMovementControlledOption = source._hasMovementControlledOption;
-        this._movementControlled = source._movementControlled;
+        this._movementControl = source._movementControl;
+        this._hasMovementControlOption = source._hasMovementControlOption;
         this._autoplay = source._autoplay;
     }
 
@@ -58,8 +58,8 @@ public class AnimationOptions implements Cloneable {
         this._hasLoopOption = false;
         this._reset = false;
         this._queue = false;
-        this._hasMovementControlledOption = false;
-        this._movementControlled = false;
+        this._hasMovementControlOption = false;
+        this._movementControl = AnimationMovementControl.OFF;
         this._autoplay = false;
     }
 
@@ -323,7 +323,7 @@ public class AnimationOptions implements Cloneable {
      * @return True if movement controlled was set
      */
     public boolean hasMovementControlledOption() {
-        return this._hasMovementControlledOption;
+        return this._hasMovementControlOption;
     }
 
     /**
@@ -333,18 +333,41 @@ public class AnimationOptions implements Cloneable {
      * @return True if the animation speed is controlled by attachment movement
      */
     public boolean isMovementControlled() {
-        return this._movementControlled;
+        return this._movementControl != AnimationMovementControl.OFF;
+    }
+
+    /**
+     * Gets the mode at which the movement of the attachment (train) controls the rate of
+     * animation playback. If OFF, then movement does not control the animation speed.
+     * If REVERSIBLE, then the animation reverses when movement reverses.
+     * If FORWARD_ONLY, then the animation plays at speed of movement, regardless of direction.
+     *
+     * @return Movement control option
+     */
+    public AnimationMovementControl getMovementControl() {
+        return this._movementControl;
     }
 
     /**
      * Sets whether the animation speed is controlled by the forward-movement
      * of the attachment itself. The speed option is multiplied with that speed.
      *
+     * @param control How movement controls the animation speed
+     */
+    public void setMovementControl(AnimationMovementControl control) {
+        this._movementControl = control;
+        this._hasMovementControlOption = true;
+    }
+
+    /**
+     * Sets whether the animation speed is controlled by the forward-movement
+     * of the attachment itself. The speed option is multiplied with that speed.
+     * If true sets to REVERSIBLE, otherwise OFF.
+     *
      * @param controlled Whether movement controls speed
      */
     public void setMovementControlled(boolean controlled) {
-        this._movementControlled = controlled;
-        this._hasMovementControlledOption = true;
+        setMovementControl(controlled ? AnimationMovementControl.REVERSIBLE : AnimationMovementControl.OFF);
     }
 
     /**
@@ -353,8 +376,8 @@ public class AnimationOptions implements Cloneable {
      * @see #setMovementControlled(boolean)
      */
     public void clearMovementControlled() {
-        this._movementControlled = false;
-        this._hasMovementControlledOption = false;
+        this._movementControl = AnimationMovementControl.OFF;
+        this._hasMovementControlOption = false;
     }
 
     /**
@@ -370,7 +393,7 @@ public class AnimationOptions implements Cloneable {
             this.setLooped(options.isLooped());
         }
         if (options.hasMovementControlledOption()) {
-            this.setMovementControlled(options.isMovementControlled());
+            this.setMovementControl(options.getMovementControl());
         }
         if (options.isAutoPlay()) {
             this.setAutoPlay(true);
@@ -401,11 +424,13 @@ public class AnimationOptions implements Cloneable {
         }
 
         // Movement controlled
-        this._hasMovementControlledOption = config.contains("movementControlled");
-        if (this._hasMovementControlledOption) {
-            this._movementControlled = config.get("movementControlled", false);
+        if (config.contains("movementControl")) {
+            this.setMovementControl(config.get("movementControl", AnimationMovementControl.OFF));
+        } else if (config.contains("movementControlled")) {
+            // legacy option, still supported
+            this.setMovementControlled(config.get("movementControlled", false));
         } else {
-            this._movementControlled = false;
+            this.clearMovementControlled();
         }
 
         // Autoplay
@@ -441,10 +466,11 @@ public class AnimationOptions implements Cloneable {
         }
 
         // Movement controlled
-        if (this._hasMovementControlledOption) {
-            config.set("movementControlled", this._movementControlled);
+        config.remove("movementControlled");
+        if (this._hasMovementControlOption) {
+            config.set("movementControl", this._movementControl);
         } else {
-            config.remove("movementControlled");
+            config.remove("movementControl");
         }
 
         // Autoplay
@@ -539,10 +565,16 @@ public class AnimationOptions implements Cloneable {
             }
         }
         if (this.hasMovementControlledOption()) {
-            if (this.isMovementControlled()) {
-                name += " (movement controlled)";
-            } else {
+            switch (this.getMovementControl()) {
+            case REVERSIBLE:
+                name += " (movement reversible)";
+                break;
+            case FORWARD_ONLY:
+                name += " (movement forward-only)";
+                break;
+            case OFF:
                 name += " (not movement controlled)";
+                break;
             }
         }
         if (this._reset) {

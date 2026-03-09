@@ -7,6 +7,7 @@ import com.bergerkiller.bukkit.common.map.MapEventPropagation;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetText;
 import com.bergerkiller.bukkit.common.resources.SoundEffect;
 import com.bergerkiller.bukkit.tc.attachments.animation.Animation;
+import com.bergerkiller.bukkit.tc.attachments.animation.AnimationMovementControl;
 import com.bergerkiller.bukkit.tc.attachments.animation.AnimationOptions;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetBlinkyButton;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetMenu;
@@ -76,13 +77,28 @@ public class ConfigureAnimationDialog extends MapWidgetMenu {
 
             @Override
             public void onClick() {
-                updateOptions(opt -> opt.setMovementControlled(!opt.isMovementControlled()));
+                updateOptions(opt -> {
+                    AnimationMovementControl[] move = AnimationMovementControl.values();
+                    opt.setMovementControl(move[(opt.getMovementControl().ordinal() + 1) % move.length]);
+                });
                 updateIcon();
             }
 
             private void updateIcon() {
-                setIcon(getOptions().isMovementControlled() ? "attachments/anim_config_movecontrol_on.png" : "attachments/anim_config_movecontrol_off.png");
-                setTooltip(getOptions().isMovementControlled() ? "Movement-\nControlled: YES" : "Movement-\nControlled: NO");
+                switch (getOptions().getMovementControl()) {
+                    case OFF:
+                        setIcon("attachments/anim_config_movecontrol_off.png");
+                        setTooltip("Movement-Control:\nNO");
+                        break;
+                    case REVERSIBLE:
+                        setIcon("attachments/anim_config_movecontrol_reversible.png");
+                        setTooltip("Movement-Control:\nREVERSIBLE");
+                        break;
+                    case FORWARD_ONLY:
+                        setIcon("attachments/anim_config_movecontrol_forward_only.png");
+                        setTooltip("Movement-Control:\nFORWARD-ONLY");
+                        break;
+                }
             }
         }).setClickSound(SoundEffect.CLICK_WOOD).setPosition(61, 7);
 
@@ -150,7 +166,7 @@ public class ConfigureAnimationDialog extends MapWidgetMenu {
             opt.setSpeed(1.0);
             opt.setLooped(looped);
             opt.setReset(!looped);
-            opt.setMovementControlled(anim.getOptions().isMovementControlled());
+            opt.setMovementControl(anim.getOptions().getMovementControl());
         });
     }
 }
