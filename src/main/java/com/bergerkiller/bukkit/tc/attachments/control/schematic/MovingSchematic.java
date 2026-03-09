@@ -218,6 +218,10 @@ public class MovingSchematic extends VirtualSpawnableObject {
                     block.sync(liveRot, getViewers());
                 }
             }
+        } else if (clipChanged) {
+            for (SingleSchematicBlock block : blocks) {
+                block.setClipBox(bbSize);
+            }
         }
     }
 
