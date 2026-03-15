@@ -3,6 +3,7 @@ package com.bergerkiller.bukkit.tc.controller.player.pmc;
 import com.bergerkiller.bukkit.common.Common;
 import com.bergerkiller.bukkit.common.events.PacketReceiveEvent;
 import com.bergerkiller.bukkit.common.events.PacketSendEvent;
+import com.bergerkiller.bukkit.common.math.Quaternion;
 import com.bergerkiller.bukkit.common.protocol.PacketListener;
 import com.bergerkiller.bukkit.common.protocol.PacketType;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
@@ -20,7 +21,7 @@ import java.util.function.BiFunction;
  * To mitigate this, it tracks incoming player input packets to detect these
  * missed velocity packets and adjust accordingly.
  */
-public abstract class PlayerMovementController implements PacketListener {
+public abstract class PlayerMovementController implements AttachmentViewer.MovementController, PacketListener {
     private final ControllerType type;
     protected final AttachmentViewer viewer;
     protected final Player player;
@@ -45,57 +46,45 @@ public abstract class PlayerMovementController implements PacketListener {
         return type;
     }
 
-    /**
-     * Sets whether position updates are synchronized as if the player is an Armorstand entity.
-     * This makes it so that the player moves in sync with surrounding armor stand entities.
-     * This is true by default.
-     *
-     * @param sync Whether to sync as armorstand. True by default.
-     */
-    public void setSyncAsArmorstand(boolean sync) {
-        this.syncAsArmorstand = sync;
-        if (!sync) {
+    public void setOptions(AttachmentViewer.MovementController.Options options) {
+        this.translateVehicleSteer = options.isPreserveInput();
+        this.syncAsArmorstand = options.isSyncAsArmorStand();
+        if (!this.syncAsArmorstand) {
             lastSyncPos = null;
         }
-    }
-
-    /**
-     * Whether to translate player input into vehicle steering packets. This makes it so that
-     * player input while standing is still handled by the server as if the player is pressing
-     * w/a/s/d etc. in a vehicle.
-     *
-     * @param translate True to translate as vehicle steer. False by default.
-     */
-    public void translateVehicleSteer(boolean translate) {
-        translateVehicleSteer = translate;
     }
 
     public abstract HorizontalPlayerInput horizontalInput();
 
     public abstract VerticalPlayerInput verticalInput();
 
+    @Override
+    public AttachmentViewer.Input getInput() {
+        HorizontalPlayerInput h = horizontalInput();
+        VerticalPlayerInput v = verticalInput();
+        return AttachmentViewer.Input.of(
+                h.left(), h.right(), h.forwards(), h.backwards(),
+                v == VerticalPlayerInput.JUMP, v == VerticalPlayerInput.SNEAK, false);
+    }
+
     /**
      * Stops this movement controller. It will stop refreshing player positions,
      * and the player will regain control like normal.
      */
+    @Override
     public final void stop() {
         stopped = true;
         type.remove(this);
         setFlightForced(false);
     }
 
-    /**
-     * Gets whether this controller has stopped. This happens when the player logs off, or
-     * when someone else takes movement control over. It also happens when the player
-     * warps away.
-     *
-     * @return True if stopped
-     */
-    public final boolean isStopped() {
+    @Override
+    public final boolean hasStopped() {
         return stopped;
     }
 
-    public final void setPosition(Vector position) {
+    @Override
+    public final void update(Vector position, Quaternion orientation) {
         if (stopped) {
             return;
         }
