@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.tc.controller.player;
 
 import com.bergerkiller.bukkit.common.controller.VehicleMountController;
+import com.bergerkiller.bukkit.common.math.Quaternion;
 import com.bergerkiller.bukkit.common.protocol.CommonPacket;
 import com.bergerkiller.bukkit.common.protocol.PlayerGameInfo;
 import com.bergerkiller.bukkit.common.utils.PlayerUtil;
@@ -11,6 +12,7 @@ import com.bergerkiller.bukkit.tc.controller.player.network.PlayerClientSynchron
 import com.bergerkiller.bukkit.tc.controller.player.pmc.PlayerMovementController;
 import com.bergerkiller.generated.net.minecraft.network.protocol.PacketHandle;
 import org.bukkit.entity.Player;
+import org.bukkit.util.Vector;
 
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -33,7 +35,8 @@ public final class TrainCartsAttachmentViewer implements AttachmentViewer {
     // Components
     private final PacketQueue packetQueue;
     private final PlayerClientSynchronizer playerClientSynchronizer;
-    private final AtomicReference<PlayerMovementController> activeMovementController;
+    private final Object activeMovementControllerLock;
+    private volatile MovementControllerTicket activeMovementController;
 
     TrainCartsAttachmentViewer(TrainCarts plugin, Player player, PlayerGameInfo playerGameInfo, PacketQueue packetQueue) {
         this.plugin = plugin;
@@ -46,7 +49,8 @@ public final class TrainCartsAttachmentViewer implements AttachmentViewer {
         this.supportRelativeRotationUpdate = AttachmentViewer.super.supportRelativeRotationUpdate();
         this.packetQueue = packetQueue;
         this.playerClientSynchronizer = plugin.getPlayerClientSynchronizerProvider().forViewer(this);
-        this.activeMovementController = new AtomicReference<>();
+        this.activeMovementControllerLock = new MovementControllerTicket();
+        this.activeMovementController = new MovementControllerTicket();
     }
 
     PacketQueue getPacketQueue() {
@@ -124,21 +128,31 @@ public final class TrainCartsAttachmentViewer implements AttachmentViewer {
     }
 
     @Override
-    public PlayerMovementController controlMovement() {
-        PlayerMovementController newController = PlayerMovementController.ControllerType.forViewer(this).create(this);
-        PlayerMovementController previous = activeMovementController.getAndSet(newController);
-        if (previous != null) {
-            previous.stop();
+    public MovementController controlMovement(MovementController.Options options) {
+        synchronized (activeMovementControllerLock) {
+            MovementController prev = activeMovementController.controller.getAndSet(MovementController.DISABLED);
+
+            MovementControllerTicket ticket = new MovementControllerTicket();
+            PlayerMovementController controller;
+            if (prev instanceof PlayerMovementController) {
+                controller = (PlayerMovementController) prev;
+            } else {
+                controller = PlayerMovementController.ControllerType.forViewer(this).create(this);
+            }
+            controller.setOptions(options);
+            ticket.controller.set(controller);
+            activeMovementController = ticket;
+            return ticket;
         }
-        return newController;
     }
 
     @Override
     public void stopControllingMovement() {
-        PlayerMovementController previous = activeMovementController.getAndSet(null);
-        if (previous != null) {
-            previous.stop();
+        final MovementController prev;
+        synchronized (activeMovementControllerLock) {
+            prev = activeMovementController.controller.getAndSet(MovementController.DISABLED);
         }
+        prev.stop();
     }
 
     @Override
@@ -160,5 +174,34 @@ public final class TrainCartsAttachmentViewer implements AttachmentViewer {
     @Override
     public String toString() {
         return "TCAttachmentViewer{player=" + player.getName() + "}";
+    }
+
+    /**
+     * Wraps the actual MovementController to represent a single control session.
+     * Further calls to control movement will disable previous ones.
+     */
+    private static final class MovementControllerTicket implements MovementController {
+        private final AtomicReference<MovementController> controller = new AtomicReference<>(MovementController.DISABLED);
+
+        @Override
+        public void stop() {
+            MovementController oldController = controller.getAndSet(MovementController.DISABLED);
+            oldController.stop();
+        }
+
+        @Override
+        public boolean hasStopped() {
+            return controller.get().hasStopped();
+        }
+
+        @Override
+        public Input getInput() {
+            return controller.get().getInput();
+        }
+
+        @Override
+        public void update(Vector position, Quaternion orientation) {
+            controller.get().update(position, orientation);
+        }
     }
 }

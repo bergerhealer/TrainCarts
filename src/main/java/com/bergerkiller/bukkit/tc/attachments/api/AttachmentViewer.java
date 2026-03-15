@@ -7,7 +7,8 @@ import com.bergerkiller.bukkit.common.protocol.PacketType;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.controller.player.network.PlayerClientSynchronizer;
 import com.bergerkiller.bukkit.tc.controller.player.network.PlayerPacketListener;
-import com.bergerkiller.bukkit.tc.controller.player.pmc.PlayerMovementController;
+import com.bergerkiller.bukkit.common.math.Quaternion;
+
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
@@ -23,6 +24,7 @@ import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlay
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutSpawnEntityLivingHandle;
 
 import me.m56738.smoothcoasters.api.NetworkInterface;
+import org.bukkit.util.Vector;
 
 import java.util.Iterator;
 import java.util.UUID;
@@ -328,19 +330,33 @@ public interface AttachmentViewer extends TrainCarts.Provider {
      * <br>
      * If someone else was controlling movement before, their control is ended.
      *
-     * @return PlayerMovementController
+     * @return MovementController
      */
-    default PlayerMovementController controlMovement() {
+    default MovementController controlMovement() {
+        return controlMovement(MovementController.Options.create());
+    }
+
+    /**
+     * Starts controlling the movement of this viewer. This causes the player to lose direct
+     * control over W/A/S/D movement controls, and allows the caller to send new positions
+     * to this player. The player is smoothly moved to these new positions.<br>
+     * <br>
+     * If someone else was controlling movement before, their control is ended.
+     *
+     * @param options Extra options to configure movement controller behavior
+     * @return MovementController
+     */
+    default MovementController controlMovement(MovementController.Options options) {
         TrainCarts plugin = getTrainCarts();
-        if (!isConnected() || !plugin.isEnabled()) {
-            return PlayerMovementController.ControllerType.DISABLED.create(this);
+        if (plugin.isEnabled() && isConnected()) {
+            return plugin.getAttachmentViewer(getPlayer()).controlMovement(options);
         } else {
-            return plugin.getAttachmentViewer(getPlayer()).controlMovement();
+            return MovementController.DISABLED;
         }
     }
 
     /**
-     * If someone had called {@link #controlMovement()}, stops this controller.
+     * If someone had called {@link #controlMovement()} before, stops this controller.
      */
     default void stopControllingMovement() {
         TrainCarts plugin = getTrainCarts();
@@ -446,5 +462,239 @@ public interface AttachmentViewer extends TrainCarts.Provider {
                 baseIter.forEachRemaining(p -> action.accept(fallback(p)));
             }
         };
+    }
+
+    /**
+     * An active movement controller set on this viewer
+     */
+    interface MovementController {
+        /** A disabled no-op movement controller */
+        MovementController DISABLED = new MovementController() {
+            @Override
+            public void stop() {
+            }
+
+            @Override
+            public boolean hasStopped() {
+                return true;
+            }
+
+            @Override
+            public Input getInput() {
+                return Input.NONE;
+            }
+
+            @Override
+            public void update(Vector position, Quaternion orientation) {
+            }
+        };
+
+        /**
+         * Stops this movement controller. The player will regain control over their
+         * own character.
+         */
+        void stop();
+
+        /**
+         * Gets whether {@link #stop()} was called, the player has logged off or someone
+         * else took over movement control. If stopped, further updates
+         * have no effect.
+         *
+         * @return True if this movement has controlled has stopped
+         */
+        boolean hasStopped();
+
+        /**
+         * Gets the latest input received from the player while controlling it. If this
+         * controller {@link #hasStopped()}, returns no more inputs.
+         *
+         * @return Latest Input snapshot state from the player
+         */
+        Input getInput();
+
+        /**
+         * Sends a new player position and look-orientation to the player. The player
+         * will be updated to move to this new position and have its look-orientation
+         * updated to reflect the new orientation. The orientation will be updated
+         * relatively: the change in orientation is kept track of and that is
+         * synchronized to the player.
+         *
+         * @param position New position for the Player viewer
+         * @param orientation New look-orientation for the Player viewer.
+         *                    Use <i>null</i> to leave look-orientation untouched.
+         */
+        void update(Vector position, Quaternion orientation);
+
+        /**
+         * Sends a new player position to the player. Look-orientation is not updated
+         * and kept to the value of whatever it was before.
+         *
+         * @param position New position for the Player viewer
+         */
+        default void update(Vector position) {
+            update(position, null);
+        }
+
+        /**
+         * Options for movement control
+         */
+        final class Options {
+            private boolean preserveInput = false;
+            private boolean syncAsArmorStand = true;
+
+            /**
+             * Creates new MovementController Options with the default configuration
+             *
+             * @return New Options
+             */
+            public static Options create() {
+                return new Options();
+            }
+
+            private Options() {
+            }
+
+            /**
+             * Sets whether to preserve the original input from the Player. Is false by default.
+             * If true, then the controls from the Player will still be handled by the server
+             * as if they are steering controls / player inputs.
+             *
+             * @param preserve True to preserve player input as steering controls
+             * @return this
+             */
+            public Options preserveInput(boolean preserve) {
+                preserveInput = preserve;
+                return this;
+            }
+
+            /**
+             * Sets whether position updates are synchronized as if the player is an Armorstand entity.
+             * This makes it so that the player moves in sync with surrounding armor stand entities.
+             * This is true by default.
+             *
+             * @param sync Whether to sync as armorstand. True by default.
+             * @return this
+             */
+            public Options syncAsArmorstand(boolean sync) {
+                syncAsArmorStand = sync;
+                return this;
+            }
+
+            /**
+             * Gets the current setting of {@link #preserveInput(boolean)}
+             *
+             * @return Whether player input is preserved as steering controls
+             */
+            public boolean isPreserveInput() {
+                return preserveInput;
+            }
+
+            /**
+             * Gets the current setting of {@link #syncAsArmorstand(boolean)}
+             *
+             * @return True if position updates are re-interpolated as armorstand movement
+             */
+            public boolean isSyncAsArmorStand() {
+                return syncAsArmorStand;
+            }
+        }
+    }
+
+    /**
+     * Snapshot state of the input state received from a player. On older versions
+     * of Minecraft this reflects the steering controls.
+     */
+    final class Input {
+        /** No input (all false) */
+        public static final Input NONE = of(false, false, false, false, false, false, false);
+
+        private final boolean left, right, forwards, backwards, jumping, sneaking, sprinting;
+
+        public static Input of(boolean left, boolean right, boolean forwards, boolean backwards, boolean jumping, boolean sneaking, boolean sprinting) {
+            return new Input(left, right, forwards, backwards, jumping, sneaking, sprinting);
+        }
+
+        private Input(boolean left, boolean right, boolean forwards, boolean backwards, boolean jumping, boolean sneaking, boolean sprinting) {
+            this.left = left;
+            this.right = right;
+            this.forwards = forwards;
+            this.backwards = backwards;
+            this.jumping = jumping;
+            this.sneaking = sneaking;
+            this.sprinting = sprinting;
+        }
+
+        /**
+         * Gets whether the player is strafing left (holding A)
+         *
+         * @return True if player is strafing left
+         */
+        public boolean left() {
+            return left;
+        }
+
+        /**
+         * Gets whether the player is strafing right (holding D)
+         *
+         * @return True if player is strafing right
+         */
+        public boolean right() {
+            return right;
+        }
+
+        /**
+         * Gets whether the player is walking forwards (holding W)
+         *
+         * @return True if player is walking forwards
+         */
+        public boolean forwards() {
+            return forwards;
+        }
+
+        /**
+         * Gets whether the player is walking backwards (holding S)
+         *
+         * @return True if player is walking backwards
+         */
+        public boolean backwards() {
+            return backwards;
+        }
+
+        /**
+         * Gets whether the player is jumping (holding spacebar)
+         *
+         * @return True if player is holding the jump key
+         */
+        public boolean jumping() {
+            return jumping;
+        }
+
+        /**
+         * Gets whether the player is sneaking (holding sneak button / exit vehicle button)
+         *
+         * @return True if player is holding the sneak key
+         */
+        public boolean sneaking() {
+            return sneaking;
+        }
+
+        /**
+         * Gets whether the player is sprinting (double-tapped W)
+         *
+         * @return True if player is sprinting
+         */
+        public boolean sprinting() {
+            return sprinting;
+        }
+
+        /**
+         * Gets whether any of the left/right/forwards/backwards keys are held
+         * pressed by the player
+         *
+         * @return True if there is walking input
+         */
+        public boolean hasWalkInput() {
+            return left || right || forwards || backwards;
+        }
     }
 }
