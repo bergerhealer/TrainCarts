@@ -1,6 +1,6 @@
 package com.bergerkiller.bukkit.tc.attachments.control.seat;
 
-import com.bergerkiller.bukkit.tc.controller.player.PlayerMovementController;
+import com.bergerkiller.bukkit.tc.controller.player.pmc.PlayerMovementController;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundPlayerRotationPacketHandle;
 import org.bukkit.util.Vector;
 
