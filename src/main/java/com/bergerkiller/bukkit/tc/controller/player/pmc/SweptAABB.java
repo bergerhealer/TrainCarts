@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.tc.controller.player.pmc;
 
 import com.bergerkiller.bukkit.common.utils.MathUtil;
+import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import com.bergerkiller.generated.net.minecraft.world.phys.AxisAlignedBBHandle;
 import org.bukkit.block.BlockFace;
 
@@ -24,16 +25,44 @@ class SweptAABB {
             this.face = face;
             this.movingAtCollision = movingAtCollision;
         }
+
+        @Override
+        public String toString() {
+            return "CollisionResult{block=[" + blockX + "," + blockY + "," + blockZ + "], block_bbox=" + block +", theta=" + theta + ", face=" + face + "}";
+        }
+    }
+
+    private static class BestCollisionResult {
+        private CollisionResult best = null;
+
+        public CollisionResult get() {
+            return best;
+        }
+
+        public void promote(CollisionResult result) {
+            if (result != null && (best == null || result.theta < best.theta)) {
+                best = result;
+            }
+        }
     }
 
     /**
      * Swept AABB test: movingBoxStart moves to movingBoxEnd, check collision with static blockBox.
+     *
+     * @param movingBoxStart Starting AABB of the moving object
+     * @param movingBoxEnd Ending AABB of the moving object
+     * @param blockBox AABB of the static block
+     * @param bx Block X coordinate
+     * @param by Block Y coordinate
+     * @param bz Block Z coordinate
+     * @return CollisionResult if a collision occurs, or null if no collision
      */
-    private static CollisionResult sweepTest(
+    public static CollisionResult sweepTest(
             AxisAlignedBBHandle movingBoxStart,
             AxisAlignedBBHandle movingBoxEnd,
             AxisAlignedBBHandle blockBox,
-            int bx, int by, int bz) {
+            int bx, int by, int bz
+    ) {
 
         //System.out.println("SWEEP TEST");
         //System.out.println("  START: " + movingBoxStart);
@@ -104,11 +133,19 @@ class SweptAABB {
 
     /**
      * Traverse the grid along the swept path and find the first collision.
+     *
+     * @param movingBoxStart Starting AABB of the moving object
+     * @param movingBoxEnd Ending AABB of the moving object
+     * @param provider Block shape provider to get block AABBs
+     * @param viewer Attachment viewer to check for spawned stationary collision surfaces
+     * @return CollisionResult of the first collision, or null if no collision
      */
-    public static CollisionResult findFirstCollision(
+    public static CollisionResult findFirstBlockCollision(
             AxisAlignedBBHandle movingBoxStart,
             AxisAlignedBBHandle movingBoxEnd,
-            BlockShapeProvider provider) {
+            BlockShapeProvider provider,
+            AttachmentViewer viewer
+    ) {
 
         // Compute bounding region of motion
         int minX = MathUtil.floor(Math.min(movingBoxStart.getMinX(), movingBoxEnd.getMinX()));
@@ -119,7 +156,7 @@ class SweptAABB {
         int maxY = MathUtil.ceil(Math.max(movingBoxStart.getMaxY(), movingBoxEnd.getMaxY()));
         int maxZ = MathUtil.ceil(Math.max(movingBoxStart.getMaxZ(), movingBoxEnd.getMaxZ()));
 
-        CollisionResult best = null;
+        final BestCollisionResult best = new BestCollisionResult();
 
         // Brute force over candidate blocks in swept volume
         for (int x = minX; x <= maxX; x++) {
@@ -128,16 +165,20 @@ class SweptAABB {
                     AxisAlignedBBHandle blockBox = provider.getShape(x, y, z);
                     if (blockBox == null) continue;
 
-                    CollisionResult result = sweepTest(movingBoxStart, movingBoxEnd, blockBox, x, y, z);
-                    if (result != null) {
-                        if (best == null || result.theta < best.theta) {
-                            best = result;
-                        }
-                    }
+                    best.promote(sweepTest(movingBoxStart, movingBoxEnd, blockBox, x, y, z));
                 }
             }
         }
 
-        return best;
+        // Check collision surfaces visible to the viewer
+        viewer.forAllStationaryCollisionElements(
+                minX, minY, minZ, maxX, maxY, maxZ,
+                (element) -> {
+                    AxisAlignedBBHandle blockBox = element.getBoundingBox();
+                    best.promote(sweepTest(movingBoxStart, movingBoxEnd, blockBox, 0, 0, 0));
+                }
+        );
+
+        return best.get();
     }
 }

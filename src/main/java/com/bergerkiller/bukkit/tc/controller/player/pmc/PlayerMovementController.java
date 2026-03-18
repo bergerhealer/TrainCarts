@@ -177,14 +177,14 @@ public abstract class PlayerMovementController implements AttachmentViewer.Movem
         AxisAlignedBBHandle toBbox = playerBBOX.translate(to.getX(), to.getY(), to.getZ());
 
         // Sweep to find collisions
-        SweptAABB.CollisionResult result = SweptAABB.findFirstCollision(fromBbox, toBbox, (x, y, z) -> {
+        SweptAABB.CollisionResult result = SweptAABB.findFirstBlockCollision(fromBbox, toBbox, (x, y, z) -> {
             AxisAlignedBBHandle bbox = BlockUtil.getBoundingBox(player.getWorld().getBlockAt(x, y, z));
             if (bbox != null) {
                 return bbox.translate(x, y, z);
             } else {
                 return null;
             }
-        });
+        }, viewer);
         if (result == null) {
             return false;
         }

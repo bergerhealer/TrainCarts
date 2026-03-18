@@ -8,6 +8,7 @@ import org.bukkit.block.BlockFace;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 /**
@@ -70,6 +71,52 @@ final class CollisionWallTileGrid {
         TileColumn column = columns.get(key);
         if (column != null) {
             column.remove(surface);
+        }
+    }
+
+    /**
+     * Iterates all spawned shulkers using absolute coordinates
+     *
+     * @param minX Minimum x coordinate (inclusive)
+     * @param minY Minimum y coordinate (inclusive)
+     * @param minZ Minimum z coordinate (inclusive)
+     * @param maxX Maximum x coordinate (inclusive)
+     * @param maxY Maximum y coordinate (inclusive)
+     * @param maxZ Maximum z coordinate (inclusive)
+     * @param action to perform on each shulker that is within the specified bounds
+     */
+    public void forAllShulkers(int minX, int minY, int minZ, int maxX, int maxY, int maxZ, Consumer<? super Shulker> action) {
+        axisLogic.forAllShulkers(this, minX, minY, minZ, maxX, maxY, maxZ, action);
+    }
+
+    /**
+     * Iterates all spawned shulkers using wall-space-relative coordinates
+     *
+     * @param minX Minimum x coordinate (inclusive)
+     * @param minY Minimum y coordinate (inclusive)
+     * @param minValue Minimum value (inclusive)
+     * @param maxX Maximum x coordinate (inclusive)
+     * @param maxY Maximum y coordinate (inclusive)
+     * @param maxValue Maximum value (inclusive)
+     * @param action to perform on each shulker that is within the specified bounds
+     */
+    public void forAllShulkersWallRelative(int minX, int minY, double minValue, int maxX, int maxY, double maxValue, Consumer<? super Shulker> action) {
+        for (int x = minX; x <= maxX; x++) {
+            for (int y = minY; y <= maxY; y++) {
+                long key = MathUtil.longHashToLong(x, y);
+                TileColumn column = columns.get(key);
+                if (column != null) {
+                    for (TileSlot slot : column.slots) {
+                        if (slot.value >= minValue && slot.value <= maxValue) {
+                            Shulker shulker = column.shulker;
+                            if (shulker != null) {
+                                action.accept(shulker);
+                            }
+                            break;
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -202,11 +249,18 @@ final class CollisionWallTileGrid {
                         public void applyShulkerTile(Shulker shulker, int x, int y) {
                             shulker.x = x + 0.5;
                             shulker.y = y + 0.5;
+                            shulker.invalidateBoundingBox();
                         }
 
                         @Override
                         public void applyShulkerValue(Shulker shulker, double value) {
                             shulker.z = value;
+                            shulker.invalidateBoundingBox();
+                        }
+
+                        @Override
+                        public void forAllShulkers(CollisionWallTileGrid grid, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, Consumer<? super Shulker> action) {
+                            grid.forAllShulkersWallRelative(minX, minY, minZ, maxX, maxY, maxZ + 1.0, action);
                         }
                     };
                 case SOUTH:
@@ -225,11 +279,18 @@ final class CollisionWallTileGrid {
                         public void applyShulkerTile(Shulker shulker, int x, int y) {
                             shulker.x = x + 0.5;
                             shulker.y = y + 0.5;
+                            shulker.invalidateBoundingBox();
                         }
 
                         @Override
                         public void applyShulkerValue(Shulker shulker, double value) {
                             shulker.z = value;
+                            shulker.invalidateBoundingBox();
+                        }
+
+                        @Override
+                        public void forAllShulkers(CollisionWallTileGrid grid, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, Consumer<? super Shulker> action) {
+                            grid.forAllShulkersWallRelative(minX, minY, minZ, maxX, maxY, maxZ + 1.0, action);
                         }
                     };
                 case WEST:
@@ -248,11 +309,18 @@ final class CollisionWallTileGrid {
                         public void applyShulkerTile(Shulker shulker, int x, int y) {
                             shulker.z = x + 0.5;
                             shulker.y = y + 0.5;
+                            shulker.invalidateBoundingBox();
                         }
 
                         @Override
                         public void applyShulkerValue(Shulker shulker, double value) {
                             shulker.x = value;
+                            shulker.invalidateBoundingBox();
+                        }
+
+                        @Override
+                        public void forAllShulkers(CollisionWallTileGrid grid, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, Consumer<? super Shulker> action) {
+                            grid.forAllShulkersWallRelative(minZ, minY, minX, maxZ, maxY, maxX + 1.0, action);
                         }
                     };
                 case EAST:
@@ -271,11 +339,18 @@ final class CollisionWallTileGrid {
                         public void applyShulkerTile(Shulker shulker, int x, int y) {
                             shulker.z = x + 0.5;
                             shulker.y = y + 0.5;
+                            shulker.invalidateBoundingBox();
                         }
 
                         @Override
                         public void applyShulkerValue(Shulker shulker, double value) {
                             shulker.x = value;
+                            shulker.invalidateBoundingBox();
+                        }
+
+                        @Override
+                        public void forAllShulkers(CollisionWallTileGrid grid, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, Consumer<? super Shulker> action) {
+                            grid.forAllShulkersWallRelative(minZ, minY, minX, maxZ, maxY, maxX + 1.0, action);
                         }
                     };
                 case DOWN:
@@ -294,11 +369,18 @@ final class CollisionWallTileGrid {
                         public void applyShulkerTile(Shulker shulker, int x, int y) {
                             shulker.x = x + 0.5;
                             shulker.z = y + 0.5;
+                            shulker.invalidateBoundingBox();
                         }
 
                         @Override
                         public void applyShulkerValue(Shulker shulker, double value) {
                             shulker.y = value;
+                            shulker.invalidateBoundingBox();
+                        }
+
+                        @Override
+                        public void forAllShulkers(CollisionWallTileGrid grid, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, Consumer<? super Shulker> action) {
+                            grid.forAllShulkersWallRelative(minX, minZ, minY, maxX, maxZ, maxY + 1.0, action);
                         }
                     };
                 case UP:
@@ -317,11 +399,18 @@ final class CollisionWallTileGrid {
                         public void applyShulkerTile(Shulker shulker, int x, int y) {
                             shulker.x = x + 0.5;
                             shulker.z = y + 0.5;
+                            shulker.invalidateBoundingBox();
                         }
 
                         @Override
                         public void applyShulkerValue(Shulker shulker, double value) {
                             shulker.y = value;
+                            shulker.invalidateBoundingBox();
+                        }
+
+                        @Override
+                        public void forAllShulkers(CollisionWallTileGrid grid, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, Consumer<? super Shulker> action) {
+                            grid.forAllShulkersWallRelative(minX, minZ, minY, maxX, maxZ, maxY + 1.0, action);
                         }
                     };
                 default:
@@ -333,5 +422,6 @@ final class CollisionWallTileGrid {
         void sortNearest(List<TileSlot> slots);
         void applyShulkerTile(Shulker shulker, int x, int y);
         void applyShulkerValue(Shulker shulker, double value);
+        void forAllShulkers(CollisionWallTileGrid grid, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, Consumer<? super Shulker> action);
     }
 }

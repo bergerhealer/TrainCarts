@@ -6,6 +6,7 @@ import com.bergerkiller.bukkit.common.math.OrientedBoundingBox;
 import com.bergerkiller.bukkit.common.protocol.PacketListener;
 import com.bergerkiller.bukkit.common.protocol.PacketType;
 import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.attachments.surface.StationaryCollisionElement;
 import com.bergerkiller.bukkit.tc.attachments.surface.CollisionSurface;
 import com.bergerkiller.bukkit.tc.controller.player.network.PlayerClientSynchronizer;
 import com.bergerkiller.bukkit.tc.controller.player.network.PlayerPacketListener;
@@ -397,6 +398,30 @@ public interface AttachmentViewer extends TrainCarts.Provider {
             return plugin.getAttachmentViewer(getPlayer()).createCollisionSurface(shulkerViewDistance);
         } else {
             return CollisionSurface.DISABLED;
+        }
+    }
+
+    /**
+     * Iterates all stationary collision surfaces using a range of absolute block coordinates
+     * that intersect them. These surfaces are created when {@link #createCollisionSurface()} is called
+     * but the surface does not move. These spawn actual surfaces the player can walk on. Use this method
+     * to perform hit-testing against these surfaces.
+     *
+     * @param minX Minimum x coordinate (inclusive)
+     * @param minY Minimum y coordinate (inclusive)
+     * @param minZ Minimum z coordinate (inclusive)
+     * @param maxX Maximum x coordinate (inclusive)
+     * @param maxY Maximum y coordinate (inclusive)
+     * @param maxZ Maximum z coordinate (inclusive)
+     * @param action to perform on each shulker that is within the specified bounds
+     */
+    default void forAllStationaryCollisionElements(int minX, int minY, int minZ, int maxX, int maxY, int maxZ, Consumer<StationaryCollisionElement> action) {
+        TrainCarts plugin = getTrainCarts();
+        if (plugin.isEnabled() && isConnected()) {
+            plugin.getAttachmentViewer(getPlayer()).forAllStationaryCollisionElements(
+                    minX, minY, minZ, maxX, maxY, maxZ,
+                    action
+            );
         }
     }
 

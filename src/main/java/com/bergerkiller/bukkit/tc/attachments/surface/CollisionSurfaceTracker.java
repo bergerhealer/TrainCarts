@@ -6,16 +6,15 @@ import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.wrappers.RelativeFlags;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
-import com.bergerkiller.bukkit.tc.controller.player.pmc.PlayerMovementController;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutPositionHandle;
 import com.bergerkiller.generated.net.minecraft.server.level.EntityPlayerHandle;
-import org.bukkit.Location;
 import org.bukkit.block.BlockFace;
 import org.bukkit.util.Vector;
 
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.List;
+import java.util.function.Consumer;
 
 /**
  * Keeps track of the collision surface created to represent various
@@ -115,7 +114,12 @@ public class CollisionSurfaceTracker {
 
             activeSurface.updatePhysics(viewer, pmc);
             newPlayerPosition = activeSurface.getAbsolutePosition();
-            if (!pmc.update(newPlayerPosition, activeSurface.airborne)) {
+
+            // If surface is not moving and the player is not airborne, let player leave the surface
+            // This will make the player walk on the shulkers instead
+            if (!activeSurface.surface.isMoving() && !activeSurface.airborne) {
+                leaveSurface(true);
+            } else if (!pmc.update(newPlayerPosition, activeSurface.airborne)) {
                 // Hit a block, disable the surface, don't sync position though
                 leaveSurface(false);
             }
@@ -134,6 +138,10 @@ public class CollisionSurfaceTracker {
             CollisionSurfaceImpl bestSurface = null;
             Vector bestPosOnSurface = null;
             for (CollisionSurfaceImpl s : surfaces) {
+                if (!s.isMoving()) {
+                    continue;
+                }
+
                 Vector oldRelativePosition = s.lastRelativePosition;
                 Vector newRelativePosition = s.computeRelativePosition(newPlayerPosition);
                 s.lastRelativePosition = newRelativePosition;
@@ -228,6 +236,25 @@ public class CollisionSurfaceTracker {
      */
     public CollisionSurface createSurface() {
         return new CollisionSurfaceImpl();
+    }
+
+    /**
+     * Iterates all stationary collision surfaces using a range of absolute block coordinates
+     * that intersect them.
+     *
+     * @param minX Minimum x coordinate (inclusive)
+     * @param minY Minimum y coordinate (inclusive)
+     * @param minZ Minimum z coordinate (inclusive)
+     * @param maxX Maximum x coordinate (inclusive)
+     * @param maxY Maximum y coordinate (inclusive)
+     * @param maxZ Maximum z coordinate (inclusive)
+     * @param action to perform on each shulker that is within the specified bounds
+     */
+    public void forAllStationaryElements(int minX, int minY, int minZ, int maxX, int maxY, int maxZ, Consumer<StationaryCollisionElement> action) {
+        floorTiles.forAllShulkers(minX, minY, minZ, maxX, maxY, maxZ, action);
+        for (CollisionWallTileGrid wallTileGrid : wallTiles.values()) {
+            wallTileGrid.forAllShulkers(minX, minY, minZ, maxX, maxY, maxZ, action);
+        }
     }
 
     private CollisionWallTileGrid getWallTiles(BlockFace face) {

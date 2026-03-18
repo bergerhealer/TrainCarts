@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 /**
@@ -63,6 +64,36 @@ class CollisionFloorTileGrid {
         TileColumn column = columns.get(key);
         if (column != null) {
             column.remove(surface);
+        }
+    }
+
+    /**
+     * Iterates all spawned shulkers using absolute coordinates
+     *
+     * @param minX Minimum x coordinate (inclusive)
+     * @param minY Minimum y coordinate (inclusive)
+     * @param minZ Minimum z coordinate (inclusive)
+     * @param maxX Maximum x coordinate (inclusive)
+     * @param maxY Maximum y coordinate (inclusive)
+     * @param maxZ Maximum z coordinate (inclusive)
+     * @param action to perform on each shulker that is within the specified bounds
+     */
+    public void forAllShulkers(int minX, int minY, int minZ, int maxX, int maxY, int maxZ, Consumer<? super Shulker> action) {
+        double shulkerMinY = (double) minY;
+        double shulkerMaxY = (double) maxY + 1.0;
+
+        for (int x = minX; x <= maxX; x++) {
+            for (int z = minZ; z <= maxZ; z++) {
+                long key = MathUtil.longHashToLong(x, z);
+                TileColumn column = columns.get(key);
+                if (column != null) {
+                    for (Shulker shulker : column.shulkers) {
+                        if (shulker.y >= shulkerMinY && shulker.y <= shulkerMaxY) {
+                            action.accept(shulker);
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -124,6 +155,7 @@ class CollisionFloorTileGrid {
                 shulker.x = Double.NaN;
                 shulker.y = -Double.MAX_VALUE;
                 shulker.z = Double.NaN;
+                shulker.invalidateBoundingBox();
                 shulkers.add(shulker);
                 ++currentCount;
             }
@@ -156,6 +188,7 @@ class CollisionFloorTileGrid {
                 bestShulker.x = x;
                 bestShulker.y = y;
                 bestShulker.z = z;
+                bestShulker.invalidateBoundingBox();
             });
 
             // If there are more shulkers than we need, despawn the non-picked ones

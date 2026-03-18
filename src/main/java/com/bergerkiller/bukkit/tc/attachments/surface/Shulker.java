@@ -9,6 +9,7 @@ import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlay
 import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
 import com.bergerkiller.generated.net.minecraft.world.entity.decoration.EntityArmorStandHandle;
 import com.bergerkiller.generated.net.minecraft.world.entity.monster.EntityShulkerHandle;
+import com.bergerkiller.generated.net.minecraft.world.phys.AxisAlignedBBHandle;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.EntityType;
 
@@ -23,7 +24,7 @@ import java.util.UUID;
  * A shulker instance can only be used for a single viewer. Position change
  * tracking is not tracked per player.
  */
-final class Shulker {
+final class Shulker implements StationaryCollisionElement {
     /** ShulkerTracker owner of this shulker */
     public final ShulkerTracker shulkerTracker;
     /** Entity ID used to spawn the mount of this shulker */
@@ -36,6 +37,8 @@ final class Shulker {
     public double x, y, z;
     /** Last position synchronized to the viewer */
     public double sync_x, sync_y, sync_z;
+    /** Cached from x/y/z */
+    private AxisAlignedBBHandle boundingBox = null;
     /** State to see if this shulker is picked */
     public boolean picked = false;
     /** Whether this shulker requires destroying (before spawning */
@@ -160,6 +163,25 @@ final class Shulker {
                     this.mountEntityId, x, y - 0.5, z, 0.0f, 0.0f, false);
             viewer.send(p);
         }
+    }
+
+    public void invalidateBoundingBox() {
+        boundingBox = null;
+    }
+
+    @Override
+    public AxisAlignedBBHandle getBoundingBox() {
+        AxisAlignedBBHandle bb = boundingBox;
+        if (bb == null) {
+            bb = AxisAlignedBBHandle.createNew(x - 0.5, y - 0.5, z - 0.5, x + 0.5, y + 0.5, z + 0.5);
+            boundingBox = bb;
+        }
+        return bb;
+    }
+
+    @Override
+    public BlockFace getPushDirection() {
+        return pushDirection;
     }
 
     public void spawn(AttachmentViewer viewer) {

@@ -9,6 +9,7 @@ import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import com.bergerkiller.bukkit.tc.attachments.surface.CollisionSurface;
 import com.bergerkiller.bukkit.tc.attachments.surface.CollisionSurfaceTracker;
+import com.bergerkiller.bukkit.tc.attachments.surface.StationaryCollisionElement;
 import com.bergerkiller.bukkit.tc.controller.player.network.PacketQueue;
 import com.bergerkiller.bukkit.tc.controller.player.network.PlayerClientSynchronizer;
 import com.bergerkiller.bukkit.tc.controller.player.pmc.PlayerMovementController;
@@ -17,6 +18,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 
 /**
  * Implementation of {@link AttachmentViewer} by TrainCarts itself.
@@ -171,6 +173,17 @@ public final class TrainCartsAttachmentViewer implements AttachmentViewer {
             this.collisionSurfaceTracker = collisionSurfaceTracker = new CollisionSurfaceTracker(this, viewRange);
         }
         return collisionSurfaceTracker.createSurface();
+    }
+
+    @Override
+    public void forAllStationaryCollisionElements(int minX, int minY, int minZ, int maxX, int maxY, int maxZ, Consumer<StationaryCollisionElement> action) {
+        CollisionSurfaceTracker collisionSurfaceTracker = this.collisionSurfaceTracker;
+        if (collisionSurfaceTracker != null) {
+            collisionSurfaceTracker.forAllStationaryElements(
+                    minX, minY, minZ, maxX, maxY, maxZ,
+                    action
+            );
+        }
     }
 
     @Override
