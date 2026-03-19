@@ -12,6 +12,7 @@ import org.bukkit.block.BlockFace;
 import org.bukkit.util.Vector;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.function.Consumer;
@@ -129,57 +130,71 @@ public class CollisionSurfaceTracker {
             newPlayerPosition = viewer.getPlayer().getLocation().toVector();
         }
 
-        // If the player is not on a surface or is airborne, test whether the player is intersecting with
-        // a surface as part of movement. If so, set this intersected surface as the new active surface.
-        //
-        // Do not do this while walking on a surface, as there is no point.
-        if (activeSurface == null || activeSurface.airborne) {
-            double bestTheta = Double.MAX_VALUE;
-            CollisionSurfaceImpl bestSurface = null;
-            Vector bestPosOnSurface = null;
-            for (CollisionSurfaceImpl s : surfaces) {
-                if (!s.isMoving()) {
-                    continue;
-                }
-
-                Vector oldRelativePosition = s.lastRelativePosition;
-                Vector newRelativePosition = s.computeRelativePosition(newPlayerPosition);
-                s.lastRelativePosition = newRelativePosition;
-
-                // If no previous relative position is known, initialize it right now
-                if (oldRelativePosition == null) {
-                    continue;
-                }
-
-                // If y did not change sign then we are still on the same side of the shape and did not pass through it
-                if ((oldRelativePosition.getY() >= 0.0) == (newRelativePosition.getY() >= 0.0)) {
-                    continue;
-                }
-
-                //TODO: More advanced check where on the surface we intersected
-                double intersectTheta = 1.0;
-                Vector intersectPosition = newRelativePosition.clone().setY(0.0);
-                Vector halfSize = s.shape.getSize().clone().multiply(0.5);
-                if (Math.abs(intersectPosition.getX()) > halfSize.getX() || Math.abs(intersectPosition.getZ()) > halfSize.getZ()) {
-                    continue;
-                }
-
-                // Keep best
-                if (intersectTheta < bestTheta) {
-                    bestTheta = intersectTheta;
-                    bestSurface = s;
-                    bestPosOnSurface = intersectPosition;
-                }
-            }
-
-            if (bestSurface != null) {
-                setOnSurface(bestSurface, bestPosOnSurface);
-            }
-
-        } else {
-            // Ensure made invalid
-            surfaces.forEach(s -> s.lastRelativePosition = null);
+        // Track when players walk through surfaces. Also do this while already on a surface, to check when
+        // the player walks onto a steeper surface than the one the player was on.
+        List<PositionOnSurface> walkedOntoSurfaces = findWalkedOntoSurfaces(newPlayerPosition);
+        if (!walkedOntoSurfaces.isEmpty()) {
+            walkedOntoSurfaces.sort(Comparator.comparingDouble(s -> -s.motionOnSurface.getY()));
+            setOnSurface(walkedOntoSurfaces.get(0).surface, walkedOntoSurfaces.get(0).posOnSurface);
         }
+    }
+
+    /**
+     * Checks what surfaces the player walked/fell onto between the last and new position.
+     * This is done by checking if the player passed through the plane of any surface, and if so, whether the intersection
+     * point was within the bounds of the surface.
+     *
+     * @param newPlayerPosition New Player Position
+     * @return List of surfaces the player walked onto (or is walking on)
+     */
+    private List<PositionOnSurface> findWalkedOntoSurfaces(Vector newPlayerPosition) {
+        List<PositionOnSurface> result = new ArrayList<>(2);
+        for (CollisionSurfaceImpl s : surfaces) {
+            if (!s.isMoving()) {
+                continue;
+            }
+
+            Vector oldRelativePosition = s.lastRelativePosition;
+            Vector newRelativePosition = s.computeRelativePosition(newPlayerPosition);
+            s.lastRelativePosition = newRelativePosition;
+
+            if (activeSurface != null && !activeSurface.airborne && activeSurface.surface == s) {
+                // Player is already on this surface, so we can skip checks for this surface
+                Vector intersectPosition = newRelativePosition.clone().setY(0.0);
+                Vector mot;
+                if (oldRelativePosition != null) {
+                    mot = s.computeDirectionOnSurface(newRelativePosition.clone().subtract(oldRelativePosition));
+                } else {
+                    // Assume forward
+                    mot = s.computeDirectionOnSurface(activeSurface.relativeVelocity);
+                }
+                result.add(new PositionOnSurface(s, intersectPosition, mot));
+                continue;
+            }
+
+            // If no previous relative position is known, initialize it right now
+            if (oldRelativePosition == null) {
+                continue;
+            }
+
+            // If y did not change sign then we are still on the same side of the shape and did not pass through it
+            if ((oldRelativePosition.getY() >= 0.0) == (newRelativePosition.getY() >= 0.0)) {
+                continue;
+            }
+
+            //TODO: More advanced check where on the surface we intersected
+            Vector intersectPosition = newRelativePosition.clone().setY(0.0);
+            Vector halfSize = s.shape.getSize().clone().multiply(0.5);
+            if (Math.abs(intersectPosition.getX()) > halfSize.getX() || Math.abs(intersectPosition.getZ()) > halfSize.getZ()) {
+                continue;
+            }
+
+            // Keep best
+            Vector mot = s.computeDirectionOnSurface(newRelativePosition.clone().subtract(oldRelativePosition));
+            result.add(new PositionOnSurface(s, intersectPosition, mot));
+        }
+
+        return result;
     }
 
     private void leaveSurface(boolean applyPosition) {
@@ -397,6 +412,21 @@ public class CollisionSurfaceTracker {
             rel.subtract(shape.getPosition());
             shape.getOrientation().invTransformPoint(rel);
             return rel;
+        }
+
+        /**
+         * Takes a relative direction on this surface and returns the absolute direction,
+         * on this surface (flattened).
+         *
+         * @param relativeDirection Relative direction on the surface
+         * @return Absolute world direction, aligned on this surface
+         */
+        public Vector computeDirectionOnSurface(Vector relativeDirection) {
+            Vector abs = relativeDirection.clone();
+            abs.setY(0.0);
+            shape.getOrientation().transformPoint(abs);
+            abs.normalize();
+            return abs;
         }
 
         @Override
@@ -728,6 +758,21 @@ public class CollisionSurfaceTracker {
                     addFloorTile(x, z, new CollisionFloorTileShape.Level(y));
                 }
             }
+        }
+    }
+
+    /**
+     * Player position walking on a surface
+     */
+    private static class PositionOnSurface {
+        public final CollisionSurfaceImpl surface;
+        public final Vector posOnSurface;
+        public final Vector motionOnSurface;
+
+        public PositionOnSurface(CollisionSurfaceImpl surface, Vector posOnSurface, Vector motionOnSurface) {
+            this.surface = surface;
+            this.posOnSurface = posOnSurface;
+            this.motionOnSurface = motionOnSurface;
         }
     }
 }
