@@ -1,6 +1,8 @@
 <!-- rewrite once spigot "[⤓ Modrinth](https://modrinth.com/plugin/traincarts) / [⤓ Spigot](https://www.spigotmc.org/resources/traincarts.39592/) / " "" -->
 〚 [⤓ Modrinth](https://modrinth.com/plugin/traincarts) / [⤓ Spigot](https://www.spigotmc.org/resources/traincarts.39592/) / [⤓ Jenkins Dev Builds](https://ci.mg-dev.eu/job/TrainCarts/) / [Source on GitHub](https://github.com/bergerhealer/TrainCarts/tree/master/src) / [Javadocs](https://ci.mg-dev.eu/javadocs/TrainCarts/) / [Discord](https://discord.gg/wvU2rFgSnw) 〛
 
+〚 [English](./README.md) | 中文 〛
+
 ## 关于 TrainCarts
 Minecraft 中的火车！自动化地铁网络、过山车、游船、滑雪索道或游乐园游乐设施。TrainCarts 支持自定义模型、动画、通过告示牌进行自动化以及一个支持更多插件的庞大 API！
 
