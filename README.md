@@ -1,6 +1,8 @@
 <!-- rewrite once spigot "[⤓ Modrinth](https://modrinth.com/plugin/traincarts) / [⤓ Spigot](https://www.spigotmc.org/resources/traincarts.39592/) / " "" -->
 〚 [⤓ Modrinth](https://modrinth.com/plugin/traincarts) / [⤓ Spigot](https://www.spigotmc.org/resources/traincarts.39592/) / [⤓ Jenkins Dev Builds](https://ci.mg-dev.eu/job/TrainCarts/) / [Source on GitHub](https://github.com/bergerhealer/TrainCarts/tree/master/src) / [Javadocs](https://ci.mg-dev.eu/javadocs/TrainCarts/) / [Discord](https://discord.gg/wvU2rFgSnw) 〛
 
+〚 English | [中文](./README_ZH.md) 〛
+
 ## About TrainCarts
 Trains in Minecraft! Automated metro networks, rollercoasters, gondolas, ski-lifts or amusement park rides. TrainCarts does it all with support for custom models, animations, automation with signs and a large API that supports add-ons that can do even more!
 
