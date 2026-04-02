@@ -124,7 +124,8 @@ public abstract class CartAttachmentPlatform extends CartAttachment {
     };
 
     protected static PlatformMode readPlatformMode(ConfigurationNode config) {
-        return config.getOrDefault("platformMode", PlatformMode.SHULKER);
+        return PlatformMode.SHULKER; // Disabled for now as the platform feature is incomplete.
+        //return config.getOrDefault("platformMode", PlatformMode.SHULKER);
     }
 
     @Override
