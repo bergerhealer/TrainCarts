@@ -12,7 +12,7 @@ import com.bergerkiller.bukkit.common.math.Quaternion;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutUpdateAttributesHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundUpdateAttributesPacketHandle;
 
 /**
  * Default view mode where the player can freely look around. Views either the entity
@@ -98,7 +98,7 @@ public class FirstPersonViewDefault extends FirstPersonView {
                     this._fakeCameraMount.spawn(viewer, seat.calcMotion());
 
                     // Also send zero-max-health
-                    viewer.send(PacketPlayOutUpdateAttributesHandle.createZeroMaxHealth(this._fakeCameraMount.getEntityId()));
+                    viewer.send(ClientboundUpdateAttributesPacketHandle.createZeroMaxHealth(this._fakeCameraMount.getEntityId()));
                 }
             }
         }

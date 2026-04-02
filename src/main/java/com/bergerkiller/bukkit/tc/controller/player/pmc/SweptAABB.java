@@ -2,21 +2,21 @@ package com.bergerkiller.bukkit.tc.controller.player.pmc;
 
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
-import com.bergerkiller.generated.net.minecraft.world.phys.AxisAlignedBBHandle;
+import com.bergerkiller.generated.net.minecraft.world.phys.AABBHandle;
 import org.bukkit.block.BlockFace;
 
 class SweptAABB {
 
     public static class CollisionResult {
-        public final AxisAlignedBBHandle block;
+        public final AABBHandle block;
         public final int blockX, blockY, blockZ;
         public final double theta; // fraction of motion [0..1]
         public final BlockFace face;
-        public final AxisAlignedBBHandle movingAtCollision; // interpolated moving AABB at collision
+        public final AABBHandle movingAtCollision; // interpolated moving AABB at collision
 
-        public CollisionResult(AxisAlignedBBHandle block, int bx, int by, int bz,
+        public CollisionResult(AABBHandle block, int bx, int by, int bz,
                                double theta, BlockFace face,
-                               AxisAlignedBBHandle movingAtCollision) {
+                               AABBHandle movingAtCollision) {
             this.block = block;
             this.blockX = bx;
             this.blockY = by;
@@ -58,9 +58,9 @@ class SweptAABB {
      * @return CollisionResult if a collision occurs, or null if no collision
      */
     public static CollisionResult sweepTest(
-            AxisAlignedBBHandle movingBoxStart,
-            AxisAlignedBBHandle movingBoxEnd,
-            AxisAlignedBBHandle blockBox,
+            AABBHandle movingBoxStart,
+            AABBHandle movingBoxEnd,
+            AABBHandle blockBox,
             int bx, int by, int bz
     ) {
 
@@ -126,7 +126,7 @@ class SweptAABB {
         double maxY = movingBoxStart.getMaxY() + (movingBoxEnd.getMaxY() - movingBoxStart.getMaxY()) * entryTime;
         double maxZ = movingBoxStart.getMaxZ() + (movingBoxEnd.getMaxZ() - movingBoxStart.getMaxZ()) * entryTime;
 
-        AxisAlignedBBHandle movingAtCollision = AxisAlignedBBHandle.createNew(minX, minY, minZ, maxX, maxY, maxZ);
+        AABBHandle movingAtCollision = AABBHandle.createNew(minX, minY, minZ, maxX, maxY, maxZ);
 
         return new CollisionResult(blockBox, bx, by, bz, entryTime, hitFace, movingAtCollision);
     }
@@ -141,8 +141,8 @@ class SweptAABB {
      * @return CollisionResult of the first collision, or null if no collision
      */
     public static CollisionResult findFirstBlockCollision(
-            AxisAlignedBBHandle movingBoxStart,
-            AxisAlignedBBHandle movingBoxEnd,
+            AABBHandle movingBoxStart,
+            AABBHandle movingBoxEnd,
             BlockShapeProvider provider,
             AttachmentViewer viewer
     ) {
@@ -162,7 +162,7 @@ class SweptAABB {
         for (int x = minX; x <= maxX; x++) {
             for (int y = minY; y <= maxY; y++) {
                 for (int z = minZ; z <= maxZ; z++) {
-                    AxisAlignedBBHandle blockBox = provider.getShape(x, y, z);
+                    AABBHandle blockBox = provider.getShape(x, y, z);
                     if (blockBox == null) continue;
 
                     best.promote(sweepTest(movingBoxStart, movingBoxEnd, blockBox, x, y, z));
@@ -174,7 +174,7 @@ class SweptAABB {
         viewer.forAllStationaryCollisionElements(
                 minX, minY, minZ, maxX, maxY, maxZ,
                 (element) -> {
-                    AxisAlignedBBHandle blockBox = element.getBoundingBox();
+                    AABBHandle blockBox = element.getBoundingBox();
                     best.promote(sweepTest(movingBoxStart, movingBoxEnd, blockBox, 0, 0, 0));
                 }
         );

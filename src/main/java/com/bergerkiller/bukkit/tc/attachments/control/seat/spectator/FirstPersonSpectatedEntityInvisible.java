@@ -9,8 +9,8 @@ import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.FirstPersonViewSpectator;
 import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
-import com.bergerkiller.generated.net.minecraft.world.entity.EntityLivingHandle;
-import com.bergerkiller.generated.net.minecraft.world.entity.decoration.EntityArmorStandHandle;
+import com.bergerkiller.generated.net.minecraft.world.entity.LivingEntityHandle;
+import com.bergerkiller.generated.net.minecraft.world.entity.decoration.ArmorStandHandle;
 
 /**
  * An invisible entity that is spectated. The player sees nobody sitting in the
@@ -36,11 +36,11 @@ class FirstPersonSpectatedEntityInvisible extends FirstPersonSpectatedEntity {
             // We spectate an invisible armorstand that has MARKER set
             // This causes the spectator to view from 0/0/0, avoiding having to do any extra offsets
             entity.getMetaData().set(EntityHandle.DATA_FLAGS, (byte) (EntityHandle.DATA_FLAG_INVISIBLE));
-            entity.getMetaData().set(EntityLivingHandle.DATA_HEALTH, 10.0F);
-            entity.getMetaData().set(EntityArmorStandHandle.DATA_ARMORSTAND_FLAGS, (byte) (
-                    EntityArmorStandHandle.DATA_FLAG_SET_MARKER |
-                    EntityArmorStandHandle.DATA_FLAG_NO_BASEPLATE |
-                    EntityArmorStandHandle.DATA_FLAG_IS_SMALL));
+            entity.getMetaData().set(LivingEntityHandle.DATA_HEALTH, 10.0F);
+            entity.getMetaData().set(ArmorStandHandle.DATA_ARMORSTAND_FLAGS, (byte) (
+                    ArmorStandHandle.DATA_FLAG_SET_MARKER |
+                            ArmorStandHandle.DATA_FLAG_NO_BASEPLATE |
+                            ArmorStandHandle.DATA_FLAG_IS_SMALL));
 
             return entity;
         });

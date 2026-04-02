@@ -11,9 +11,9 @@ import com.bergerkiller.bukkit.common.wrappers.DataWatcher;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.attachments.VirtualDisplayEntity;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityDestroyHandle;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityMetadataHandle;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutSpawnEntityHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundRemoveEntitiesPacketHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundSetEntityDataPacketHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundAddEntityPacketHandle;
 import com.bergerkiller.generated.net.minecraft.world.entity.DisplayHandle;
 import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
 import org.bukkit.Color;
@@ -119,7 +119,7 @@ class DebugParticlesDisplay extends DebugParticles {
 
         // Spawn the display entity itself
         {
-            PacketPlayOutSpawnEntityHandle spawnPacket = PacketPlayOutSpawnEntityHandle.createNew();
+            ClientboundAddEntityPacketHandle spawnPacket = ClientboundAddEntityPacketHandle.createNew();
             spawnPacket.setEntityId(entityId);
             spawnPacket.setEntityUUID(entityUUID);
             spawnPacket.setEntityType(VirtualDisplayEntity.BLOCK_DISPLAY_ENTITY_TYPE);
@@ -132,7 +132,7 @@ class DebugParticlesDisplay extends DebugParticles {
             spawnPacket.setYaw(0.0f);
             spawnPacket.setPitch(0.0f);
             PacketUtil.sendPacket(player, spawnPacket);
-            PacketUtil.sendPacket(player, PacketPlayOutEntityMetadataHandle.createNew(entityId, metadata, true));
+            PacketUtil.sendPacket(player, ClientboundSetEntityDataPacketHandle.createNew(entityId, metadata, true));
         }
 
         displayTasks.add(task);
@@ -173,7 +173,7 @@ class DebugParticlesDisplay extends DebugParticles {
 
         // Spawn the display entity itself
         {
-            PacketPlayOutSpawnEntityHandle spawnPacket = PacketPlayOutSpawnEntityHandle.createNew();
+            ClientboundAddEntityPacketHandle spawnPacket = ClientboundAddEntityPacketHandle.createNew();
             spawnPacket.setEntityId(entityId);
             spawnPacket.setEntityUUID(entityUUID);
             spawnPacket.setEntityType(VirtualDisplayEntity.BLOCK_DISPLAY_ENTITY_TYPE);
@@ -186,7 +186,7 @@ class DebugParticlesDisplay extends DebugParticles {
             spawnPacket.setYaw(0.0f);
             spawnPacket.setPitch(0.0f);
             PacketUtil.sendPacket(player, spawnPacket);
-            PacketUtil.sendPacket(player, PacketPlayOutEntityMetadataHandle.createNew(entityId, metadata, true));
+            PacketUtil.sendPacket(player, ClientboundSetEntityDataPacketHandle.createNew(entityId, metadata, true));
         }
 
         displayTasks.add(task);
@@ -232,15 +232,15 @@ class DebugParticlesDisplay extends DebugParticles {
 
         public boolean update(Player viewer) {
             if (++age >= DURATION) {
-                PacketUtil.sendPacket(viewer, PacketPlayOutEntityDestroyHandle.createNewSingle(entityId));
+                PacketUtil.sendPacket(viewer, ClientboundRemoveEntitiesPacketHandle.createNewSingle(entityId));
                 return true;
             } else {
                 applyBrightness();
-                PacketUtil.sendPacket(viewer, PacketPlayOutEntityMetadataHandle.createNew(entityId, metadata, false));
+                PacketUtil.sendPacket(viewer, ClientboundSetEntityDataPacketHandle.createNew(entityId, metadata, false));
                 return false;
             }
-        }
-    }
+         }
+     }
 
     /**
      * Stores types of concrete and a way to map from rgb color to the best-fitting

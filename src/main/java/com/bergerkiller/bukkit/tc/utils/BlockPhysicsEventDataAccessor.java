@@ -11,7 +11,7 @@ import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.common.wrappers.BlockData;
 import com.bergerkiller.bukkit.tc.TrainCarts;
-import com.bergerkiller.generated.net.minecraft.world.level.block.state.IBlockDataHandle;
+import com.bergerkiller.generated.net.minecraft.world.level.block.state.BlockStateHandle;
 import com.bergerkiller.mountiplex.reflection.util.FastConstructor;
 import com.bergerkiller.mountiplex.reflection.util.FastMethod;
 
@@ -88,7 +88,7 @@ public abstract class BlockPhysicsEventDataAccessor {
         public BlockPhysicsEventDataAccessorDefaultModern() throws Throwable {
             Class<?> bd = CommonUtil.getClass("org.bukkit.block.data.BlockData");
             Class<?> cbd = CommonUtil.getClass("org.bukkit.craftbukkit.block.data.CraftBlockData");
-            this.toBukkitBlockData = new FastMethod<Object>(cbd.getDeclaredMethod("fromData", IBlockDataHandle.T.getType()));
+            this.toBukkitBlockData = new FastMethod<Object>(cbd.getDeclaredMethod("fromData", BlockStateHandle.T.getType()));
             this.eventConstructor = new FastConstructor<BlockPhysicsEvent>(BlockPhysicsEvent.class.getConstructor(Block.class, bd));
             this.toBukkitBlockData.forceInitialization();
             this.eventConstructor.forceInitialization();

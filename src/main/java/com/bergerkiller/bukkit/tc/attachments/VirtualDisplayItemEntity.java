@@ -9,7 +9,7 @@ import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentManager;
 import com.bergerkiller.generated.net.minecraft.world.entity.DisplayHandle;
 import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
-import com.bergerkiller.generated.net.minecraft.world.entity.decoration.EntityArmorStandHandle;
+import com.bergerkiller.generated.net.minecraft.world.entity.decoration.ArmorStandHandle;
 import org.bukkit.inventory.ItemStack;
 
 /**
@@ -22,10 +22,10 @@ public class VirtualDisplayItemEntity extends VirtualDisplayEntity {
         MOUNT_METADATA.set(EntityHandle.DATA_NO_GRAVITY, true);
         MOUNT_METADATA.set(EntityHandle.DATA_FLAGS,
                 (byte) (EntityHandle.DATA_FLAG_INVISIBLE | EntityHandle.DATA_FLAG_FLYING));
-        MOUNT_METADATA.set(EntityArmorStandHandle.DATA_ARMORSTAND_FLAGS,
-                (byte) (EntityArmorStandHandle.DATA_FLAG_SET_MARKER |
-                        EntityArmorStandHandle.DATA_FLAG_IS_SMALL |
-                        EntityArmorStandHandle.DATA_FLAG_NO_BASEPLATE));
+        MOUNT_METADATA.set(ArmorStandHandle.DATA_ARMORSTAND_FLAGS,
+                (byte) (ArmorStandHandle.DATA_FLAG_SET_MARKER |
+                        ArmorStandHandle.DATA_FLAG_IS_SMALL |
+                        ArmorStandHandle.DATA_FLAG_NO_BASEPLATE));
     }
 
     /**

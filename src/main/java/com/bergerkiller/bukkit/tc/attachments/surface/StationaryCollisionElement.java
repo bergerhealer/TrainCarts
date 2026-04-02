@@ -1,6 +1,6 @@
 package com.bergerkiller.bukkit.tc.attachments.surface;
 
-import com.bergerkiller.generated.net.minecraft.world.phys.AxisAlignedBBHandle;
+import com.bergerkiller.generated.net.minecraft.world.phys.AABBHandle;
 import org.bukkit.block.BlockFace;
 
 /**
@@ -16,7 +16,7 @@ public interface StationaryCollisionElement {
      *
      * @return AxisAlignedBBHandle
      */
-    AxisAlignedBBHandle getBoundingBox();
+    AABBHandle getBoundingBox();
 
     /**
      * Gets the direction to push players during spawning if they are inside this stationary element.

@@ -21,7 +21,7 @@ import com.bergerkiller.bukkit.tc.controller.MinecartGroupStore;
 import com.bergerkiller.bukkit.tc.controller.components.RailPiece;
 import com.bergerkiller.bukkit.tc.controller.components.RailState;
 import com.bergerkiller.bukkit.tc.pathfinding.PathNode;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutPositionHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundPlayerPositionPacketHandle;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Chunk;
@@ -633,7 +633,7 @@ public class DebugCommands {
             flags = flags.withRelativeRotation();
         }
 
-        PacketUtil.sendPacket(player, PacketPlayOutPositionHandle.createNew(
+        PacketUtil.sendPacket(player, ClientboundPlayerPositionPacketHandle.createNew(
                 p_x, p_y, p_z,
                 look ? 0.0f : p_yaw,
                 look ? 0.0f : p_pitch,

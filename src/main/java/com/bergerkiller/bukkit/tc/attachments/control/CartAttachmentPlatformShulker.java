@@ -5,7 +5,7 @@ import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
-import com.bergerkiller.generated.net.minecraft.world.entity.monster.EntityShulkerHandle;
+import com.bergerkiller.generated.net.minecraft.world.entity.monster.ShulkerHandle;
 import org.bukkit.entity.EntityType;
 import org.bukkit.util.Vector;
 
@@ -30,7 +30,7 @@ public class CartAttachmentPlatformShulker extends CartAttachmentPlatform {
         this.actual = new VirtualEntity(this.getManager());
         this.actual.setEntityType(EntityType.SHULKER);
         this.actual.getMetaData().set(EntityHandle.DATA_FLAGS, (byte) EntityHandle.DATA_FLAG_INVISIBLE);
-        this.actual.getMetaData().setClientByteDefault(EntityShulkerHandle.DATA_COLOR, Color.DEFAULT.ordinal());
+        this.actual.getMetaData().setClientByteDefault(ShulkerHandle.DATA_COLOR, Color.DEFAULT.ordinal());
 
         // Shulker boxes fail to move, and must be inside a vehicle to move at all
         // Handle this logic here. It seems that the position of the chicken is largely irrelevant.
@@ -44,7 +44,7 @@ public class CartAttachmentPlatformShulker extends CartAttachmentPlatform {
     @Override
     public void onLoad(ConfigurationNode config) {
         Color color = config.getOrDefault("shulkerColor", Color.DEFAULT);
-        this.actual.getMetaData().set(EntityShulkerHandle.DATA_COLOR, (byte) color.ordinal());
+        this.actual.getMetaData().set(ShulkerHandle.DATA_COLOR, (byte) color.ordinal());
     }
 
     @Override

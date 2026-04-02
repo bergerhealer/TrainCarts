@@ -8,12 +8,12 @@ import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.bukkit.common.wrappers.PlayerAbilities;
 import com.bergerkiller.bukkit.common.wrappers.RelativeFlags;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayInAbilitiesHandle;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayInFlyingHandle;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutAbilitiesHandle;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityVelocityHandle;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutPositionHandle;
-import com.bergerkiller.generated.net.minecraft.server.level.EntityPlayerHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ServerboundPlayerAbilitiesPacketHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ServerboundMovePlayerPacketHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundPlayerAbilitiesPacketHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundSetEntityMotionPacketHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundPlayerPositionPacketHandle;
+import com.bergerkiller.generated.net.minecraft.server.level.ServerPlayerHandle;
 import org.bukkit.util.Vector;
 
 /**
@@ -47,19 +47,19 @@ class PlayerMovementControllerPredictedLegacy extends PlayerMovementControllerPr
                 diff.setZ(0.0);
             }
 
-            PacketPlayOutEntityVelocityHandle p = PacketPlayOutEntityVelocityHandle.createNew(player.getEntityId(),
+            ClientboundSetEntityMotionPacketHandle p = ClientboundSetEntityMotionPacketHandle.createNew(player.getEntityId(),
                     diff.getX(), diff.getY(), diff.getZ());
             PacketUtil.sendPacket(player, p);
 
             sentPositions.add(new SentMotionUpdate(new Vector(p.getMotX(), p.getMotY(), p.getMotZ())));
         } else {
             // Reset velocity to 0
-            PacketPlayOutEntityVelocityHandle p2 = PacketPlayOutEntityVelocityHandle.createNew(player.getEntityId(),
+            ClientboundSetEntityMotionPacketHandle p2 = ClientboundSetEntityMotionPacketHandle.createNew(player.getEntityId(),
                     0.0, 0.0, 0.0);
             PacketUtil.sendPacket(player, p2);
 
             // Force an absolute update to bring the client into a known good state
-            PacketUtil.sendPacket(player, PacketPlayOutPositionHandle.createNew(
+            PacketUtil.sendPacket(player, ClientboundPlayerPositionPacketHandle.createNew(
                     position.getX(), position.getY(), position.getZ(), 0.0f, 0.0f,
                     RelativeFlags.ABSOLUTE_POSITION.withRelativeRotation()));
 
@@ -119,7 +119,7 @@ class PlayerMovementControllerPredictedLegacy extends PlayerMovementControllerPr
     @Override
     public void onPacketReceive(PacketReceiveEvent event) {
         if (event.getType() == PacketType.IN_POSITION || event.getType() == PacketType.IN_POSITION_LOOK) {
-            PacketPlayInFlyingHandle p = PacketPlayInFlyingHandle.createHandle(event.getPacket().getHandle());
+            ServerboundMovePlayerPacketHandle p = ServerboundMovePlayerPacketHandle.createHandle(event.getPacket().getHandle());
             synchronized (PlayerMovementControllerPredictedLegacy.this) {
                 // It's possible the controller stopped before the packet listener was decoupled
                 // Then this synchronized block opens after.
@@ -150,11 +150,11 @@ class PlayerMovementControllerPredictedLegacy extends PlayerMovementControllerPr
                 }
             }
         } else if (event.getType() == PacketType.IN_ABILITIES) {
-            PacketPlayInAbilitiesHandle p = PacketPlayInAbilitiesHandle.createHandle(event.getPacket().getHandle());
+            ServerboundPlayerAbilitiesPacketHandle p = ServerboundPlayerAbilitiesPacketHandle.createHandle(event.getPacket().getHandle());
             if (!p.isFlying()) {
                 event.setCancelled(true);
-                PlayerAbilities pa = EntityPlayerHandle.fromBukkit(event.getPlayer()).getAbilities();
-                PacketPlayOutAbilitiesHandle pp = PacketPlayOutAbilitiesHandle.createNew(pa);
+                PlayerAbilities pa = ServerPlayerHandle.fromBukkit(event.getPlayer()).getAbilities();
+                ClientboundPlayerAbilitiesPacketHandle pp = ClientboundPlayerAbilitiesPacketHandle.createNew(pa);
                 PacketUtil.queuePacket(event.getPlayer(), pp);
             }
         }

@@ -15,7 +15,7 @@ import com.bergerkiller.bukkit.tc.attachments.config.transform.ArmorStandItemTra
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
 import com.bergerkiller.generated.com.mojang.authlib.GameProfileHandle;
 import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
-import com.bergerkiller.generated.net.minecraft.world.entity.decoration.EntityArmorStandHandle;
+import com.bergerkiller.generated.net.minecraft.world.entity.decoration.ArmorStandHandle;
 
 /**
  * Seated entity that is using flying skull with a player skin on an
@@ -114,8 +114,8 @@ public class SeatedEntityHead extends SeatedEntity {
     public void updateFocus(boolean focused) {
         if (skull != null) {
             skull.getMetaData().setFlag(EntityHandle.DATA_FLAGS, EntityHandle.DATA_FLAG_GLOWING | EntityHandle.DATA_FLAG_ON_FIRE, focused);
-            skull.getMetaData().setFlag(EntityArmorStandHandle.DATA_ARMORSTAND_FLAGS,
-                    EntityArmorStandHandle.DATA_FLAG_SET_MARKER, focused);
+            skull.getMetaData().setFlag(ArmorStandHandle.DATA_ARMORSTAND_FLAGS,
+                    ArmorStandHandle.DATA_FLAG_SET_MARKER, focused);
         }
     }
 

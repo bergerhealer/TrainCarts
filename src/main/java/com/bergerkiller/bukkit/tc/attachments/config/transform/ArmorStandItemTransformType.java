@@ -2,7 +2,7 @@ package com.bergerkiller.bukkit.tc.attachments.config.transform;
 
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.tc.Util;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityEquipmentHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundSetEquipmentPacketHandle;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 
@@ -109,7 +109,7 @@ public enum ArmorStandItemTransformType {
         }
     }
 
-    public PacketPlayOutEntityEquipmentHandle createEquipmentPacket(int entityId, ItemStack item) {
+    public ClientboundSetEquipmentPacketHandle createEquipmentPacket(int entityId, ItemStack item) {
         return Util.createNonPlayerEquipmentPacket(entityId, this.getSlot(), item);
     }
 

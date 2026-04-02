@@ -9,13 +9,13 @@ import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.bukkit.common.wrappers.PlayerAbilities;
 import com.bergerkiller.bukkit.common.wrappers.RelativeFlags;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayInAbilitiesHandle;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayInEntityActionHandle;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayInFlyingHandle;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayInSteerVehicleHandle;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutAbilitiesHandle;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutPositionHandle;
-import com.bergerkiller.generated.net.minecraft.server.level.EntityPlayerHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundPlayerAbilitiesPacketHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundPlayerPositionPacketHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ServerboundPlayerAbilitiesPacketHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ServerboundPlayerCommandPacketHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ServerboundMovePlayerPacketHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ServerboundPlayerInputPacketHandle;
+import com.bergerkiller.generated.net.minecraft.server.level.ServerPlayerHandle;
 import org.bukkit.util.Vector;
 
 import java.util.concurrent.atomic.AtomicInteger;
@@ -68,7 +68,7 @@ class PlayerMovementControllerPredictedModern extends PlayerMovementControllerPr
                 diff.setZ(0.0);
             }
 
-            PacketUtil.sendPacket(player, PacketPlayOutPositionHandle.createNew(
+            PacketUtil.sendPacket(player, ClientboundPlayerPositionPacketHandle.createNew(
                     0.0, 0.0, 0.0, 0.0f, 0.0f,
                     diff.getX(), diff.getY(), diff.getZ(),
                     FLAGS_ONLY_MOVE));
@@ -76,7 +76,7 @@ class PlayerMovementControllerPredictedModern extends PlayerMovementControllerPr
             sentPositions.add(new SentMotionUpdate(diff));
         } else {
             // Force an absolute update to bring the client into a known good state
-            PacketUtil.sendPacket(player, PacketPlayOutPositionHandle.createNew(
+            PacketUtil.sendPacket(player, ClientboundPlayerPositionPacketHandle.createNew(
                     position.getX(), position.getY(), position.getZ(), 0.0f, 0.0f,
                     FLAGS_RESET));
 
@@ -172,7 +172,7 @@ class PlayerMovementControllerPredictedModern extends PlayerMovementControllerPr
     public void onPacketReceive(PacketReceiveEvent event) {
         if (event.getType() == PacketType.IN_POSITION || event.getType() == PacketType.IN_POSITION_LOOK) {
             // Update last-known position and look yaw of the player
-            PacketPlayInFlyingHandle p = PacketPlayInFlyingHandle.createHandle(event.getPacket().getHandle());
+            ServerboundMovePlayerPacketHandle p = ServerboundMovePlayerPacketHandle.createHandle(event.getPacket().getHandle());
             synchronized (PlayerMovementControllerPredictedModern.this) {
                 PlayerPositionInput input = this.input;
                 MathUtil.setVector(input.currPosition, p.getX(), p.getY(), p.getZ());
@@ -183,7 +183,7 @@ class PlayerMovementControllerPredictedModern extends PlayerMovementControllerPr
             }
         } else if (event.getType() == PacketType.IN_STEER_VEHICLE) {
             // Update last-known inputs from the player
-            PacketPlayInSteerVehicleHandle packet = PacketPlayInSteerVehicleHandle.createHandle(event.getPacket().getHandle());
+            ServerboundPlayerInputPacketHandle packet = ServerboundPlayerInputPacketHandle.createHandle(event.getPacket().getHandle());
             ComposedInput currInput = new ComposedInput(AttachmentViewer.Input.fromVehicleSteer(packet));
             synchronized (PlayerMovementControllerPredictedModern.this) {
                 hasSprintButtonAction = packet.isSprint();
@@ -194,15 +194,15 @@ class PlayerMovementControllerPredictedModern extends PlayerMovementControllerPr
             }
         } else if (event.getType() == PacketType.IN_ABILITIES) {
             // Ensure flight mode is kept active
-            PacketPlayInAbilitiesHandle p = PacketPlayInAbilitiesHandle.createHandle(event.getPacket().getHandle());
+            ServerboundPlayerAbilitiesPacketHandle p = ServerboundPlayerAbilitiesPacketHandle.createHandle(event.getPacket().getHandle());
             if (!p.isFlying()) {
                 event.setCancelled(true);
-                PlayerAbilities pa = EntityPlayerHandle.fromBukkit(event.getPlayer()).getAbilities();
-                PacketPlayOutAbilitiesHandle pp = PacketPlayOutAbilitiesHandle.createNew(pa);
+                PlayerAbilities pa = ServerPlayerHandle.fromBukkit(event.getPlayer()).getAbilities();
+                ClientboundPlayerAbilitiesPacketHandle pp = ClientboundPlayerAbilitiesPacketHandle.createNew(pa);
                 PacketUtil.queuePacket(event.getPlayer(), pp);
             }
         } else if (event.getType() == PacketType.IN_ENTITY_ACTION) {
-            PacketPlayInEntityActionHandle packet = PacketPlayInEntityActionHandle.createHandle(event.getPacket().getHandle());
+            ServerboundPlayerCommandPacketHandle packet = ServerboundPlayerCommandPacketHandle.createHandle(event.getPacket().getHandle());
             Object action = packet.getAction();
             if (action != null) {
                 String actionName = (action instanceof Enum) ? ((Enum<?>) action).name() : action.toString();

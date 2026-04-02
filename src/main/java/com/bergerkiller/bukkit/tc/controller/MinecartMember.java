@@ -101,8 +101,8 @@ import com.bergerkiller.bukkit.tc.utils.TrackIterator;
 import com.bergerkiller.bukkit.tc.utils.TrackMap;
 import com.bergerkiller.bukkit.tc.utils.TrackWalkingPoint;
 import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
-import com.bergerkiller.generated.net.minecraft.world.entity.EntityLivingHandle;
-import com.bergerkiller.generated.net.minecraft.world.phys.AxisAlignedBBHandle;
+import com.bergerkiller.generated.net.minecraft.world.entity.LivingEntityHandle;
+import com.bergerkiller.generated.net.minecraft.world.phys.AABBHandle;
 
 public abstract class MinecartMember<T extends CommonMinecart<?>> extends EntityController<T>
         implements IPropertiesHolder, AnimationController, TrainCarts.Provider {
@@ -1658,7 +1658,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     private final boolean isModelIntersectingWith_impl(EntityHandle entityHandle) {
         // We lack a proper bounding box collision test
         // Instead we do a poor man's method of probing various points on the entity
-        AxisAlignedBBHandle aabb = entityHandle.getBoundingBox();
+        AABBHandle aabb = entityHandle.getBoundingBox();
         double[] xval = { aabb.getMinX(), 0.5 * (aabb.getMinX() + aabb.getMaxX()), aabb.getMaxX() };
         double[] yval = { aabb.getMinY(), 0.5 * (aabb.getMinY() + aabb.getMaxY()), aabb.getMaxY() };
         double[] zval = { aabb.getMinZ(), 0.5 * (aabb.getMinZ() + aabb.getMaxZ()), aabb.getMaxZ() };
@@ -2065,7 +2065,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
                 if (!((passenger instanceof Player) ? player_manual : mob_manual)) {
                     continue;
                 }
-                float forwardMovement = EntityLivingHandle.fromBukkit((LivingEntity) passenger)
+                float forwardMovement = LivingEntityHandle.fromBukkit((LivingEntity) passenger)
                         .getForwardMovement();
                 if (forwardMovement > 0.0f) {
                     // Use Entity yaw and pitch to find the direction to boost the minecart into

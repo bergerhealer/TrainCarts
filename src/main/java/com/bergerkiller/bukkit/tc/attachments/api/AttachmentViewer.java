@@ -12,7 +12,7 @@ import com.bergerkiller.bukkit.tc.controller.player.network.PlayerClientSynchron
 import com.bergerkiller.bukkit.tc.controller.player.network.PlayerPacketListener;
 import com.bergerkiller.bukkit.common.math.Quaternion;
 
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayInSteerVehicleHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ServerboundPlayerInputPacketHandle;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
@@ -23,9 +23,9 @@ import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.bukkit.common.utils.PlayerUtil;
 import com.bergerkiller.bukkit.common.wrappers.DataWatcher;
 import com.bergerkiller.generated.net.minecraft.network.protocol.PacketHandle;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityMetadataHandle;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutNamedEntitySpawnHandle;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutSpawnEntityLivingHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundSetEntityDataPacketHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundAddPlayerPacketHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundAddMobPacketHandle;
 
 import me.m56738.smoothcoasters.api.NetworkInterface;
 import org.bukkit.util.Vector;
@@ -116,13 +116,13 @@ public interface AttachmentViewer extends TrainCarts.Provider {
      * @param metadata
      */
     @SuppressWarnings("deprecation")
-    default void sendEntityLivingSpawnPacket(PacketPlayOutSpawnEntityLivingHandle packet, DataWatcher metadata) {
+    default void sendEntityLivingSpawnPacket(ClientboundAddMobPacketHandle packet, DataWatcher metadata) {
         if (packet.hasDataWatcherSupport()) {
             packet.setDataWatcher(metadata);
             send(packet);
         } else {
             send(packet);
-            send(PacketPlayOutEntityMetadataHandle.createNew(packet.getEntityId(), metadata, true));
+            send(ClientboundSetEntityDataPacketHandle.createNew(packet.getEntityId(), metadata, true));
         }
     }
 
@@ -134,13 +134,13 @@ public interface AttachmentViewer extends TrainCarts.Provider {
      * @param metadata
      */
     @SuppressWarnings("deprecation")
-    default void sendNamedEntitySpawnPacket(PacketPlayOutNamedEntitySpawnHandle packet, DataWatcher metadata) {
+    default void sendNamedEntitySpawnPacket(ClientboundAddPlayerPacketHandle packet, DataWatcher metadata) {
         if (packet.hasDataWatcherSupport()) {
             packet.setDataWatcher(metadata);
             send(packet);
         } else {
             send(packet);
-            send(PacketPlayOutEntityMetadataHandle.createNew(packet.getEntityId(), metadata, true));
+            send(ClientboundSetEntityDataPacketHandle.createNew(packet.getEntityId(), metadata, true));
         }
     }
 
@@ -710,7 +710,7 @@ public interface AttachmentViewer extends TrainCarts.Provider {
             return new Input(left, right, forwards, backwards, jumping, sneaking, sprinting);
         }
 
-        public static Input fromVehicleSteer(PacketPlayInSteerVehicleHandle packet) {
+        public static Input fromVehicleSteer(ServerboundPlayerInputPacketHandle packet) {
             return of(packet.isLeft(), packet.isRight(), packet.isForward(), packet.isBackward(),
                     packet.isJump(), packet.isUnmount(), packet.isSprint());
         }
@@ -856,8 +856,8 @@ public interface AttachmentViewer extends TrainCarts.Provider {
          *
          * @return New PacketPlayInSteerVehicleHandle
          */
-        public PacketPlayInSteerVehicleHandle createSteerPacket() {
-            return PacketPlayInSteerVehicleHandle.createNew(
+        public ServerboundPlayerInputPacketHandle createSteerPacket() {
+            return ServerboundPlayerInputPacketHandle.createNew(
                     left, right, forwards, backwards,
                     jumping, sneaking, sprinting);
         }

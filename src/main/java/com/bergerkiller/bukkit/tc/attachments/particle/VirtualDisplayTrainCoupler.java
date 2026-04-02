@@ -9,12 +9,12 @@ import com.bergerkiller.bukkit.common.wrappers.DataWatcher;
 import com.bergerkiller.bukkit.tc.attachments.VirtualDisplayEntity;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentManager;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityDestroyHandle;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityMetadataHandle;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityTeleportHandle;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutMountHandle;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutSpawnEntityHandle;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutSpawnEntityLivingHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundAddEntityPacketHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundAddMobPacketHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundRemoveEntitiesPacketHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundSetEntityDataPacketHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundSetPassengersPacketHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundEntityPositionSyncPacketHandle;
 import com.bergerkiller.generated.net.minecraft.world.entity.DisplayHandle;
 import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
 import org.bukkit.ChatColor;
@@ -90,7 +90,7 @@ public class VirtualDisplayTrainCoupler extends VirtualTrainCoupler {
     protected void sendSpawnPackets(AttachmentViewer viewer, Vector motion) {
         // Spawn the display entity itself
         {
-            PacketPlayOutSpawnEntityHandle spawnPacket = PacketPlayOutSpawnEntityHandle.createNew();
+            ClientboundAddEntityPacketHandle spawnPacket = ClientboundAddEntityPacketHandle.createNew();
             spawnPacket.setEntityId(this.entityId);
             spawnPacket.setEntityUUID(this.entityUUID);
             spawnPacket.setEntityType(VirtualDisplayEntity.BLOCK_DISPLAY_ENTITY_TYPE);
@@ -108,7 +108,7 @@ public class VirtualDisplayTrainCoupler extends VirtualTrainCoupler {
 
         // Spawn invisible marker armorstand mount
         {
-            PacketPlayOutSpawnEntityLivingHandle spawnPacket = PacketPlayOutSpawnEntityLivingHandle.createNew();
+            ClientboundAddMobPacketHandle spawnPacket = ClientboundAddMobPacketHandle.createNew();
             spawnPacket.setEntityId(mountEntityId);
             spawnPacket.setEntityUUID(UUID.randomUUID());
             spawnPacket.setEntityType(EntityType.ARMOR_STAND);
@@ -125,16 +125,16 @@ public class VirtualDisplayTrainCoupler extends VirtualTrainCoupler {
         }
 
         // Mount all line blocks into the armorstand
-        viewer.send(PacketPlayOutMountHandle.createNew(mountEntityId, new int[] {entityId}));
+        viewer.send(ClientboundSetPassengersPacketHandle.createNew(mountEntityId, new int[] {entityId}));
     }
 
-    private PacketPlayOutEntityMetadataHandle createMetaPacket(boolean includeUnchangedData) {
-        return PacketPlayOutEntityMetadataHandle.createNew(this.entityId, metadata, includeUnchangedData);
+    private ClientboundSetEntityDataPacketHandle createMetaPacket(boolean includeUnchangedData) {
+        return ClientboundSetEntityDataPacketHandle.createNew(this.entityId, metadata, includeUnchangedData);
     }
 
     @Override
     protected void sendDestroyPackets(AttachmentViewer viewer) {
-        viewer.send(PacketPlayOutEntityDestroyHandle.createNewMultiple(new int[] { mountEntityId, entityId }));
+        viewer.send(ClientboundRemoveEntitiesPacketHandle.createNewMultiple(new int[] { mountEntityId, entityId }));
     }
 
     @Override
@@ -144,7 +144,7 @@ public class VirtualDisplayTrainCoupler extends VirtualTrainCoupler {
 
         // Just sync absolute all the time, this isn't used often enough for it to warrant a lot of code
         // int entityId, double posX, double posY, double posZ, float yaw, float pitch, boolean onGround)
-        broadcast(PacketPlayOutEntityTeleportHandle.createNew(mountEntityId,
+        broadcast(ClientboundEntityPositionSyncPacketHandle.createNew(mountEntityId,
                 position.getX(), position.getY(), position.getZ(),
                 0.0f, 0.0f, false));
     }

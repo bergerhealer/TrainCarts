@@ -15,13 +15,13 @@ import org.bukkit.util.Vector;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.wrappers.DataWatcher;
 import com.bergerkiller.bukkit.tc.attachments.FakePlayerSpawner;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityDestroyHandle;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityMetadataHandle;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityTeleportHandle;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutSpawnEntityHandle;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutSpawnEntityLivingHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundRemoveEntitiesPacketHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundSetEntityDataPacketHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundEntityPositionSyncPacketHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundAddEntityPacketHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundAddMobPacketHandle;
 import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
-import com.bergerkiller.generated.net.minecraft.world.entity.projectile.EntityFishingHookHandle;
+import com.bergerkiller.generated.net.minecraft.world.entity.projectile.FishingHookHandle;
 
 /**
  * Tracks and updates a single fishing line connecting two points
@@ -132,7 +132,7 @@ public class VirtualFishingLine {
             UUID uuid = UUID.randomUUID();
             uuids.add(uuid);
 
-            PacketPlayOutSpawnEntityLivingHandle spawnPacket = PacketPlayOutSpawnEntityLivingHandle.createNew();
+            ClientboundAddMobPacketHandle spawnPacket = ClientboundAddMobPacketHandle.createNew();
             spawnPacket.setEntityId(this.holderEntityId);
             spawnPacket.setEntityUUID(uuid);
             spawnPacket.setEntityType(EntityType.SILVERFISH);
@@ -153,7 +153,7 @@ public class VirtualFishingLine {
             UUID uuid = UUID.randomUUID();
             uuids.add(uuid);
 
-            PacketPlayOutSpawnEntityLivingHandle spawnPacket = PacketPlayOutSpawnEntityLivingHandle.createNew();
+            ClientboundAddMobPacketHandle spawnPacket = ClientboundAddMobPacketHandle.createNew();
             spawnPacket.setEntityId(this.hookedEntityId);
             spawnPacket.setEntityUUID(uuid);
             spawnPacket.setEntityType(EntityType.SILVERFISH);
@@ -192,7 +192,7 @@ public class VirtualFishingLine {
 
             // Teleport holder entity
             if (this.holderEntityId != -1) {
-                final PacketPlayOutEntityTeleportHandle packet = PacketPlayOutEntityTeleportHandle.createNew(
+                final ClientboundEntityPositionSyncPacketHandle packet = ClientboundEntityPositionSyncPacketHandle.createNew(
                         this.holderEntityId,
                         positionA.getX() + OFFSET.HOLDER.getX(),
                         positionA.getY() + OFFSET.HOLDER.getY(),
@@ -203,7 +203,7 @@ public class VirtualFishingLine {
 
             // Teleport hooked entity
             {
-                final PacketPlayOutEntityTeleportHandle packet = PacketPlayOutEntityTeleportHandle.createNew(
+                final ClientboundEntityPositionSyncPacketHandle packet = ClientboundEntityPositionSyncPacketHandle.createNew(
                         this.hookedEntityId,
                         positionB.getX() + OFFSET.HOOKED.getX(),
                         positionB.getY() + OFFSET.HOOKED.getY(),
@@ -233,18 +233,18 @@ public class VirtualFishingLine {
                                        this.holderPlayerEntityId, this.hookEntityId)
                 .filter(id -> id != -1)
                 .toArray();
-        if (PacketPlayOutEntityDestroyHandle.canDestroyMultiple()) {
-            viewer.send(PacketPlayOutEntityDestroyHandle.createNewMultiple(entityIds));
+        if (ClientboundRemoveEntitiesPacketHandle.canDestroyMultiple()) {
+            viewer.send(ClientboundRemoveEntitiesPacketHandle.createNewMultiple(entityIds));
         } else {
             for (int entityId : entityIds) {
-                viewer.send(PacketPlayOutEntityDestroyHandle.createNewSingle(entityId));
+                viewer.send(ClientboundRemoveEntitiesPacketHandle.createNewSingle(entityId));
             }
         }
     }
 
     public void spawnLine(AttachmentViewer viewer, Vector positionA, Vector positionB) {
         // Spawn packet
-        PacketPlayOutSpawnEntityHandle spawnPacket = PacketPlayOutSpawnEntityHandle.createNew();
+        ClientboundAddEntityPacketHandle spawnPacket = ClientboundAddEntityPacketHandle.createNew();
         spawnPacket.setEntityId(this.hookEntityId);
         spawnPacket.setEntityUUID(UUID.randomUUID());
         spawnPacket.setEntityType(EntityType.FISHING_HOOK);
@@ -256,10 +256,9 @@ public class VirtualFishingLine {
 
         // Metadata packet
         DataWatcher meta = new DataWatcher();
-        meta.set(EntityFishingHookHandle.DATA_HOOKED_ENTITY_ID, OptionalInt.of(this.hookedEntityId));
+        meta.set(FishingHookHandle.DATA_HOOKED_ENTITY_ID, OptionalInt.of(this.hookedEntityId));
         meta.setFlag(EntityHandle.DATA_FLAGS, EntityHandle.DATA_FLAG_INVISIBLE, true);
-        PacketPlayOutEntityMetadataHandle metaPacket = PacketPlayOutEntityMetadataHandle.createNew(this.hookEntityId, meta, true);
-        viewer.send(metaPacket);
+        viewer.send(ClientboundSetEntityDataPacketHandle.createNew(this.hookEntityId, meta, true).toCommonPacket());
     }
 
     /**
@@ -269,7 +268,7 @@ public class VirtualFishingLine {
      * @param viewer
      */
     public void destroyLine(AttachmentViewer viewer) {
-        viewer.send(PacketPlayOutEntityDestroyHandle.createNewSingle(this.hookEntityId));
+        viewer.send(ClientboundRemoveEntitiesPacketHandle.createNewSingle(this.hookEntityId));
     }
 
     private static class Offsets {

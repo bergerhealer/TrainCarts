@@ -20,15 +20,15 @@ import com.bergerkiller.bukkit.tc.attachments.helper.HelperMethods;
 import com.bergerkiller.bukkit.tc.attachments.particle.VirtualBoundingBox;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetSizeBox;
 import com.bergerkiller.bukkit.tc.attachments.ui.menus.PositionMenu;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityDestroyHandle;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityMetadataHandle;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityTeleportHandle;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutSpawnEntityHandle;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutSpawnEntityLivingHandle;
-import com.bergerkiller.generated.net.minecraft.world.entity.EntityAgeableHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundAddEntityPacketHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundAddMobPacketHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundEntityPositionSyncPacketHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundRemoveEntitiesPacketHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundSetEntityDataPacketHandle;
+import com.bergerkiller.generated.net.minecraft.world.entity.AgeableMobHandle;
 import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
 import com.bergerkiller.generated.net.minecraft.world.entity.InteractionHandle;
-import com.bergerkiller.generated.net.minecraft.world.entity.monster.EntitySlimeHandle;
+import com.bergerkiller.generated.net.minecraft.world.entity.monster.SlimeHandle;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.entity.EntityType;
@@ -261,7 +261,7 @@ public class CartAttachmentHitBox extends CartAttachment {
         if (nearbyViewers.add(viewer.getPlayer())) {
             if (usesInteractionEntity) {
                 // Spawn an interaction entity with metadata setup right
-                PacketPlayOutSpawnEntityHandle packet = PacketPlayOutSpawnEntityHandle.createNew();
+                ClientboundAddEntityPacketHandle packet = ClientboundAddEntityPacketHandle.createNew();
                 packet.setEntityId(hitboxEntityId);
                 packet.setEntityUUID(hitboxEntityUUID);
                 packet.setEntityType(VirtualDisplayEntity.INTERACTION_ENTITY_TYPE);
@@ -273,7 +273,7 @@ public class CartAttachmentHitBox extends CartAttachment {
             } else {
                 // spawn an invisible entity whose hitbox the player can hit
                 // The entity is positioned in such a way the player hits it from that POV
-                PacketPlayOutSpawnEntityLivingHandle packet = PacketPlayOutSpawnEntityLivingHandle.createNew();
+                ClientboundAddMobPacketHandle packet = ClientboundAddMobPacketHandle.createNew();
                 packet.setEntityId(hitboxEntityId);
                 packet.setEntityUUID(hitboxEntityUUID);
                 packet.setEntityType(sizeMode.type);
@@ -291,8 +291,9 @@ public class CartAttachmentHitBox extends CartAttachment {
                 viewer.sendDisableCollision(hitboxEntityUUID);
             }
         } else {
-            PacketPlayOutEntityTeleportHandle packet = PacketPlayOutEntityTeleportHandle.createNew(
-                    this.hitboxEntityId, pos.getX(), pos.getY(), pos.getZ(),
+            ClientboundEntityPositionSyncPacketHandle packet = ClientboundEntityPositionSyncPacketHandle.createNew(
+                    this.hitboxEntityId,
+                    pos.getX(), pos.getY(), pos.getZ(),
                     0.0f, 0.0f, false);
             viewer.send(packet);
         }
@@ -302,12 +303,12 @@ public class CartAttachmentHitBox extends CartAttachment {
         DataWatcher meta = new DataWatcher();
         meta.set(InteractionHandle.DATA_WIDTH, (float) minSize);
         meta.set(InteractionHandle.DATA_HEIGHT, (float) minSize);
-        viewer.send(PacketPlayOutEntityMetadataHandle.createNew(hitboxEntityId, meta, true));
+        viewer.send(ClientboundSetEntityDataPacketHandle.createNew(hitboxEntityId, meta, true).toCommonPacket());
     }
 
     private void despawnHitBoxForViewer(AttachmentViewer viewer) {
         if (nearbyViewers.remove(viewer.getPlayer())) {
-            viewer.send(PacketPlayOutEntityDestroyHandle.createNewSingle(this.hitboxEntityId));
+            viewer.send(ClientboundRemoveEntitiesPacketHandle.createNewSingle(this.hitboxEntityId));
         }
     }
 
@@ -379,9 +380,9 @@ public class CartAttachmentHitBox extends CartAttachment {
 
         public void apply(DataWatcher datawatcher) {
             if (baby) {
-                datawatcher.set(EntityAgeableHandle.DATA_IS_BABY, true);
+                datawatcher.set(AgeableMobHandle.DATA_IS_BABY, true);
             } else if (slimeSize != 0) {
-                datawatcher.set(EntitySlimeHandle.DATA_SIZE, slimeSize);
+                datawatcher.set(SlimeHandle.DATA_SIZE, slimeSize);
             }
         }
 

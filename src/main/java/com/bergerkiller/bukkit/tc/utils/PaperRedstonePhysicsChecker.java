@@ -9,7 +9,7 @@ import org.bukkit.World;
 
 import com.bergerkiller.bukkit.common.Common;
 import com.bergerkiller.bukkit.tc.TrainCarts;
-import com.bergerkiller.generated.net.minecraft.world.level.WorldHandle;
+import com.bergerkiller.generated.net.minecraft.world.level.LevelHandle;
 
 /**
  * When 'fire-physics-event-for-redstone' is set to 'false' in the paper.yml of PaperSpigot for a particular
@@ -29,7 +29,7 @@ public class PaperRedstonePhysicsChecker {
         // Retrieve paper world configuration
         // Permit silent failure because whatever...
         try {
-            Object worldHandle = WorldHandle.fromBukkit(world).getRaw();
+            Object worldHandle = LevelHandle.fromBukkit(world).getRaw();
             java.lang.reflect.Field worldConfigField = worldHandle.getClass().getField("paperConfig");
             Object worldConfig = worldConfigField.get(worldHandle);
             java.lang.reflect.Field propertyField = worldConfig.getClass().getField("firePhysicsEventForRedstone");

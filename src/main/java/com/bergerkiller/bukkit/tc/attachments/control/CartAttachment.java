@@ -16,7 +16,7 @@ import com.bergerkiller.bukkit.tc.attachments.api.AttachmentTypeRegistry;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.components.AttachmentControllerMember;
-import com.bergerkiller.generated.net.minecraft.world.entity.monster.EntityShulkerHandle;
+import com.bergerkiller.generated.net.minecraft.world.entity.monster.ShulkerHandle;
 
 public abstract class CartAttachment implements Attachment {
     private final AttachmentInternalState state = new AttachmentInternalState();
@@ -126,7 +126,7 @@ public abstract class CartAttachment implements Attachment {
         AttachmentTypeRegistry.instance().register(CartAttachmentSound.TYPE);
         AttachmentTypeRegistry.instance().register(CartAttachmentSequencer.TYPE);
 
-        if (EntityShulkerHandle.T.isAvailable()) {
+        if (ShulkerHandle.T.isAvailable()) {
             AttachmentTypeRegistry.instance().register(CartAttachmentPlatform.TYPE);
         }
 

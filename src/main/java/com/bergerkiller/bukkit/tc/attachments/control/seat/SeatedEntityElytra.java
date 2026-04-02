@@ -14,8 +14,8 @@ import com.bergerkiller.bukkit.tc.attachments.FakePlayerSpawner;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityDestroyHandle;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityMetadataHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundRemoveEntitiesPacketHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundSetEntityDataPacketHandle;
 import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
 
 /**
@@ -72,7 +72,7 @@ class SeatedEntityElytra extends SeatedEntity {
     private void sendUpdatedMetadata(int entityId, boolean invisible) {
         DataWatcher meta = new DataWatcher();
         getMetadataFunction(invisible).accept(meta);
-        PacketPlayOutEntityMetadataHandle packet = PacketPlayOutEntityMetadataHandle.createNew(entityId, meta, true);
+        ClientboundSetEntityDataPacketHandle packet = ClientboundSetEntityDataPacketHandle.createNew(entityId, meta, true);
         for (AttachmentViewer viewer : seat.getAttachmentViewers()) {
             if (this.entity != viewer.getPlayer() || isDummyPlayer() || isMadeVisibleInFirstPerson()) {
                 viewer.send(packet);
@@ -128,8 +128,8 @@ class SeatedEntityElytra extends SeatedEntity {
     public void makeFakePlayerHidden(AttachmentViewer viewer) {
         if (this._fakeEntityId != -1 && (isPlayer() || isDummyPlayer())) {
             // Destroy old fake player entity
-            viewer.send(PacketPlayOutEntityDestroyHandle.createNewSingle(this._fakeEntityId));
-            viewer.send(PacketPlayOutEntityDestroyHandle.createNewSingle(this._fakeEntityIdFlipped));
+            viewer.send(ClientboundRemoveEntitiesPacketHandle.createNewSingle(this._fakeEntityId));
+            viewer.send(ClientboundRemoveEntitiesPacketHandle.createNewSingle(this._fakeEntityIdFlipped));
             VehicleMountController vmc = viewer.getVehicleMountController();
             if (this.fakeVehicle != null) {
                 this.fakeVehicle.destroy(viewer);

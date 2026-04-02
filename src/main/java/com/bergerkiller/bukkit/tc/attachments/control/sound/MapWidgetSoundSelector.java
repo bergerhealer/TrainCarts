@@ -8,8 +8,8 @@ import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
 import com.bergerkiller.bukkit.common.resources.ResourceKey;
 import com.bergerkiller.bukkit.common.resources.SoundEffect;
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutCustomSoundEffectHandle;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutStopSoundHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundCustomSoundPacketHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundStopSoundPacketHandle;
 import org.bukkit.entity.Player;
 
 /**
@@ -142,7 +142,7 @@ public abstract class MapWidgetSoundSelector extends MapWidget {
         lastPreviewedCategory = getCategory();
         if (lastPreviewedSound != null) {
             for (Player player : display.getOwners()) {
-                PacketPlayOutCustomSoundEffectHandle packet = PacketPlayOutCustomSoundEffectHandle.createNew(
+                ClientboundCustomSoundPacketHandle packet = ClientboundCustomSoundPacketHandle.createNew(
                         lastPreviewedSound, lastPreviewedCategory, player.getLocation(), 1.0f, 1.0f);
                 PacketUtil.sendPacket(player, packet);
             }
@@ -157,7 +157,7 @@ public abstract class MapWidgetSoundSelector extends MapWidget {
 
     private void stopSoundImpl(MapDisplay display) {
         if (lastPreviewedSound != null) {
-            PacketPlayOutStopSoundHandle packet = PacketPlayOutStopSoundHandle.createNew(lastPreviewedSound, lastPreviewedCategory);
+            ClientboundStopSoundPacketHandle packet = ClientboundStopSoundPacketHandle.createNew(lastPreviewedSound, lastPreviewedCategory);
             for (Player player : display.getOwners()) {
                 PacketUtil.sendPacket(player, packet);
             }

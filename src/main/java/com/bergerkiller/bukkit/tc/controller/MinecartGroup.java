@@ -52,7 +52,7 @@ import com.bergerkiller.bukkit.tc.offline.train.OfflineGroupManager;
 import com.bergerkiller.bukkit.tc.signactions.mutex.MutexZoneCache;
 import com.bergerkiller.bukkit.tc.utils.ChunkArea;
 import com.bergerkiller.bukkit.tc.utils.TrackWalkingPoint;
-import com.bergerkiller.generated.net.minecraft.world.level.chunk.ChunkHandle;
+import com.bergerkiller.generated.net.minecraft.world.level.chunk.LevelChunkHandle;
 
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -1928,7 +1928,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
                     int cx = entity.getChunkX();
                     int cz = entity.getChunkZ();
                     if (cx != entity.loc.x.chunk() || cz != entity.loc.z.chunk()) {
-                        ChunkHandle.fromBukkit(entity.getWorld().getChunkAt(cx, cz)).markDirty();
+                        LevelChunkHandle.fromBukkit(entity.getWorld().getChunkAt(cx, cz)).markDirty();
                     }
                 }
             }

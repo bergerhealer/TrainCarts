@@ -6,7 +6,7 @@ import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.wrappers.DataWatcher;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityMetadataHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundSetEntityDataPacketHandle;
 import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
 
 /**
@@ -41,7 +41,7 @@ public class SeatedEntityInvisible extends SeatedEntity {
             {
                 DataWatcher metaTmp = new DataWatcher();
                 metaTmp.set(EntityHandle.DATA_FLAGS, (byte) EntityHandle.DATA_FLAG_INVISIBLE);
-                viewer.send(PacketPlayOutEntityMetadataHandle.createNew(this.entity.getEntityId(), metaTmp, true));
+                viewer.send(ClientboundSetEntityDataPacketHandle.createNew(this.entity.getEntityId(), metaTmp, true).toCommonPacket());
             }
 
             // Mount them so they stay near the vehicle
@@ -64,7 +64,7 @@ public class SeatedEntityInvisible extends SeatedEntity {
             // Make entity visible again by resetting metadata
             {
                 DataWatcher metaTmp = EntityHandle.fromBukkit(this.entity).getDataWatcher();
-                viewer.send(PacketPlayOutEntityMetadataHandle.createNew(this.entity.getEntityId(), metaTmp, true));
+                viewer.send(ClientboundSetEntityDataPacketHandle.createNew(this.entity.getEntityId(), metaTmp, true).toCommonPacket());
             }
         }
     }

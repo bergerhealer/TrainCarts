@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.tc.attachments.control.seat;
 
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundMoveEntityPacketHandle;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
@@ -9,8 +10,7 @@ import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
 import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityHeadRotationHandle;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityHandle.PacketPlayOutEntityLookHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundRotateHeadPacketHandle;
 import com.bergerkiller.generated.net.minecraft.server.level.EntityTrackerEntryStateHandle;
 
 /**
@@ -42,10 +42,10 @@ public class SeatOrientation {
     public void sendLockedRotations(AttachmentViewer viewer, int entityId) {
         // Do not send viewer to self - bad things happen
         if (entityId != viewer.getEntityId()) {
-            PacketPlayOutEntityHeadRotationHandle headPacket = PacketPlayOutEntityHeadRotationHandle.createNew(entityId, getPassengerHeadYaw());
+            ClientboundRotateHeadPacketHandle headPacket = ClientboundRotateHeadPacketHandle.createNew(entityId, getPassengerHeadYaw());
             viewer.send(headPacket);
 
-            PacketPlayOutEntityLookHandle lookPacket = PacketPlayOutEntityLookHandle.createNew(
+            ClientboundMoveEntityPacketHandle.RotHandle lookPacket = ClientboundMoveEntityPacketHandle.RotHandle.createNew(
                     entityId, getPassengerYaw(), getPassengerPitch(), false);
             viewer.send(lookPacket);
         }
@@ -111,8 +111,8 @@ public class SeatOrientation {
 
         // Refresh head rotation
         if (EntityTrackerEntryStateHandle.hasProtocolRotationChanged(headRot, this._entityLastHeadYaw)) {
-            PacketPlayOutEntityHeadRotationHandle headPacket = PacketPlayOutEntityHeadRotationHandle.createNew(entityId, headRot);
-            PacketPlayOutEntityHeadRotationHandle headPacketFlipped =  PacketPlayOutEntityHeadRotationHandle.createNew(flippedId, headRot);
+            ClientboundRotateHeadPacketHandle headPacket = ClientboundRotateHeadPacketHandle.createNew(entityId, headRot);
+            ClientboundRotateHeadPacketHandle headPacketFlipped =  ClientboundRotateHeadPacketHandle.createNew(flippedId, headRot);
 
             this._entityLastHeadYaw = headPacket.getHeadYaw();
             for (AttachmentViewer viewer : seat.getAttachmentViewers()) {
@@ -133,7 +133,7 @@ public class SeatOrientation {
         {
             this._entityRotationCtr = 10;
 
-            PacketPlayOutEntityLookHandle lookPacket = PacketPlayOutEntityLookHandle.createNew(entityId, _mountYaw, pitch, false);
+            ClientboundMoveEntityPacketHandle.RotHandle lookPacket = ClientboundMoveEntityPacketHandle.RotHandle.createNew(entityId, _mountYaw, pitch, false);
             this._entityLastYaw = lookPacket.getYaw();
             this._entityLastPitch = lookPacket.getPitch();
             for (AttachmentViewer viewer : seat.getAttachmentViewers()) {
@@ -146,7 +146,7 @@ public class SeatOrientation {
             float k = 180.0f;
             float f = 10.0f;
             float flippedPitch = (this._entityLastPitch >= k) ? k+f : k-f;
-            PacketPlayOutEntityLookHandle flipLookPacket = PacketPlayOutEntityLookHandle.createNew(flippedId, this._entityLastYaw, flippedPitch, false);
+            ClientboundMoveEntityPacketHandle.RotHandle flipLookPacket = ClientboundMoveEntityPacketHandle.RotHandle.createNew(flippedId, this._entityLastYaw, flippedPitch, false);
             for (AttachmentViewer viewer : seat.getAttachmentViewers()) {
                 if (viewer.getPlayer() != viewerToIgnore) {
                     viewer.send(flipLookPacket);
@@ -176,12 +176,12 @@ public class SeatOrientation {
         SeatedEntity.PassengerPose poseFixed = seated.isUpsideDown() ? pose.upsideDownFix_Pre_1_17() : pose;
 
         // These are the types of packets we might be sending
-        PacketPlayOutEntityHeadRotationHandle headPacket = null;
-        PacketPlayOutEntityLookHandle lookPacket = null;
+        ClientboundRotateHeadPacketHandle headPacket = null;
+        ClientboundMoveEntityPacketHandle.RotHandle lookPacket = null;
 
         // Refresh head rotation
         if (EntityTrackerEntryStateHandle.hasProtocolRotationChanged(pose.headYaw, this._entityLastHeadYaw)) {
-            headPacket = PacketPlayOutEntityHeadRotationHandle.createNew(entityId, pose.headYaw);
+            headPacket = ClientboundRotateHeadPacketHandle.createNew(entityId, pose.headYaw);
             this._entityLastHeadYaw = headPacket.getHeadYaw();
         }
 
@@ -196,7 +196,7 @@ public class SeatOrientation {
         {
             this._entityRotationCtr = 10;
 
-            lookPacket = PacketPlayOutEntityLookHandle.createNew(entityId, pose.bodyYaw, pose.headPitch, false);
+            lookPacket = ClientboundMoveEntityPacketHandle.RotHandle.createNew(entityId, pose.bodyYaw, pose.headPitch, false);
             this._entityLastYaw = lookPacket.getYaw();
             this._entityLastPitch = lookPacket.getPitch();
         } else if (seat.isRotationLocked()) {
@@ -205,8 +205,8 @@ public class SeatOrientation {
 
         // These packets are sent to players on Minecraft version 1.17.1 and before
         // Only used when isUpsideDownTransform is active
-        PacketPlayOutEntityHeadRotationHandle headPacket_1_17_fix = null;
-        PacketPlayOutEntityLookHandle lookPacket_1_17_fix = null;
+        ClientboundRotateHeadPacketHandle headPacket_1_17_fix = null;
+        ClientboundMoveEntityPacketHandle.RotHandle lookPacket_1_17_fix = null;
 
         // Send packets to all the players
         if (headPacket != null || lookPacket != null) {
@@ -218,13 +218,13 @@ public class SeatOrientation {
                     // Minecraft 1.17.1 and before requires some fixes to be made
                     if (headPacket != null) {
                         if (headPacket_1_17_fix == null) {
-                            headPacket_1_17_fix = PacketPlayOutEntityHeadRotationHandle.createNew(entityId, poseFixed.headYaw);
+                            headPacket_1_17_fix = ClientboundRotateHeadPacketHandle.createNew(entityId, poseFixed.headYaw);
                         }
                         viewer.send(headPacket_1_17_fix);
                     }
                     if (lookPacket != null) {
                         if (lookPacket_1_17_fix == null) {
-                            lookPacket_1_17_fix = PacketPlayOutEntityLookHandle.createNew(entityId, poseFixed.bodyYaw, poseFixed.headPitch, false);
+                            lookPacket_1_17_fix = ClientboundMoveEntityPacketHandle.RotHandle.createNew(entityId, poseFixed.bodyYaw, poseFixed.headPitch, false);
                         }
                         viewer.send(lookPacket_1_17_fix);
                     }

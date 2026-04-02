@@ -6,8 +6,8 @@ import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.wrappers.RelativeFlags;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutPositionHandle;
-import com.bergerkiller.generated.net.minecraft.server.level.EntityPlayerHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundPlayerPositionPacketHandle;
+import com.bergerkiller.generated.net.minecraft.server.level.ServerPlayerHandle;
 import org.bukkit.block.BlockFace;
 import org.bukkit.util.Vector;
 
@@ -208,7 +208,7 @@ public class CollisionSurfaceTracker {
             Vector vel = activeSurface.getAbsoluteVelocity();
             activeSurface = null;
 
-            EntityPlayerHandle epHandle = EntityPlayerHandle.fromBukkit(viewer.getPlayer());
+            ServerPlayerHandle epHandle = ServerPlayerHandle.fromBukkit(viewer.getPlayer());
             if (applyPosition) {
                 epHandle.setPosition(pos.getX(), pos.getY(), pos.getZ());
             }
@@ -220,7 +220,7 @@ public class CollisionSurfaceTracker {
             if (!applyPosition) {
                 flags = flags.withRelativePosition();
             }
-            PacketPlayOutPositionHandle packet = PacketPlayOutPositionHandle.createNew(
+            ClientboundPlayerPositionPacketHandle packet = ClientboundPlayerPositionPacketHandle.createNew(
                     pos.getX(), pos.getY(), pos.getZ(), 0.0f, 0.0f,
                     vel.getX(), vel.getY(), vel.getZ(), flags);
             viewer.send(packet);

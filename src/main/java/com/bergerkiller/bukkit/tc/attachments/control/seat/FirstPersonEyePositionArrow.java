@@ -11,7 +11,7 @@ import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
 import com.bergerkiller.bukkit.tc.attachments.config.transform.ArmorStandItemTransformType;
 import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
-import com.bergerkiller.generated.net.minecraft.world.entity.decoration.EntityArmorStandHandle;
+import com.bergerkiller.generated.net.minecraft.world.entity.decoration.ArmorStandHandle;
 
 /**
  * Displays an updated floating arrow where the eye position and look direction
@@ -33,7 +33,7 @@ public final class FirstPersonEyePositionArrow {
             this.arrow.setItem(ArmorStandItemTransformType.HEAD, new ItemStack(MaterialUtil.getFirst(
                     "ARROW", "LEGACY_ARROW")));
             this.arrow.getMetaData().setFlag(EntityHandle.DATA_FLAGS, EntityHandle.DATA_FLAG_ON_FIRE, true);
-            this.arrow.getMetaData().setFlag(EntityArmorStandHandle.DATA_ARMORSTAND_FLAGS, EntityArmorStandHandle.DATA_FLAG_SET_MARKER, true);
+            this.arrow.getMetaData().setFlag(ArmorStandHandle.DATA_ARMORSTAND_FLAGS, ArmorStandHandle.DATA_FLAG_SET_MARKER, true);
             this.arrow.updatePosition(adjust(seat.firstPerson.getEyeTransform()));
             this.arrow.syncPosition(true);
         }

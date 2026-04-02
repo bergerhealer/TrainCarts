@@ -11,7 +11,7 @@ import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import com.bergerkiller.generated.net.minecraft.network.protocol.PacketHandle;
 import com.bergerkiller.generated.net.minecraft.network.protocol.common.ClientboundKeepAlivePacketHandle;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutPositionHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundPlayerPositionPacketHandle;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -137,8 +137,8 @@ final class PlayerClientSynchronizerProviderLegacyImpl implements PlayerClientSy
         private static final RelativeFlags NO_CHANGE_RELATIVE_FLAGS = RelativeFlags.RELATIVE_POSITION_ROTATION
                 .withRelativeDelta()
                 .withRelativeDeltaRotation();
-        private static final IntFunction<PacketPlayOutPositionHandle> NO_CHANGE_ACK_PACKET = teleportId ->
-                PacketPlayOutPositionHandle.createNew(
+        private static final IntFunction<ClientboundPlayerPositionPacketHandle> NO_CHANGE_ACK_PACKET = teleportId ->
+                ClientboundPlayerPositionPacketHandle.createNew(
                         0.0, 0.0, 0.0,
                         0.0f, 0.0f,
                         0.0, 0.0, 0.0,
@@ -188,13 +188,13 @@ final class PlayerClientSynchronizerProviderLegacyImpl implements PlayerClientSy
         }
 
         @Override
-        public void synchronize(IntFunction<PacketPlayOutPositionHandle> positionPacketMaker, Consumer<PacketPlayOutPositionHandle> callback) {
+        public void synchronize(IntFunction<ClientboundPlayerPositionPacketHandle> positionPacketMaker, Consumer<ClientboundPlayerPositionPacketHandle> callback) {
             if (hasQuit) {
                 return;
             }
 
             long keepAliveId = getSafeAwaitKeepAliveId();
-            PacketPlayOutPositionHandle packet = positionPacketMaker.apply(0);
+            ClientboundPlayerPositionPacketHandle packet = positionPacketMaker.apply(0);
             ClientboundKeepAlivePacketHandle keepAlivePacket = ClientboundKeepAlivePacketHandle.createNew(keepAliveId);
             PendingAcknowledgement pendingAck = new PendingAcknowledgement(keepAliveId, packet, callback);
             synchronized (this) {
@@ -259,11 +259,11 @@ final class PlayerClientSynchronizerProviderLegacyImpl implements PlayerClientSy
         /** Id assigned to the keep-alive packet we are looking for */
         private final long keepAliveId;
         /** Position packet sent along. Null if not used (runnable callback) */
-        private final PacketPlayOutPositionHandle position;
+        private final ClientboundPlayerPositionPacketHandle position;
         /** Callback to run once acknowledged */
-        private final Consumer<PacketPlayOutPositionHandle> callback;
+        private final Consumer<ClientboundPlayerPositionPacketHandle> callback;
 
-        public PendingAcknowledgement(long keepAliveId, PacketPlayOutPositionHandle position, Consumer<PacketPlayOutPositionHandle> callback) {
+        public PendingAcknowledgement(long keepAliveId, ClientboundPlayerPositionPacketHandle position, Consumer<ClientboundPlayerPositionPacketHandle> callback) {
             this.keepAliveId = keepAliveId;
             this.position = position;
             this.callback = callback;

@@ -12,8 +12,8 @@ import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import com.bergerkiller.generated.net.minecraft.network.protocol.PacketHandle;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundBundlePacketHandle;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutPositionHandle;
-import com.bergerkiller.generated.net.minecraft.server.level.EntityPlayerHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundPlayerPositionPacketHandle;
+import com.bergerkiller.generated.net.minecraft.server.level.ServerPlayerHandle;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -137,8 +137,8 @@ final class PlayerClientSynchronizerProviderModernImpl implements PlayerClientSy
         private static final RelativeFlags NO_CHANGE_RELATIVE_FLAGS = RelativeFlags.RELATIVE_POSITION_ROTATION
                 .withRelativeDelta()
                 .withRelativeDeltaRotation();
-        private static final IntFunction<PacketPlayOutPositionHandle> NO_CHANGE_ACK_PACKET = teleportId ->
-                PacketPlayOutPositionHandle.createNew(
+        private static final IntFunction<ClientboundPlayerPositionPacketHandle> NO_CHANGE_ACK_PACKET = teleportId ->
+                ClientboundPlayerPositionPacketHandle.createNew(
                         0.0, 0.0, 0.0,
                         0.0f, 0.0f,
                         0.0, 0.0, 0.0,
@@ -188,13 +188,13 @@ final class PlayerClientSynchronizerProviderModernImpl implements PlayerClientSy
         }
 
         @Override
-        public void synchronize(IntFunction<PacketPlayOutPositionHandle> positionPacketMaker, Consumer<PacketPlayOutPositionHandle> callback) {
+        public void synchronize(IntFunction<ClientboundPlayerPositionPacketHandle> positionPacketMaker, Consumer<ClientboundPlayerPositionPacketHandle> callback) {
             if (hasQuit) {
                 return;
             }
 
             int teleportId = getSafeAwaitTeleportId();
-            PacketPlayOutPositionHandle packet = positionPacketMaker.apply(teleportId);
+            ClientboundPlayerPositionPacketHandle packet = positionPacketMaker.apply(teleportId);
             PendingAcknowledgement pendingAck = new PendingAcknowledgement(packet, callback);
             synchronized (this) {
                 if (hasQuit) {
@@ -228,8 +228,8 @@ final class PlayerClientSynchronizerProviderModernImpl implements PlayerClientSy
 
             // Just use the same id twice, no big deal, we control it.
             int teleportId = getSafeAwaitTeleportId();
-            PacketPlayOutPositionHandle startSyncPacket = NO_CHANGE_ACK_PACKET.apply(teleportId);
-            PacketPlayOutPositionHandle endSyncPacket = NO_CHANGE_ACK_PACKET.apply(teleportId);
+            ClientboundPlayerPositionPacketHandle startSyncPacket = NO_CHANGE_ACK_PACKET.apply(teleportId);
+            ClientboundPlayerPositionPacketHandle endSyncPacket = NO_CHANGE_ACK_PACKET.apply(teleportId);
 
             List<Object> rawPackets = new ArrayList<>(packets.size() + 2);
             rawPackets.add(startSyncPacket.getRaw());
@@ -258,7 +258,7 @@ final class PlayerClientSynchronizerProviderModernImpl implements PlayerClientSy
         }
 
         private int getSafeAwaitTeleportId() {
-            EntityPlayerHandle handle = EntityPlayerHandle.fromBukkit(player);
+            ServerPlayerHandle handle = ServerPlayerHandle.fromBukkit(player);
             int id = handle.getPlayerConnection().getAwaitingTeleportId();
 
             // Take some ID's prior so that we are not in the way of whatever the server is doing
@@ -273,11 +273,11 @@ final class PlayerClientSynchronizerProviderModernImpl implements PlayerClientSy
 
     private static class PendingAcknowledgement {
         /** Teleport packet with unique id to wait for */
-        private final PacketPlayOutPositionHandle position;
+        private final ClientboundPlayerPositionPacketHandle position;
         /** Callback to run once acknowledged */
-        private final Consumer<PacketPlayOutPositionHandle> callback;
+        private final Consumer<ClientboundPlayerPositionPacketHandle> callback;
 
-        public PendingAcknowledgement(PacketPlayOutPositionHandle position, Consumer<PacketPlayOutPositionHandle> callback) {
+        public PendingAcknowledgement(ClientboundPlayerPositionPacketHandle position, Consumer<ClientboundPlayerPositionPacketHandle> callback) {
             this.position = position;
             this.callback = callback;
         }

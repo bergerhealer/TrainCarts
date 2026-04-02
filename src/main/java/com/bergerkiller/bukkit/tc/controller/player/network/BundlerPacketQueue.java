@@ -6,7 +6,7 @@ import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.utils.CircularFIFOQueue;
 import com.bergerkiller.generated.net.minecraft.network.protocol.PacketHandle;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundBundlePacketHandle;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityDestroyHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundRemoveEntitiesPacketHandle;
 import org.bukkit.entity.Player;
 
 import java.util.ArrayList;
@@ -226,6 +226,6 @@ class BundlerPacketQueue extends PacketQueue {
     }
 
     private static Object createDummyPacket() {
-        return PacketPlayOutEntityDestroyHandle.createNewMultiple(new int[0]).getRaw();
+        return ClientboundRemoveEntitiesPacketHandle.createNewMultiple(new int[0]).getRaw();
     }
 }

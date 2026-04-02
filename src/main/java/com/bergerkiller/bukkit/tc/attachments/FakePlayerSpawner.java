@@ -27,12 +27,10 @@ import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import com.bergerkiller.generated.com.mojang.authlib.GameProfileHandle;
 import com.bergerkiller.generated.com.mojang.authlib.properties.PropertyHandle;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutNamedEntitySpawnHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundAddPlayerPacketHandle;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundPlayerInfoRemovePacketHandle;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacketHandle;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutScoreboardTeamHandle;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacketHandle.EnumPlayerInfoActionHandle;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacketHandle.PlayerInfoDataHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundSetPlayerTeamPacketHandle;
 import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
 
 /**
@@ -153,7 +151,7 @@ public enum FakePlayerSpawner {
      * @param applier Applies other options to the created spawn packet
      * @param metaFunction Applies changes to the metadata of the spawned player
      */
-    public void spawnPlayerSimple(Player viewer, Player player, int entityId, Consumer<PacketPlayOutNamedEntitySpawnHandle> applier, Consumer<DataWatcher> metaFunction) {
+    public void spawnPlayerSimple(Player viewer, Player player, int entityId, Consumer<ClientboundAddPlayerPacketHandle> applier, Consumer<DataWatcher> metaFunction) {
         spawnPlayerSimple(AttachmentViewer.fallback(viewer), player, entityId, applier, metaFunction);
     }
 
@@ -169,14 +167,14 @@ public enum FakePlayerSpawner {
      * @param applier Applies other options to the created spawn packet
      * @param metaFunction Applies changes to the metadata of the spawned player
      */
-    public void spawnPlayerSimple(AttachmentViewer viewer, Player player, int entityId, Consumer<PacketPlayOutNamedEntitySpawnHandle> applier, Consumer<DataWatcher> metaFunction) {
+    public void spawnPlayerSimple(AttachmentViewer viewer, Player player, int entityId, Consumer<ClientboundAddPlayerPacketHandle> applier, Consumer<DataWatcher> metaFunction) {
         // Send list info before spawning
         ProfileState state = getProfileState(player, viewer.getPlayer());
         UUID uuidOfFakePlayer = this.sendPlayerProfileInfo(viewer, player, state);
 
         // Spawn in a fake player with the same UUID
         // Thanks to the earlier profile name change, the player will spawn upside-down
-        PacketPlayOutNamedEntitySpawnHandle fakePlayerSpawnPacket = PacketPlayOutNamedEntitySpawnHandle.createNew();
+        ClientboundAddPlayerPacketHandle fakePlayerSpawnPacket = ClientboundAddPlayerPacketHandle.createNew();
         fakePlayerSpawnPacket.setEntityId(entityId);
         fakePlayerSpawnPacket.setEntityUUID(uuidOfFakePlayer);
         applier.accept(fakePlayerSpawnPacket);
@@ -216,8 +214,8 @@ public enum FakePlayerSpawner {
                 playerListName = ChatText.fromMessage(player.getPlayerListName()); //TODO: Use components
             }
             ClientboundPlayerInfoUpdatePacketHandle newInfoPacket = ClientboundPlayerInfoUpdatePacketHandle.createNew();
-            newInfoPacket.setAction(EnumPlayerInfoActionHandle.ADD_PLAYER);
-            PlayerInfoDataHandle playerInfo = PlayerInfoDataHandle.createNew(
+            newInfoPacket.setAction(ClientboundPlayerInfoUpdatePacketHandle.ActionHandle.ADD_PLAYER);
+            ClientboundPlayerInfoUpdatePacketHandle.EntryHandle playerInfo = ClientboundPlayerInfoUpdatePacketHandle.EntryHandle.createNew(
                     newInfoPacket,
                     newFakeGameProfile,
                     50,
@@ -232,8 +230,8 @@ public enum FakePlayerSpawner {
         // Send scoreboard team to hide the nametag
         // Only do this once to prevent a client disconnect (duplicate team)
         if (this._hideNametag && this._teamName != null && this._teamSentPlayers.add(viewer.getPlayer().getUniqueId())) {
-            PacketPlayOutScoreboardTeamHandle teamPacket = PacketPlayOutScoreboardTeamHandle.createNew();
-            teamPacket.setMethod(PacketPlayOutScoreboardTeamHandle.METHOD_ADD);
+            ClientboundSetPlayerTeamPacketHandle teamPacket = ClientboundSetPlayerTeamPacketHandle.createNew();
+            teamPacket.setMethod(ClientboundSetPlayerTeamPacketHandle.METHOD_ADD);
             teamPacket.setName(this._teamName.getMessage());
             teamPacket.setDisplayName(this._teamName);
             teamPacket.setPrefix(ChatText.fromMessage(""));

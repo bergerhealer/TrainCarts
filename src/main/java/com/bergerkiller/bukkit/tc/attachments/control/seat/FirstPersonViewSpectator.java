@@ -9,9 +9,11 @@ import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.wrappers.RelativeFlags;
 import com.bergerkiller.bukkit.tc.controller.player.network.PlayerPacketListener;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundPlayerRotationPacketHandle;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayInFlyingHandle;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutPositionHandle;
-import com.bergerkiller.generated.net.minecraft.server.level.EntityPlayerHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ServerboundMovePlayerPacketHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundPlayerPositionPacketHandle;
+import com.bergerkiller.generated.net.minecraft.server.level.ServerPlayerHandle;
+import com.bergerkiller.generated.net.minecraft.world.entity.LivingEntityHandle;
+import com.bergerkiller.generated.net.minecraft.world.entity.decoration.ArmorStandHandle;
 import org.bukkit.entity.EntityType;
 import org.bukkit.util.Vector;
 
@@ -24,8 +26,6 @@ import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.spectator.FirstPersonSpectatedEntity;
 import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
-import com.bergerkiller.generated.net.minecraft.world.entity.EntityLivingHandle;
-import com.bergerkiller.generated.net.minecraft.world.entity.decoration.EntityArmorStandHandle;
 
 import java.util.Collections;
 
@@ -148,17 +148,17 @@ public class FirstPersonViewSpectator extends FirstPersonView {
             this._playerMount.updatePosition(eyeTransform);
             this._playerMount.syncPosition(true);
             this._playerMount.getMetaData().set(EntityHandle.DATA_FLAGS, (byte) (EntityHandle.DATA_FLAG_INVISIBLE));
-            this._playerMount.getMetaData().set(EntityLivingHandle.DATA_HEALTH, 10.0F);
-            this._playerMount.getMetaData().set(EntityArmorStandHandle.DATA_ARMORSTAND_FLAGS, (byte) (
-                    EntityArmorStandHandle.DATA_FLAG_SET_MARKER |
-                    EntityArmorStandHandle.DATA_FLAG_NO_BASEPLATE |
-                    EntityArmorStandHandle.DATA_FLAG_IS_SMALL));
+            this._playerMount.getMetaData().set(LivingEntityHandle.DATA_HEALTH, 10.0F);
+            this._playerMount.getMetaData().set(ArmorStandHandle.DATA_ARMORSTAND_FLAGS, (byte) (
+                    ArmorStandHandle.DATA_FLAG_SET_MARKER |
+                            ArmorStandHandle.DATA_FLAG_NO_BASEPLATE |
+                            ArmorStandHandle.DATA_FLAG_IS_SMALL));
             this._playerMount.spawn(viewer, new Vector());
 
             // Sync the player to be high up in the sky, and then begin intercepting player inputs
             // This also gets rid of the GHOST_Y_OFFSET that the server receives from the player
             Vector pos = this._playerMount.getSyncPos();
-            viewer.getClientSynchronizer().synchronize(teleportId -> PacketPlayOutPositionHandle.createNew(
+            viewer.getClientSynchronizer().synchronize(teleportId -> ClientboundPlayerPositionPacketHandle.createNew(
                     pos.getX(), pos.getY(), pos.getZ(),
                     this._playerMount.getSyncYaw(), this._playerMount.getSyncPitch(),
                     0.0, 0.0, 0.0,
@@ -205,12 +205,12 @@ public class FirstPersonViewSpectator extends FirstPersonView {
 
                 // Ensure that the player position is sync with where it should be
                 // We already do this with the player position modifier, but to be safe...
-                EntityPlayerHandle playerHandle = EntityPlayerHandle.fromBukkit(viewer.getPlayer());
+                ServerPlayerHandle playerHandle = ServerPlayerHandle.fromBukkit(viewer.getPlayer());
                 playerHandle.setPositionRotation(pos.getX(), pos.getY(), pos.getZ(),
                         entity.getSyncYaw(), entity.getSyncPitch());
                 playerHandle.setFallDistance(0.0f);
 
-                viewer.send(PacketPlayOutPositionHandle.createAbsolute(pos.getX(), pos.getY(), pos.getZ(),
+                viewer.send(ClientboundPlayerPositionPacketHandle.createAbsolute(pos.getX(), pos.getY(), pos.getZ(),
                         entity.getSyncYaw(), entity.getSyncPitch()));
             }
         }
@@ -331,7 +331,7 @@ public class FirstPersonViewSpectator extends FirstPersonView {
 
         @Override
         public void onPacketReceive(PacketReceiveEvent event) {
-            PacketPlayInFlyingHandle p = PacketPlayInFlyingHandle.createHandle(event.getPacket().getHandle());
+            ServerboundMovePlayerPacketHandle p = ServerboundMovePlayerPacketHandle.createHandle(event.getPacket().getHandle());
 
             // Ensure Y value is corrected
             if (event.getType() != PacketType.IN_LOOK) {

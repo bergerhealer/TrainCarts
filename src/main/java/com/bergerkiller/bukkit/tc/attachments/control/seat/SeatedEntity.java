@@ -4,6 +4,9 @@ import java.util.function.Function;
 
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.neznamytabnametaghider.TabNameTagHider;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundUpdateAttributesPacketHandle;
+import com.bergerkiller.generated.net.minecraft.world.entity.LivingEntityHandle;
+import com.bergerkiller.generated.net.minecraft.world.entity.decoration.ArmorStandHandle;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
@@ -21,11 +24,8 @@ import com.bergerkiller.bukkit.tc.attachments.api.AttachmentAnchor;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachment;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityMetadataHandle;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutUpdateAttributesHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundSetEntityDataPacketHandle;
 import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
-import com.bergerkiller.generated.net.minecraft.world.entity.EntityLivingHandle;
-import com.bergerkiller.generated.net.minecraft.world.entity.decoration.EntityArmorStandHandle;
 
 /**
  * Represents the visible, seated entity inside a seat. Sometimes this entity is a fake
@@ -210,7 +210,7 @@ public abstract class SeatedEntity {
      */
     public void resetMetadata(AttachmentViewer viewer) {
         DataWatcher metaTmp = EntityHandle.fromBukkit(this.entity).getDataWatcher();
-        viewer.send(PacketPlayOutEntityMetadataHandle.createNew(this.entity.getEntityId(), metaTmp, true));
+        viewer.send(ClientboundSetEntityDataPacketHandle.createNew(this.entity.getEntityId(), metaTmp, true).toCommonPacket());
     }
 
     /**
@@ -336,7 +336,7 @@ public abstract class SeatedEntity {
 
             // Also send zero-max-health if the viewer is the one sitting in the entity
             if (this.entity == viewer.getPlayer()) {
-                viewer.send(PacketPlayOutUpdateAttributesHandle.createZeroMaxHealth(this.fakeMount.getEntityId()));
+                viewer.send(ClientboundUpdateAttributesPacketHandle.createZeroMaxHealth(this.fakeMount.getEntityId()));
             }
         }
 
@@ -515,11 +515,11 @@ public abstract class SeatedEntity {
         mount.setUseMinecartInterpolation(seat.isMinecartInterpolation());
         mount.setByViewerPositionAdjustment((viewer, pos) -> pos.setY(pos.getY() - viewer.getArmorStandButtOffset()));
         mount.getMetaData().set(EntityHandle.DATA_FLAGS, (byte) (EntityHandle.DATA_FLAG_INVISIBLE));
-        mount.getMetaData().set(EntityLivingHandle.DATA_HEALTH, 10.0F);
-        mount.getMetaData().set(EntityArmorStandHandle.DATA_ARMORSTAND_FLAGS, (byte) (
-                EntityArmorStandHandle.DATA_FLAG_SET_MARKER |
-                EntityArmorStandHandle.DATA_FLAG_NO_BASEPLATE |
-                EntityArmorStandHandle.DATA_FLAG_IS_SMALL));
+        mount.getMetaData().set(LivingEntityHandle.DATA_HEALTH, 10.0F);
+        mount.getMetaData().set(ArmorStandHandle.DATA_ARMORSTAND_FLAGS, (byte) (
+                ArmorStandHandle.DATA_FLAG_SET_MARKER |
+                        ArmorStandHandle.DATA_FLAG_NO_BASEPLATE |
+                        ArmorStandHandle.DATA_FLAG_IS_SMALL));
         return mount;
     }
 

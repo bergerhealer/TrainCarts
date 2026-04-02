@@ -10,9 +10,9 @@ import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.wrappers.RelativeFlags;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutPositionHandle;
-import com.bergerkiller.generated.net.minecraft.server.level.EntityPlayerHandle;
-import com.bergerkiller.generated.net.minecraft.world.phys.AxisAlignedBBHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundPlayerPositionPacketHandle;
+import com.bergerkiller.generated.net.minecraft.server.level.ServerPlayerHandle;
+import com.bergerkiller.generated.net.minecraft.world.phys.AABBHandle;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
@@ -160,10 +160,10 @@ public abstract class PlayerMovementController implements AttachmentViewer.Movem
             return false;
         }
 
-        AxisAlignedBBHandle playerBBOX = EntityPlayerHandle.fromBukkit(player).getBoundingBox();
+        AABBHandle playerBBOX = ServerPlayerHandle.fromBukkit(player).getBoundingBox();
 
         // Make the player bbox relative to itself
-        playerBBOX = AxisAlignedBBHandle.createNew(
+        playerBBOX = AABBHandle.createNew(
                 -0.5 * (playerBBOX.getMaxX() - playerBBOX.getMinX()),
                 0.0,
                 -0.5 * (playerBBOX.getMaxZ() - playerBBOX.getMinZ()),
@@ -173,12 +173,12 @@ public abstract class PlayerMovementController implements AttachmentViewer.Movem
         );
 
         // Compute from/to bounding boxes
-        AxisAlignedBBHandle fromBbox = playerBBOX.translate(from.getX(), from.getY(), from.getZ());
-        AxisAlignedBBHandle toBbox = playerBBOX.translate(to.getX(), to.getY(), to.getZ());
+        AABBHandle fromBbox = playerBBOX.translate(from.getX(), from.getY(), from.getZ());
+        AABBHandle toBbox = playerBBOX.translate(to.getX(), to.getY(), to.getZ());
 
         // Sweep to find collisions
         SweptAABB.CollisionResult result = SweptAABB.findFirstBlockCollision(fromBbox, toBbox, (x, y, z) -> {
-            AxisAlignedBBHandle bbox = BlockUtil.getBoundingBox(player.getWorld().getBlockAt(x, y, z));
+            AABBHandle bbox = BlockUtil.getBoundingBox(player.getWorld().getBlockAt(x, y, z));
             if (bbox != null) {
                 return bbox.translate(x, y, z);
             } else {
@@ -194,7 +194,7 @@ public abstract class PlayerMovementController implements AttachmentViewer.Movem
         Vector pos = from.add(delta.clone().multiply(result.theta));
         Vector velocity = delta.clone().multiply(1.0 - result.theta);
 
-        PacketPlayOutPositionHandle packet = PacketPlayOutPositionHandle.createNew(
+        ClientboundPlayerPositionPacketHandle packet = ClientboundPlayerPositionPacketHandle.createNew(
                 pos.getX(), pos.getY(), pos.getZ(), 0.0f, 0.0f,
                 velocity.getX(), velocity.getY(), velocity.getZ(),
                 RelativeFlags.ABSOLUTE_POSITION.withAbsoluteDelta().withRelativeRotation());

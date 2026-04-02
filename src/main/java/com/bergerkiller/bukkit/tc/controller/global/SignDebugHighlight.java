@@ -10,7 +10,7 @@ import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import com.bergerkiller.bukkit.tc.rails.RailLookup;
 import com.bergerkiller.generated.net.minecraft.world.entity.DisplayHandle;
 import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
-import com.bergerkiller.generated.net.minecraft.world.phys.AxisAlignedBBHandle;
+import com.bergerkiller.generated.net.minecraft.world.phys.AABBHandle;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.util.Vector;
@@ -30,7 +30,7 @@ final class SignDebugHighlight implements Runnable {
 
     public void spawn(SignChangeTracker sign, RailLookup.TrackedSign.DebugDisplayOptions options) {
         Block block = sign.getBlock();
-        AxisAlignedBBHandle bbox = BlockUtil.getInteractableBox(block);
+        AABBHandle bbox = BlockUtil.getInteractableBox(block);
         if (bbox == null) {
             viewer.getTrainCarts().getLogger().warning("Could not display bbox of sign because its interactable box is null!");
             return;

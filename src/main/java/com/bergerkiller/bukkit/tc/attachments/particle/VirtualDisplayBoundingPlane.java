@@ -11,12 +11,12 @@ import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.attachments.VirtualDisplayEntity;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentManager;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityDestroyHandle;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityMetadataHandle;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityTeleportHandle;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutMountHandle;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutSpawnEntityHandle;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutSpawnEntityLivingHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundRemoveEntitiesPacketHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundEntityPositionSyncPacketHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundSetEntityDataPacketHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundSetPassengersPacketHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundAddEntityPacketHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundAddMobPacketHandle;
 import com.bergerkiller.generated.net.minecraft.world.entity.DisplayHandle;
 import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
 import org.bukkit.ChatColor;
@@ -106,7 +106,7 @@ public class VirtualDisplayBoundingPlane extends VirtualBoundingBox {
 
         // Spawn invisible marker armorstand mount
         {
-            PacketPlayOutSpawnEntityLivingHandle spawnPacket = PacketPlayOutSpawnEntityLivingHandle.createNew();
+            ClientboundAddMobPacketHandle spawnPacket = ClientboundAddMobPacketHandle.createNew();
             spawnPacket.setEntityId(mountEntityId);
             spawnPacket.setEntityUUID(UUID.randomUUID());
             spawnPacket.setEntityType(EntityType.ARMOR_STAND);
@@ -123,14 +123,14 @@ public class VirtualDisplayBoundingPlane extends VirtualBoundingBox {
         }
 
         // Mount all line blocks into the armorstand
-        viewer.send(PacketPlayOutMountHandle.createNew(mountEntityId, allEntityIds));
+        viewer.send(ClientboundSetPassengersPacketHandle.createNew(mountEntityId, allEntityIds));
     }
 
     @Override
     protected void sendDestroyPackets(AttachmentViewer viewer) {
         int[] ids = Arrays.copyOf(allEntityIds, allEntityIds.length + 1);
         ids[ids.length - 1] = mountEntityId;
-        viewer.send(PacketPlayOutEntityDestroyHandle.createNewMultiple(ids));
+        viewer.send(ClientboundRemoveEntitiesPacketHandle.createNewMultiple(ids));
     }
 
     @Override
@@ -157,7 +157,7 @@ public class VirtualDisplayBoundingPlane extends VirtualBoundingBox {
 
         // Just sync absolute all the time, this isn't used often enough for it to warrant a lot of code
         // int entityId, double posX, double posY, double posZ, float yaw, float pitch, boolean onGround)
-        broadcast(PacketPlayOutEntityTeleportHandle.createNew(mountEntityId,
+        broadcast(ClientboundEntityPositionSyncPacketHandle.createNew(mountEntityId,
                 position.getX(), position.getY(), position.getZ(),
                 0.0f, 0.0f, false));
     }
@@ -183,7 +183,7 @@ public class VirtualDisplayBoundingPlane extends VirtualBoundingBox {
         public void spawn(AttachmentViewer viewer, Vector position, Vector motion) {
             // Spawn the display entity itself
             {
-                PacketPlayOutSpawnEntityHandle spawnPacket = PacketPlayOutSpawnEntityHandle.createNew();
+                ClientboundAddEntityPacketHandle spawnPacket = ClientboundAddEntityPacketHandle.createNew();
                 spawnPacket.setEntityId(this.entityId);
                 spawnPacket.setEntityUUID(this.entityUUID);
                 spawnPacket.setEntityType(VirtualDisplayEntity.BLOCK_DISPLAY_ENTITY_TYPE);
@@ -200,8 +200,8 @@ public class VirtualDisplayBoundingPlane extends VirtualBoundingBox {
             }
         }
 
-        public PacketPlayOutEntityMetadataHandle createMetaPacket(boolean includeUnchangedData) {
-            return PacketPlayOutEntityMetadataHandle.createNew(this.entityId, metadata, includeUnchangedData);
+        public ClientboundSetEntityDataPacketHandle createMetaPacket(boolean includeUnchangedData) {
+            return ClientboundSetEntityDataPacketHandle.createNew(this.entityId, metadata, includeUnchangedData);
         }
     }
 

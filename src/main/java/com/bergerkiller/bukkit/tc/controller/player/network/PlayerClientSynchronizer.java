@@ -5,7 +5,7 @@ import com.bergerkiller.bukkit.common.component.LibraryComponent;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import com.bergerkiller.generated.net.minecraft.network.protocol.PacketHandle;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutPositionHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundPlayerPositionPacketHandle;
 import org.bukkit.entity.Player;
 
 import java.util.List;
@@ -27,7 +27,7 @@ public interface PlayerClientSynchronizer {
 
     /**
      * Synchronizes with the client. A callback is provided to create a new
-     * PacketPlayOutPositionHandle packet with position/rotation details to sync
+     * ClientboundPlayerPositionPacketHandle packet with position/rotation details to sync
      * to the client. The callback is called receiving these again once the client
      * has acknowledged it. Make sure to pass the provided integer as a teleport id
      * to the packet constructor.
@@ -38,8 +38,8 @@ public interface PlayerClientSynchronizer {
      *                 been acknowledged.
      */
     void synchronize(
-            IntFunction<PacketPlayOutPositionHandle> positionPacketMaker,
-            Consumer<PacketPlayOutPositionHandle> callback);
+            IntFunction<ClientboundPlayerPositionPacketHandle> positionPacketMaker,
+            Consumer<ClientboundPlayerPositionPacketHandle> callback);
 
     /**
      * Sends a packet to the client and synchronizes back when this packet is received.
@@ -105,7 +105,7 @@ public interface PlayerClientSynchronizer {
                 }
 
                 @Override
-                public void synchronize(IntFunction<PacketPlayOutPositionHandle> positionPacketMaker, Consumer<PacketPlayOutPositionHandle> callback) {
+                public void synchronize(IntFunction<ClientboundPlayerPositionPacketHandle> positionPacketMaker, Consumer<ClientboundPlayerPositionPacketHandle> callback) {
                 }
 
                 @Override

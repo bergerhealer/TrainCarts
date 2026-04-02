@@ -18,11 +18,11 @@ import com.bergerkiller.bukkit.tc.attachments.control.seat.FirstPersonViewMode;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.FirstPersonViewSpectator;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.SeatedEntity.DisplayMode;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.SeatedEntityHead;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutMountHandle;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutUpdateAttributesHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundSetPassengersPacketHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundUpdateAttributesPacketHandle;
 import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
-import com.bergerkiller.generated.net.minecraft.world.entity.EntityLivingHandle;
-import com.bergerkiller.generated.net.minecraft.world.entity.decoration.EntityArmorStandHandle;
+import com.bergerkiller.generated.net.minecraft.world.entity.LivingEntityHandle;
+import com.bergerkiller.generated.net.minecraft.world.entity.decoration.ArmorStandHandle;
 
 /**
  * Spawns a duplicate of the player and spectates that player. The player is seated into
@@ -90,7 +90,7 @@ class FirstPersonSpectatedEntityPlayerSitting extends FirstPersonSpectatedEntity
         if (!seat.firstPerson.getEyePosition().isDefault() ||
             seat.seated.getDisplayMode() == DisplayMode.HEAD ||
             seat.seated.getDisplayMode() == DisplayMode.INVISIBLE ||
-            !PacketPlayOutMountHandle.T.isAvailable()
+            !ClientboundSetPassengersPacketHandle.T.isAvailable()
         ) {
             // Player must be put into the seat so the eye position is at the baseTransform
             prepareFakeMounts(eyeTransform);
@@ -114,7 +114,7 @@ class FirstPersonSpectatedEntityPlayerSitting extends FirstPersonSpectatedEntity
 
     private void prepareFakeMounts(Matrix4x4 baseTransform) {
         VehicleMountController vmc = player.getVehicleMountController();
-        if (PacketPlayOutMountHandle.T.isAvailable()) {
+        if (ClientboundSetPassengersPacketHandle.T.isAvailable()) {
             // Only one fake mount needed
             VirtualEntity fakeMount = createFakeMount(baseTransform);
 
@@ -154,16 +154,16 @@ class FirstPersonSpectatedEntityPlayerSitting extends FirstPersonSpectatedEntity
         fakeMount.updatePosition(baseTransform);
         fakeMount.getMetaData().set(EntityHandle.DATA_FLAGS, (byte) (EntityHandle.DATA_FLAG_INVISIBLE));
         fakeMount.getMetaData().set(EntityHandle.DATA_NO_GRAVITY, true);
-        fakeMount.getMetaData().set(EntityLivingHandle.DATA_HEALTH, 10.0F);
-        fakeMount.getMetaData().set(EntityArmorStandHandle.DATA_ARMORSTAND_FLAGS, (byte) (
-                EntityArmorStandHandle.DATA_FLAG_SET_MARKER |
-                EntityArmorStandHandle.DATA_FLAG_NO_BASEPLATE |
-                EntityArmorStandHandle.DATA_FLAG_IS_SMALL));
+        fakeMount.getMetaData().set(LivingEntityHandle.DATA_HEALTH, 10.0F);
+        fakeMount.getMetaData().set(ArmorStandHandle.DATA_ARMORSTAND_FLAGS, (byte) (
+                ArmorStandHandle.DATA_FLAG_SET_MARKER |
+                ArmorStandHandle.DATA_FLAG_NO_BASEPLATE |
+                ArmorStandHandle.DATA_FLAG_IS_SMALL));
         fakeMount.syncPosition(true);
         fakeMount.spawn(player, seat.calcMotion());
 
         // Hide health bar
-        player.send(PacketPlayOutUpdateAttributesHandle.createZeroMaxHealth(fakeMount.getEntityId()));
+        player.send(ClientboundUpdateAttributesPacketHandle.createZeroMaxHealth(fakeMount.getEntityId()));
 
         return fakeMount;
     }

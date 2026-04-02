@@ -23,8 +23,8 @@ import com.bergerkiller.bukkit.tc.attachments.control.sound.SoundPerspectiveMode
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetAttachmentNode;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutCustomSoundEffectHandle;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutStopSoundHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundCustomSoundPacketHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundStopSoundPacketHandle;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
@@ -320,7 +320,7 @@ public class CartAttachmentSound extends CartAttachment implements Attachment.Ef
 
                 // Note: must use this method because of a multithreading bug in BKCommonLibs location constructor
                 //       can be removed when BKCommonLib 1.20.2-v2 or later is a hard-depend
-                viewer.send(PacketPlayOutCustomSoundEffectHandle.createNew(key, category,
+                viewer.send(ClientboundCustomSoundPacketHandle.createNew(key, category,
                         at.getX(), at.getY(), at.getZ(),
                         volumePitch.volume, volumePitch.pitch,
                         RANDOM_SEED_SOURCE.nextLong()));
@@ -334,7 +334,7 @@ public class CartAttachmentSound extends CartAttachment implements Attachment.Ef
         }
 
         private void stopImpl(AttachmentViewer viewer) {
-            viewer.send(PacketPlayOutStopSoundHandle.createNew(key, category));
+            viewer.send(ClientboundStopSoundPacketHandle.createNew(key, category));
         }
 
         public static boolean isSameSound(SoundType a, SoundType b) {

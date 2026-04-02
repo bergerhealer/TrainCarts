@@ -246,7 +246,7 @@ public class CartAttachmentPlatformTestVersion extends CartAttachment {
     public void onTick() {
         /*
         updateMeta();
-        PacketPlayOutEntityMetadataHandle p = PacketPlayOutEntityMetadataHandle.createNew(this.actual.getEntityId(), this.actual.getMetaData(), false);
+        ClientboundSetEntityDataPacketHandle p = ClientboundSetEntityDataPacketHandle.createNew(this.actual.getEntityId(), this.actual.getMetaData(), false);
         for (Player v : this.controller.getViewers()) {
             PacketUtil.sendPacket(v, p);
         }

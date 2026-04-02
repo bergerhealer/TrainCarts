@@ -15,10 +15,10 @@ import com.bergerkiller.bukkit.common.wrappers.HumanHand;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroupStore;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayInSteerVehicleHandle;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayInUseEntityHandle;
-import com.bergerkiller.generated.net.minecraft.world.EnumHandHandle;
-import com.bergerkiller.generated.net.minecraft.world.entity.player.EntityHumanHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ServerboundPlayerInputPacketHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ServerboundInteractPacketHandle;
+import com.bergerkiller.generated.net.minecraft.world.InteractionHandHandle;
+import com.bergerkiller.generated.net.minecraft.world.entity.player.PlayerHandle;
 
 import java.util.HashMap;
 import java.util.Iterator;
@@ -85,7 +85,7 @@ class TCPacketListener implements PacketListener {
     }
 
     private void handleSteerNew(PacketReceiveEvent event) {
-        PacketPlayInSteerVehicleHandle steerPacket = PacketPlayInSteerVehicleHandle.createHandle(event.getPacket().getHandle());
+        ServerboundPlayerInputPacketHandle steerPacket = ServerboundPlayerInputPacketHandle.createHandle(event.getPacket().getHandle());
         if (steerPacket.isUnmount()) {
             // Handle vehicle exit cancelling
             Player player = event.getPlayer();
@@ -93,7 +93,7 @@ class TCPacketListener implements PacketListener {
                 TCSeatChangeListener.markForUnmounting(traincarts, player);
             } else if (!traincarts.handlePlayerVehicleChange(player, null)) {
                 //packet.write(PacketType.IN_STEER_VEHICLE.unmount, false);
-                event.setPacket(PacketPlayInSteerVehicleHandle.createNew(
+                event.setPacket(ServerboundPlayerInputPacketHandle.createNew(
                         steerPacket.isLeft(),
                         steerPacket.isRight(),
                         steerPacket.isForward(),
@@ -135,7 +135,7 @@ class TCPacketListener implements PacketListener {
         }
 
         if (event.getType() == PacketType.IN_USE_ENTITY) {
-            PacketPlayInUseEntityHandle packet_use = PacketPlayInUseEntityHandle.createHandle(event.getPacket().getHandle());
+            ServerboundInteractPacketHandle packet_use = ServerboundInteractPacketHandle.createHandle(event.getPacket().getHandle());
 
             // Since 1.16 this packet has a sneaking property
             // If we're inside a vehicle, disable it
@@ -239,7 +239,7 @@ class TCPacketListener implements PacketListener {
         }
 
         Object playerHandleRaw = HandleConversion.toEntityHandle(player);
-        EntityHumanHandle.createHandle(playerHandleRaw).attack(member.getEntity().getEntity());
+        PlayerHandle.createHandle(playerHandleRaw).attack(member.getEntity().getEntity());
     }
 
     public void fakeInteraction(final MinecartMember<?> member, final Player player, final HumanHand hand) {
@@ -261,7 +261,7 @@ class TCPacketListener implements PacketListener {
             return;
         }
 
-        if (EnumHandHandle.T.isAvailable()) {
+        if (InteractionHandHandle.T.isAvailable()) {
             HumanHand mainHand = HumanHand.getMainHand(player);
 
             // Fire a Bukkit event first, as defined in PlayerConnection PacketPlayInUseEntity handler

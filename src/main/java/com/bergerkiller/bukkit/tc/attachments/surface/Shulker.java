@@ -4,12 +4,12 @@ import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.wrappers.DataWatcher;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityTeleportHandle;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutSpawnEntityLivingHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundEntityPositionSyncPacketHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundAddMobPacketHandle;
 import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
-import com.bergerkiller.generated.net.minecraft.world.entity.decoration.EntityArmorStandHandle;
-import com.bergerkiller.generated.net.minecraft.world.entity.monster.EntityShulkerHandle;
-import com.bergerkiller.generated.net.minecraft.world.phys.AxisAlignedBBHandle;
+import com.bergerkiller.generated.net.minecraft.world.entity.decoration.ArmorStandHandle;
+import com.bergerkiller.generated.net.minecraft.world.entity.monster.ShulkerHandle;
+import com.bergerkiller.generated.net.minecraft.world.phys.AABBHandle;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.EntityType;
 
@@ -38,7 +38,7 @@ final class Shulker implements StationaryCollisionElement {
     /** Last position synchronized to the viewer */
     public double sync_x, sync_y, sync_z;
     /** Cached from x/y/z */
-    private AxisAlignedBBHandle boundingBox = null;
+    private AABBHandle boundingBox = null;
     /** State to see if this shulker is picked */
     public boolean picked = false;
     /** Whether this shulker requires destroying (before spawning */
@@ -54,11 +54,11 @@ final class Shulker implements StationaryCollisionElement {
 
     private static final DataWatcher SHULKER_MOUNT_METADATA = DataWatcher.Prototype.build()
             .setClientByteDefault(EntityHandle.DATA_FLAGS, 0)
-            .setClientByteDefault(EntityArmorStandHandle.DATA_ARMORSTAND_FLAGS, 0)
-            .setByte(EntityArmorStandHandle.DATA_ARMORSTAND_FLAGS,
-                    EntityArmorStandHandle.DATA_FLAG_SET_MARKER |
-                            EntityArmorStandHandle.DATA_FLAG_IS_SMALL |
-                            EntityArmorStandHandle.DATA_FLAG_NO_BASEPLATE)
+            .setClientByteDefault(ArmorStandHandle.DATA_ARMORSTAND_FLAGS, 0)
+            .setByte(ArmorStandHandle.DATA_ARMORSTAND_FLAGS,
+                    ArmorStandHandle.DATA_FLAG_SET_MARKER |
+                            ArmorStandHandle.DATA_FLAG_IS_SMALL |
+                            ArmorStandHandle.DATA_FLAG_NO_BASEPLATE)
             .setByte(EntityHandle.DATA_FLAGS, EntityHandle.DATA_FLAG_INVISIBLE)
             .create().create();
 
@@ -66,14 +66,14 @@ final class Shulker implements StationaryCollisionElement {
     static {
         DataWatcher.Prototype SHULKER_METADATA_PROTOTYPE = DataWatcher.Prototype.build()
                 .setClientByteDefault(EntityHandle.DATA_FLAGS, 0)
-                .setClientDefault(EntityShulkerHandle.DATA_FACE_DIRECTION, BlockFace.SOUTH)
+                .setClientDefault(ShulkerHandle.DATA_FACE_DIRECTION, BlockFace.SOUTH)
                 .setByte(EntityHandle.DATA_FLAGS, EntityHandle.DATA_FLAG_FLYING)
                 //.setByte(EntityHandle.DATA_FLAGS, EntityHandle.DATA_FLAG_INVISIBLE)
                 .create();
 
         for (BlockFace face : FaceUtil.BLOCK_SIDES) {
             DataWatcher dw = SHULKER_METADATA_PROTOTYPE.create();
-            dw.set(EntityShulkerHandle.DATA_FACE_DIRECTION, face);
+            dw.set(ShulkerHandle.DATA_FACE_DIRECTION, face);
             SHULKER_METADATA_BY_FACE.put(face, dw);
         }
     }
@@ -159,7 +159,7 @@ final class Shulker implements StationaryCollisionElement {
         if (x != sync_x || y != sync_y || z != sync_z) {
             syncPositionSilent();
 
-            PacketPlayOutEntityTeleportHandle p = PacketPlayOutEntityTeleportHandle.createNew(
+            ClientboundEntityPositionSyncPacketHandle p = ClientboundEntityPositionSyncPacketHandle.createNew(
                     this.mountEntityId, x, y - 0.5, z, 0.0f, 0.0f, false);
             viewer.send(p);
         }
@@ -170,10 +170,10 @@ final class Shulker implements StationaryCollisionElement {
     }
 
     @Override
-    public AxisAlignedBBHandle getBoundingBox() {
-        AxisAlignedBBHandle bb = boundingBox;
+    public AABBHandle getBoundingBox() {
+        AABBHandle bb = boundingBox;
         if (bb == null) {
-            bb = AxisAlignedBBHandle.createNew(x - 0.5, y - 0.5, z - 0.5, x + 0.5, y + 0.5, z + 0.5);
+            bb = AABBHandle.createNew(x - 0.5, y - 0.5, z - 0.5, x + 0.5, y + 0.5, z + 0.5);
             boundingBox = bb;
         }
         return bb;
@@ -189,7 +189,7 @@ final class Shulker implements StationaryCollisionElement {
 
         // Spawn mount it is inside of
         {
-            PacketPlayOutSpawnEntityLivingHandle spawnPacket = PacketPlayOutSpawnEntityLivingHandle.createNew();
+            ClientboundAddMobPacketHandle spawnPacket = ClientboundAddMobPacketHandle.createNew();
             spawnPacket.setEntityId(mountEntityId);
             spawnPacket.setEntityUUID(UUID.randomUUID());
             spawnPacket.setEntityType(EntityType.ARMOR_STAND);
@@ -214,7 +214,7 @@ final class Shulker implements StationaryCollisionElement {
 
         // Spawn shulker itself
         {
-            PacketPlayOutSpawnEntityLivingHandle spawnPacket = PacketPlayOutSpawnEntityLivingHandle.createNew();
+            ClientboundAddMobPacketHandle spawnPacket = ClientboundAddMobPacketHandle.createNew();
             spawnPacket.setEntityId(entityId);
             spawnPacket.setEntityUUID(UUID.randomUUID());
             spawnPacket.setEntityType(EntityType.SHULKER);

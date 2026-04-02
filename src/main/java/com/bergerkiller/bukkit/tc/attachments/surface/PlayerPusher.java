@@ -2,9 +2,9 @@ package com.bergerkiller.bukkit.tc.attachments.surface;
 
 import com.bergerkiller.bukkit.common.wrappers.RelativeFlags;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutPositionHandle;
-import com.bergerkiller.generated.net.minecraft.server.level.EntityPlayerHandle;
-import com.bergerkiller.generated.net.minecraft.world.phys.AxisAlignedBBHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundPlayerPositionPacketHandle;
+import com.bergerkiller.generated.net.minecraft.server.level.ServerPlayerHandle;
+import com.bergerkiller.generated.net.minecraft.world.phys.AABBHandle;
 import org.bukkit.Location;
 
 /**
@@ -18,16 +18,16 @@ final class PlayerPusher {
     private static final double PUSH_UP_VELOCITY = 0.04;
 
     private final AttachmentViewer viewer;
-    private final EntityPlayerHandle handle;
+    private final ServerPlayerHandle handle;
     private final Location viewerLocation;
-    private AxisAlignedBBHandle bbox;
+    private AABBHandle bbox;
     private double pushX = 0.0;
     private double pushY = 0.0;
     private double pushZ = 0.0;
 
     public PlayerPusher(AttachmentViewer viewer) {
         this.viewer = viewer;
-        this.handle = EntityPlayerHandle.fromBukkit(viewer.getPlayer());
+        this.handle = ServerPlayerHandle.fromBukkit(viewer.getPlayer());
         this.viewerLocation = viewer.getPlayer().getLocation();
         this.reset();
     }
@@ -73,7 +73,7 @@ final class PlayerPusher {
                 }
             }
 
-            PacketPlayOutPositionHandle packet = PacketPlayOutPositionHandle.createNew(
+            ClientboundPlayerPositionPacketHandle packet = ClientboundPlayerPositionPacketHandle.createNew(
                     x, y, z, 0.0f, 0.0f,
                     deltaX, deltaY, deltaZ, flags);
             viewer.send(packet);
@@ -159,7 +159,7 @@ final class PlayerPusher {
      * @return true if they intersect, false otherwise
      */
     private boolean intersects(double x, double y, double z) {
-        AxisAlignedBBHandle bbox = this.bbox;
+        AABBHandle bbox = this.bbox;
 
         // Take existing push offset into account, as we don't update bbox
         x -= pushX;

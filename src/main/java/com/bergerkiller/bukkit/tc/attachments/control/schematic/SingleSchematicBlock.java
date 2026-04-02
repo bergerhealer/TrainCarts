@@ -7,8 +7,8 @@ import com.bergerkiller.bukkit.common.wrappers.BlockData;
 import com.bergerkiller.bukkit.common.wrappers.DataWatcher;
 import com.bergerkiller.bukkit.tc.attachments.VirtualDisplayEntity;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityMetadataHandle;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutSpawnEntityHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundSetEntityDataPacketHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundAddEntityPacketHandle;
 import com.bergerkiller.generated.net.minecraft.world.entity.DisplayHandle;
 import org.bukkit.util.Vector;
 
@@ -110,7 +110,7 @@ class SingleSchematicBlock {
 
         Iterator<AttachmentViewer> iter = viewers.iterator();
         if (iter.hasNext()) {
-            PacketPlayOutEntityMetadataHandle packet = PacketPlayOutEntityMetadataHandle.createNew(entityId, metadata, false);
+            ClientboundSetEntityDataPacketHandle packet = ClientboundSetEntityDataPacketHandle.createNew(entityId, metadata, false);
             do {
                 iter.next().send(packet);
             } while (iter.hasNext());
@@ -125,7 +125,7 @@ class SingleSchematicBlock {
      * @param motion Initial motion
      */
     public void spawn(AttachmentViewer viewer, Vector position, Vector motion) {
-        PacketPlayOutSpawnEntityHandle spawnPacket = PacketPlayOutSpawnEntityHandle.createNew();
+        ClientboundAddEntityPacketHandle spawnPacket = ClientboundAddEntityPacketHandle.createNew();
         spawnPacket.setEntityId(entityId);
         spawnPacket.setEntityUUID(entityUUID);
         spawnPacket.setEntityType(VirtualDisplayEntity.BLOCK_DISPLAY_ENTITY_TYPE);
@@ -138,6 +138,6 @@ class SingleSchematicBlock {
         spawnPacket.setYaw(0.0f);
         spawnPacket.setPitch(0.0f);
         viewer.send(spawnPacket);
-        viewer.send(PacketPlayOutEntityMetadataHandle.createNew(entityId, metadata, true));
+        viewer.send(ClientboundSetEntityDataPacketHandle.createNew(entityId, metadata, true).toCommonPacket());
     }
 }

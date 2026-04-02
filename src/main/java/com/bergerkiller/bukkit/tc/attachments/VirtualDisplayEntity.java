@@ -13,15 +13,15 @@ import com.bergerkiller.bukkit.common.wrappers.DataWatcher;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentManager;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import com.bergerkiller.generated.net.minecraft.network.protocol.PacketHandle;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityDestroyHandle;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityHandle;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityMetadataHandle;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityTeleportHandle;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutSpawnEntityHandle;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutSpawnEntityLivingHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundRemoveEntitiesPacketHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundMoveEntityPacketHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundSetEntityDataPacketHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundEntityPositionSyncPacketHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundAddEntityPacketHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundAddMobPacketHandle;
 import com.bergerkiller.generated.net.minecraft.world.entity.DisplayHandle;
 import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
-import com.bergerkiller.generated.net.minecraft.world.entity.decoration.EntityArmorStandHandle;
+import com.bergerkiller.generated.net.minecraft.world.entity.decoration.ArmorStandHandle;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.EntityType;
 import org.bukkit.util.Vector;
@@ -55,10 +55,10 @@ public abstract class VirtualDisplayEntity extends VirtualSpawnableObject {
         ARMORSTAND_MOUNT_METADATA.set(EntityHandle.DATA_NO_GRAVITY, true);
         ARMORSTAND_MOUNT_METADATA.set(EntityHandle.DATA_FLAGS,
                 (byte) (EntityHandle.DATA_FLAG_INVISIBLE | EntityHandle.DATA_FLAG_FLYING));
-        ARMORSTAND_MOUNT_METADATA.set(EntityArmorStandHandle.DATA_ARMORSTAND_FLAGS,
-                (byte) (EntityArmorStandHandle.DATA_FLAG_SET_MARKER |
-                        EntityArmorStandHandle.DATA_FLAG_IS_SMALL |
-                        EntityArmorStandHandle.DATA_FLAG_NO_BASEPLATE));
+        ARMORSTAND_MOUNT_METADATA.set(ArmorStandHandle.DATA_ARMORSTAND_FLAGS,
+                (byte) (ArmorStandHandle.DATA_FLAG_SET_MARKER |
+                        ArmorStandHandle.DATA_FLAG_IS_SMALL |
+                        ArmorStandHandle.DATA_FLAG_NO_BASEPLATE));
     }
 
     /**
@@ -184,7 +184,7 @@ public abstract class VirtualDisplayEntity extends VirtualSpawnableObject {
 
         // Spawn invisible marker armorstand mount to perform the movement, if interpolation isn't supported
         if (!canInterpolate) {
-            PacketPlayOutSpawnEntityLivingHandle spawnPacket = PacketPlayOutSpawnEntityLivingHandle.createNew();
+            ClientboundAddMobPacketHandle spawnPacket = ClientboundAddMobPacketHandle.createNew();
             spawnPacket.setEntityId(this.mountEntityId);
             spawnPacket.setEntityUUID(UUID.randomUUID());
             spawnPacket.setEntityType(EntityType.ARMOR_STAND);
@@ -202,7 +202,7 @@ public abstract class VirtualDisplayEntity extends VirtualSpawnableObject {
 
         // Spawn the display entity itself
         {
-            PacketPlayOutSpawnEntityHandle spawnPacket = PacketPlayOutSpawnEntityHandle.createNew();
+            ClientboundAddEntityPacketHandle spawnPacket = ClientboundAddEntityPacketHandle.createNew();
             spawnPacket.setEntityId(this.displayEntityId);
             spawnPacket.setEntityUUID(this.displayEntityUUID);
             spawnPacket.setEntityType(this.entityType);
@@ -215,7 +215,7 @@ public abstract class VirtualDisplayEntity extends VirtualSpawnableObject {
             spawnPacket.setYaw(0.0f);
             spawnPacket.setPitch(0.0f);
             viewer.send(spawnPacket);
-            viewer.send(PacketPlayOutEntityMetadataHandle.createNew(this.displayEntityId, metadata, true));
+            viewer.send(ClientboundSetEntityDataPacketHandle.createNew(this.displayEntityId, metadata, true));
         }
 
         if (!canInterpolate) {
@@ -227,10 +227,10 @@ public abstract class VirtualDisplayEntity extends VirtualSpawnableObject {
     @Override
     protected void sendDestroyPackets(AttachmentViewer viewer) {
         if (viewer.supportsDisplayEntityLocationInterpolation()) {
-            viewer.send(PacketPlayOutEntityDestroyHandle.createNewSingle(this.displayEntityId));
+            viewer.send(ClientboundRemoveEntitiesPacketHandle.createNewSingle(this.displayEntityId));
             viewer.getVehicleMountController().remove(this.displayEntityId);
         } else {
-            viewer.send(PacketPlayOutEntityDestroyHandle.createNewMultiple(
+            viewer.send(ClientboundRemoveEntitiesPacketHandle.createNewMultiple(
                     new int[] { this.displayEntityId, this.mountEntityId }));
             viewer.getVehicleMountController().remove(this.displayEntityId);
             viewer.getVehicleMountController().remove(this.mountEntityId);
@@ -278,13 +278,13 @@ public abstract class VirtualDisplayEntity extends VirtualSpawnableObject {
             // Teleport the entity
             MathUtil.setVector(syncPos, livePos);
 
-            syncPositionLogic(id -> PacketPlayOutEntityTeleportHandle.createNew(id,
+            syncPositionLogic(id -> ClientboundEntityPositionSyncPacketHandle.createNew(id,
                     syncPos.getX(), syncPos.getY(), syncPos.getZ(),
                     0.0f, 0.0f, false));
         } else {
             // Perform a relative movement update
-            PacketPlayOutEntityHandle.PacketPlayOutRelEntityMoveHandle packet = syncPositionLogicAlwaysCreate(
-                    id -> PacketPlayOutEntityHandle.PacketPlayOutRelEntityMoveHandle.createNew(id,
+            ClientboundMoveEntityPacketHandle.PosHandle packet = syncPositionLogicAlwaysCreate(
+                    id -> ClientboundMoveEntityPacketHandle.PosHandle.createNew(id,
                             dx, dy, dz,
                             false));
 
@@ -333,7 +333,7 @@ public abstract class VirtualDisplayEntity extends VirtualSpawnableObject {
     }
 
     protected void syncMeta() {
-        broadcast(PacketPlayOutEntityMetadataHandle.createNew(displayEntityId, metadata, false));
+        broadcast(com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundSetEntityDataPacketHandle.createNew(displayEntityId, metadata, false));
     }
 
     /**

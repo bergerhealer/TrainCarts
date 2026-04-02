@@ -15,11 +15,11 @@ import com.bergerkiller.bukkit.tc.attachments.VirtualDisplayEntity;
 import com.bergerkiller.bukkit.tc.attachments.VirtualSpawnableObject;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentManager;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityDestroyHandle;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityHandle;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityTeleportHandle;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutMountHandle;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutSpawnEntityLivingHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundRemoveEntitiesPacketHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundEntityPositionSyncPacketHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundMoveEntityPacketHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundSetPassengersPacketHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundAddMobPacketHandle;
 import org.bukkit.entity.EntityType;
 import org.bukkit.util.Vector;
 
@@ -128,7 +128,7 @@ public class MovingSchematic extends VirtualSpawnableObject {
 
     public void resendMounts() {
         if (hasKnownPosition) {
-            broadcast(PacketPlayOutMountHandle.createNew(mountEntityId, getBlockEntityIds()));
+            broadcast(ClientboundSetPassengersPacketHandle.createNew(mountEntityId, getBlockEntityIds()));
         }
     }
 
@@ -237,7 +237,7 @@ public class MovingSchematic extends VirtualSpawnableObject {
     protected void sendSpawnPackets(AttachmentViewer viewer, Vector motion) {
         // Spawn invisible marker armorstand mount that all display entities are mounted to
         {
-            PacketPlayOutSpawnEntityLivingHandle spawnPacket = PacketPlayOutSpawnEntityLivingHandle.createNew();
+            ClientboundAddMobPacketHandle spawnPacket = ClientboundAddMobPacketHandle.createNew();
             spawnPacket.setEntityId(this.mountEntityId);
             spawnPacket.setEntityUUID(UUID.randomUUID());
             spawnPacket.setEntityType(EntityType.ARMOR_STAND);
@@ -259,7 +259,7 @@ public class MovingSchematic extends VirtualSpawnableObject {
         }
 
         // Mount all individual blocks into the single armorstand
-        viewer.send(PacketPlayOutMountHandle.createNew(mountEntityId, getBlockEntityIds()));
+        viewer.send(ClientboundSetPassengersPacketHandle.createNew(mountEntityId, getBlockEntityIds()));
     }
 
     @Override
@@ -267,7 +267,13 @@ public class MovingSchematic extends VirtualSpawnableObject {
         int[] ids = getBlockEntityIds();
         ids = Arrays.copyOf(ids, ids.length + 1);
         ids[ids.length - 1] = mountEntityId;
-        viewer.send(PacketPlayOutEntityDestroyHandle.createNewMultiple(ids));
+        if (ClientboundRemoveEntitiesPacketHandle.canDestroyMultiple()) {
+            viewer.send(ClientboundRemoveEntitiesPacketHandle.createNewMultiple(ids));
+        } else {
+            for (int entityId : ids) {
+                viewer.send(ClientboundRemoveEntitiesPacketHandle.createNewSingle(entityId));
+            }
+        }
     }
 
     public void updatePosition(Matrix4x4 transform) {
@@ -307,12 +313,12 @@ public class MovingSchematic extends VirtualSpawnableObject {
             if (absolute) {
                 // Teleport the entity
                 MathUtil.setVector(syncPos, livePos);
-                broadcast(PacketPlayOutEntityTeleportHandle.createNew(mountEntityId,
+                broadcast(ClientboundEntityPositionSyncPacketHandle.createNew(mountEntityId,
                         syncPos.getX(), syncPos.getY(), syncPos.getZ(),
                         0.0f, 0.0f, false));
             } else {
                 // Perform a relative movement update
-                PacketPlayOutEntityHandle.PacketPlayOutRelEntityMoveHandle packet = PacketPlayOutEntityHandle.PacketPlayOutRelEntityMoveHandle.createNew(
+                ClientboundMoveEntityPacketHandle.PosHandle packet = ClientboundMoveEntityPacketHandle.PosHandle.createNew(
                         mountEntityId,
                         dx, dy, dz,
                         false);
@@ -320,6 +326,6 @@ public class MovingSchematic extends VirtualSpawnableObject {
                 MathUtil.addToVector(syncPos, packet.getDeltaX(), packet.getDeltaY(), packet.getDeltaZ());
                 broadcast(packet);
             }
-        }
-    }
-}
+         }
+     }
+ }

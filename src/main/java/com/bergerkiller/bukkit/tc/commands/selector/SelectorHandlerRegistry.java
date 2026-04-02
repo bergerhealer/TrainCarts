@@ -30,7 +30,7 @@ import org.bukkit.event.server.ServerCommandEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import com.bergerkiller.bukkit.tc.Localization;
-import com.bergerkiller.generated.net.minecraft.server.network.PlayerConnectionHandle;
+import com.bergerkiller.generated.net.minecraft.server.network.ServerGamePacketListenerImplHandle;
 
 /**
  * Registry for {@link SelectorHandler} objects. Can perform the selector
@@ -382,7 +382,7 @@ public class SelectorHandlerRegistry implements Listener, LibraryComponent {
                 } catch (CommandException ex) {
                     //TODO: Ew! But that's how the server does it, I guess.
                     sender.sendMessage(org.bukkit.ChatColor.RED + "An internal error occurred while attempting to perform this command");
-                    java.util.logging.Logger.getLogger(PlayerConnectionHandle.T.getType().getName()).log(java.util.logging.Level.SEVERE, null, ex);
+                    java.util.logging.Logger.getLogger(ServerGamePacketListenerImplHandle.T.getType().getName()).log(java.util.logging.Level.SEVERE, null, ex);
                 }
             }
         }

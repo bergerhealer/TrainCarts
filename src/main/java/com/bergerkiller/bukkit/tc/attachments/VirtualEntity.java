@@ -34,15 +34,15 @@ import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.components.AttachmentControllerMember;
 import com.bergerkiller.generated.net.minecraft.network.protocol.PacketHandle;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityDestroyHandle;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityMetadataHandle;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityTeleportHandle;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityVelocityHandle;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutSpawnEntityHandle;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutSpawnEntityLivingHandle;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityHandle.PacketPlayOutEntityLookHandle;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityHandle.PacketPlayOutRelEntityMoveHandle;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityHandle.PacketPlayOutRelEntityMoveLookHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundRemoveEntitiesPacketHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundSetEntityDataPacketHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundEntityPositionSyncPacketHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundSetEntityMotionPacketHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundAddEntityPacketHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundAddMobPacketHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundMoveEntityPacketHandle.PosHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundMoveEntityPacketHandle.RotHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundMoveEntityPacketHandle.PosRotHandle;
 import com.bergerkiller.generated.net.minecraft.server.level.EntityTrackerEntryStateHandle;
 
 /**
@@ -462,7 +462,7 @@ public class VirtualEntity extends VirtualSpawnableObject {
         // Create a spawn packet appropriate for the type of entity being spawned
         if (isLivingEntity()) {
             // Spawn living entity
-            PacketPlayOutSpawnEntityLivingHandle spawnPacket = PacketPlayOutSpawnEntityLivingHandle.createNew();
+            ClientboundAddMobPacketHandle spawnPacket = ClientboundAddMobPacketHandle.createNew();
             spawnPacket.setEntityId(this.entityId);
             spawnPacket.setEntityUUID(this.entityUUID);
             spawnPacket.setEntityType(this.entityType);
@@ -478,7 +478,7 @@ public class VirtualEntity extends VirtualSpawnableObject {
             viewer.sendEntityLivingSpawnPacket(spawnPacket, getUsedMeta());
         } else {
             // Spawn entity (generic)
-            PacketPlayOutSpawnEntityHandle spawnPacket = PacketPlayOutSpawnEntityHandle.createNew();
+            ClientboundAddEntityPacketHandle spawnPacket = ClientboundAddEntityPacketHandle.createNew();
             spawnPacket.setEntityId(this.entityId);
             spawnPacket.setEntityUUID(this.entityUUID);
             spawnPacket.setEntityType(this.entityType);
@@ -497,12 +497,11 @@ public class VirtualEntity extends VirtualSpawnableObject {
             }
             viewer.send(spawnPacket);
 
-            PacketPlayOutEntityMetadataHandle metaPacket = PacketPlayOutEntityMetadataHandle.createNew(this.entityId, getUsedMeta(), true);
-            viewer.send(metaPacket.toCommonPacket());
+            viewer.send(ClientboundSetEntityDataPacketHandle.createNew(this.entityId, getUsedMeta(), true).toCommonPacket());
         }
 
         if (this.syncMode == SyncMode.SEAT) {
-            PacketPlayOutRelEntityMoveLookHandle movePacket = PacketPlayOutRelEntityMoveLookHandle.createNew(
+            PosRotHandle movePacket = PosRotHandle.createNew(
                     this.entityId,
                     motion.getX(), motion.getY(), motion.getZ(),
                     this.syncYaw,
@@ -516,7 +515,7 @@ public class VirtualEntity extends VirtualSpawnableObject {
 
         // Resend velocity if one is set
         if (this.syncVel > 0.0) {
-            viewer.send(PacketPlayOutEntityVelocityHandle.createNew(this.entityId, this.syncVel, 0.0, 0.0));
+            viewer.send(ClientboundSetEntityMotionPacketHandle.createNew(this.entityId, this.syncVel, 0.0, 0.0));
         }
     }
 
@@ -535,7 +534,7 @@ public class VirtualEntity extends VirtualSpawnableObject {
     public void syncMetadata() {
         DataWatcher metaData = getUsedMeta();
         if (metaData.isChanged()) {
-            broadcast(PacketPlayOutEntityMetadataHandle.createNew(this.entityId, metaData, false));
+            broadcast(ClientboundSetEntityDataPacketHandle.createNew(this.entityId, metaData, false));
         }
     }
 
@@ -563,7 +562,7 @@ public class VirtualEntity extends VirtualSpawnableObject {
         // Velocity packets are only relevant when minecarts are used (with audio enabled)
         if (Math.abs(this.liveVel - this.syncVel) > 0.01 || (this.syncVel > 0.0 && this.liveVel == 0.0)) {
             this.syncVel = this.liveVel;
-            broadcast(PacketPlayOutEntityVelocityHandle.createNew(this.entityId, this.syncVel, 0.0, 0.0));
+            broadcast(ClientboundSetEntityMotionPacketHandle.createNew(this.entityId, this.syncVel, 0.0, 0.0));
         }
 
         // Synchronize metadata
@@ -582,16 +581,16 @@ public class VirtualEntity extends VirtualSpawnableObject {
             boolean isPitchGlitched = MathUtil.getAngleDifference(this.syncPitch, 180.0f) < 90.0f ||
                                       MathUtil.getAngleDifference(this.livePitch, 180.0f) < 90.0f;
 
-            List<NewMinecartBehaviorHandle.LerpStepHandle> steps = new ArrayList<>(2);
+            List<NewMinecartBehaviorHandle.MinecartStepHandle> steps = new ArrayList<>(2);
             if (isPitchGlitched) {
-                steps.add(NewMinecartBehaviorHandle.LerpStepHandle.createNew(
+                steps.add(NewMinecartBehaviorHandle.MinecartStepHandle.createNew(
                         syncAbsPos,
                         new Vector(),
                         180.0f - this.syncYaw,
                         this.syncPitch,
                         0.0f));
             }
-            steps.add(NewMinecartBehaviorHandle.LerpStepHandle.createNew(
+            steps.add(NewMinecartBehaviorHandle.MinecartStepHandle.createNew(
                     liveAbsPos,
                     new Vector(dx, dy, dz),
                     180.0f - this.liveYaw,
@@ -625,15 +624,15 @@ public class VirtualEntity extends VirtualSpawnableObject {
                 for (AttachmentViewer viewer : getViewers()) {
                     MathUtil.setVector(pos, liveAbsPos);
                     byViewerPositionAdjustment.adjust(viewer, pos);
-                    viewer.send(PacketPlayOutEntityTeleportHandle.createNew(this.entityId,
-                            pos.getX(), pos.getY(), pos.getZ(),
-                            this.liveYaw, this.livePitch, false));
+                    viewer.send(ClientboundEntityPositionSyncPacketHandle.createNew(this.entityId,
+                             pos.getX(), pos.getY(), pos.getZ(),
+                             this.liveYaw, this.livePitch, false));
                 }
             } else {
                 // Same packet for everyone
-                broadcast(PacketPlayOutEntityTeleportHandle.createNew(this.entityId,
-                        this.liveAbsPos.getX(), this.liveAbsPos.getY(), this.liveAbsPos.getZ(),
-                        this.liveYaw, this.livePitch, false));
+                broadcast(ClientboundEntityPositionSyncPacketHandle.createNew(this.entityId,
+                         this.liveAbsPos.getX(), this.liveAbsPos.getY(), this.liveAbsPos.getZ(),
+                         this.liveYaw, this.livePitch, false));
             }
 
             syncPositionSilent();
@@ -676,7 +675,7 @@ public class VirtualEntity extends VirtualSpawnableObject {
 
         if (moved && rotated) {
             // Position and rotation changed
-            PacketPlayOutRelEntityMoveLookHandle packet = PacketPlayOutRelEntityMoveLookHandle.createNew(
+            PosRotHandle packet = PosRotHandle.createNew(
                     this.entityId,
                     dx, dy, dz,
                     this.liveYaw,
@@ -689,7 +688,7 @@ public class VirtualEntity extends VirtualSpawnableObject {
             broadcast(packet);
         } else if (moved) {
             // Only position changed
-            PacketPlayOutRelEntityMoveHandle packet = PacketPlayOutRelEntityMoveHandle.createNew(
+            PosHandle packet = PosHandle.createNew(
                     this.entityId,
                     dx, dy, dz,
                     false);
@@ -704,7 +703,7 @@ public class VirtualEntity extends VirtualSpawnableObject {
                     // Sending an Entity Look packet causes the client to cancel/ignore previous movement updates
                     // This results in the entity position going out of sync
                     // A workaround is sending a movement + look packet instead, which appears to work around that.
-                    PacketPlayOutRelEntityMoveLookHandle packet = PacketPlayOutRelEntityMoveLookHandle.createNew(
+                    PosRotHandle packet = PosRotHandle.createNew(
                             this.entityId,
                             0.0, 0.0, 0.0,
                             this.liveYaw,
@@ -715,7 +714,7 @@ public class VirtualEntity extends VirtualSpawnableObject {
                     this.syncYaw = packet.getYaw();
                     this.syncPitch = packet.getPitch();
                 } else {
-                    PacketPlayOutEntityLookHandle packet = PacketPlayOutEntityLookHandle.createNew(
+                    RotHandle packet = RotHandle.createNew(
                             this.entityId,
                             this.liveYaw,
                             this.livePitch,
@@ -788,7 +787,7 @@ public class VirtualEntity extends VirtualSpawnableObject {
         if (this.syncVel > 0.0) {
             viewer.send(PacketType.OUT_ENTITY_VELOCITY.newInstance(this.entityId, new Vector()));
         }
-        PacketPlayOutEntityDestroyHandle destroyPacket = PacketPlayOutEntityDestroyHandle.createNewSingle(this.entityId);
+        ClientboundRemoveEntitiesPacketHandle destroyPacket = ClientboundRemoveEntitiesPacketHandle.createNewSingle(this.entityId);
         viewer.send(destroyPacket);
     }
 

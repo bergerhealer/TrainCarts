@@ -12,7 +12,7 @@ import com.bergerkiller.bukkit.tc.utils.CircularFIFOQueue;
 import com.bergerkiller.bukkit.tc.utils.CircularFIFOQueue.EmptyQueueException;
 import com.bergerkiller.bukkit.tc.utils.CircularFIFOQueueStampedRW;
 import com.bergerkiller.generated.net.minecraft.network.protocol.PacketHandle;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutCustomPayloadHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.common.ClientboundCustomPayloadPacketHandle;
 
 /**
  * Efficiently queues up packets and sends them on a dedicated thread.
@@ -98,9 +98,9 @@ public class PacketQueue implements me.m56738.smoothcoasters.api.NetworkInterfac
         }
         if (plugin.getSmoothCoastersAPI().getVersion(player) < 5) {
             // Cannot use bundle packets with V4 because of a race condition
-            queue.put(PacketPlayOutCustomPayloadHandle.createNew(channel, message).toCommonPacket());
+            queue.put(ClientboundCustomPayloadPacketHandle.createNew(channel, message).toCommonPacket());
         } else {
-            send(PacketPlayOutCustomPayloadHandle.createNew(channel, message));
+            send(ClientboundCustomPayloadPacketHandle.createNew(channel, message));
         }
     }
     /// --------------------------------------------------------------------

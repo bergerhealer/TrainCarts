@@ -26,8 +26,8 @@ import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
 import com.bergerkiller.bukkit.tc.utils.QuoteEscapedString;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityEquipmentHandle;
-import com.bergerkiller.generated.net.minecraft.server.network.PlayerConnectionHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundSetEquipmentPacketHandle;
+import com.bergerkiller.generated.net.minecraft.server.network.ServerGamePacketListenerImplHandle;
 import com.bergerkiller.mountiplex.reflection.util.FastMethod;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -85,8 +85,8 @@ import com.bergerkiller.bukkit.tc.utils.FormattedSpeed;
 import com.bergerkiller.bukkit.tc.utils.TrackMovingPoint;
 import com.bergerkiller.bukkit.tc.utils.TrackWalkingPoint;
 import com.bergerkiller.generated.net.minecraft.server.level.EntityTrackerEntryStateHandle;
-import com.bergerkiller.generated.net.minecraft.world.level.chunk.ChunkHandle;
-import com.bergerkiller.generated.net.minecraft.world.phys.AxisAlignedBBHandle;
+import com.bergerkiller.generated.net.minecraft.world.level.chunk.LevelChunkHandle;
+import com.bergerkiller.generated.net.minecraft.world.phys.AABBHandle;
 
 public class Util {
     public static final MaterialTypeProperty ISVERTRAIL = new MaterialTypeProperty(Material.LADDER);
@@ -1217,7 +1217,7 @@ public class Util {
      * @param chunk
      */
     public static final void markChunkDirty(Chunk chunk) {
-        ChunkHandle.fromBukkit(chunk).markDirty();
+        LevelChunkHandle.fromBukkit(chunk).markDirty();
     }
 
     /**
@@ -1378,7 +1378,7 @@ public class Util {
         rel.setX(rel.getX() - locBlock.getX());
         rel.setY(rel.getY() - locBlock.getY());
         rel.setZ(rel.getZ() - locBlock.getZ());
-        AxisAlignedBBHandle bounds = WorldUtil.getBlockData(locBlock).getBoundingBox(locBlock);
+        AABBHandle bounds = WorldUtil.getBlockData(locBlock).getBoundingBox(locBlock);
         if (bounds != null /* AIR */ && rel.getX() >= bounds.getMinX() && rel.getX() <= bounds.getMaxX() && rel.getY() >= bounds.getMinY() && rel.getY() <= bounds.getMaxY()
                 && rel.getZ() >= bounds.getMinZ() && rel.getZ() <= bounds.getMaxZ()) {
             loc.setY(locBlock.getY() + bounds.getMaxY() + 1e-5);
@@ -1799,12 +1799,11 @@ public class Util {
         return player.getEyeLocation();
     }
 
-    public static PacketPlayOutEntityEquipmentHandle createPlayerEquipmentPacket(int entityId, EquipmentSlot slot, ItemStack itemStack) {
-        return PacketPlayOutEntityEquipmentHandle.createNew(PacketPlayOutEntityEquipmentHandle.OwnerType.PLAYER, entityId, slot, itemStack);
+    public static ClientboundSetEquipmentPacketHandle createPlayerEquipmentPacket(int entityId, EquipmentSlot slot, ItemStack itemStack) {
+        return ClientboundSetEquipmentPacketHandle.createNew(com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundSetEquipmentPacketHandle.OwnerType.PLAYER, entityId, slot, itemStack);
     }
-
-    public static PacketPlayOutEntityEquipmentHandle createNonPlayerEquipmentPacket(int entityId, EquipmentSlot slot, ItemStack itemStack) {
-        return PacketPlayOutEntityEquipmentHandle.createNew(PacketPlayOutEntityEquipmentHandle.OwnerType.NON_PLAYER, entityId, slot, itemStack);
+    public static ClientboundSetEquipmentPacketHandle createNonPlayerEquipmentPacket(int entityId, EquipmentSlot slot, ItemStack itemStack) {
+        return ClientboundSetEquipmentPacketHandle.createNew(com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundSetEquipmentPacketHandle.OwnerType.NON_PLAYER, entityId, slot, itemStack);
     }
 
     /**
@@ -2058,7 +2057,7 @@ public class Util {
      * @param player Player
      */
     public static void resetPlayerAwaitingTeleport(Player player) {
-        PlayerConnectionHandle connection = PlayerConnectionHandle.forPlayer(player);
+        ServerGamePacketListenerImplHandle connection = ServerGamePacketListenerImplHandle.forPlayer(player);
         if (connection != null) {
             connection.resetAwaitTeleport();
         }

@@ -32,11 +32,11 @@ import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetAttachmentNode;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetSelectionBox;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetToggleButton;
 import com.bergerkiller.bukkit.tc.attachments.ui.entity.MapWidgetEntityTypeList;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutSpawnEntityHandle;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutSpawnEntityLivingHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundAddEntityPacketHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundAddMobPacketHandle;
 import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
-import com.bergerkiller.generated.net.minecraft.world.entity.decoration.EntityArmorStandHandle;
-import com.bergerkiller.generated.net.minecraft.world.entity.vehicle.boat.EntityBoatHandle;
+import com.bergerkiller.generated.net.minecraft.world.entity.decoration.ArmorStandHandle;
+import com.bergerkiller.generated.net.minecraft.world.entity.vehicle.boat.BoatHandle;
 
 /**
  * A cart attachment that is a standard Entity.
@@ -292,10 +292,10 @@ public class CartAttachmentEntity extends CartAttachment {
             this.entity.setEntityType(EntityType.ARMOR_STAND);
             this.entity.getMetaData().set(EntityHandle.DATA_FLAGS, (byte) EntityHandle.DATA_FLAG_INVISIBLE);
             this.entity.getMetaData().set(EntityHandle.DATA_NO_GRAVITY, true);
-            this.entity.getMetaData().set(EntityArmorStandHandle.DATA_ARMORSTAND_FLAGS, (byte) (
-                    EntityArmorStandHandle.DATA_FLAG_SET_MARKER |
-                    EntityArmorStandHandle.DATA_FLAG_NO_BASEPLATE |
-                    EntityArmorStandHandle.DATA_FLAG_IS_SMALL));
+            this.entity.getMetaData().set(ArmorStandHandle.DATA_ARMORSTAND_FLAGS, (byte) (
+                    ArmorStandHandle.DATA_FLAG_SET_MARKER |
+                    ArmorStandHandle.DATA_FLAG_NO_BASEPLATE |
+                    ArmorStandHandle.DATA_FLAG_IS_SMALL));
         }
     }
 
@@ -317,7 +317,7 @@ public class CartAttachmentEntity extends CartAttachment {
 
         // Boat wood type
         if (displayed.getEntityType() == EntityType.BOAT) {
-            displayed.getMetaData().set(EntityBoatHandle.DATA_WOOD_TYPE, config.get("boatWoodType", BoatWoodType.OAK));
+            displayed.getMetaData().set(BoatHandle.DATA_WOOD_TYPE, config.get("boatWoodType", BoatWoodType.OAK));
         }
     }
 
@@ -456,9 +456,9 @@ public class CartAttachmentEntity extends CartAttachment {
         }
 
         if (VirtualEntity.isLivingEntity(entityType)) {
-            return PacketPlayOutSpawnEntityLivingHandle.isEntityTypeSupported(entityType);
+            return ClientboundAddMobPacketHandle.isEntityTypeSupported(entityType);
         } else {
-            return PacketPlayOutSpawnEntityHandle.isEntityTypeSupported(entityType);
+            return ClientboundAddEntityPacketHandle.isEntityTypeSupported(entityType);
         }
     }
 }

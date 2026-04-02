@@ -15,13 +15,13 @@ import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.bukkit.common.wrappers.DataWatcher;
 import com.bergerkiller.bukkit.tc.Util;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityDestroyHandle;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityEquipmentHandle;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityMetadataHandle;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityTeleportHandle;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutSpawnEntityHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundRemoveEntitiesPacketHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundSetEquipmentPacketHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundSetEntityDataPacketHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundEntityPositionSyncPacketHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundAddEntityPacketHandle;
 import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
-import com.bergerkiller.generated.net.minecraft.world.entity.decoration.EntityArmorStandHandle;
+import com.bergerkiller.generated.net.minecraft.world.entity.decoration.ArmorStandHandle;
 
 /**
  * Helper class for spawning and updating a virtual arrow item.
@@ -112,18 +112,18 @@ public class VirtualArrowItem {
      */
     public VirtualArrowItem move(Iterable<Player> viewers) {
         if (this.entityId != -1) {
-            PacketPlayOutEntityTeleportHandle tpPacket = PacketPlayOutEntityTeleportHandle.createNew(
+            ClientboundEntityPositionSyncPacketHandle tpPacket = ClientboundEntityPositionSyncPacketHandle.createNew(
                     this.entityId,
                     this.posX,  this.posY,  this.posZ,
                     0.0f, 0.0f, false);
 
             DataWatcher metadata = new DataWatcher();
-            metadata.set(EntityArmorStandHandle.DATA_POSE_ARM_RIGHT, this.rotation);
-            PacketPlayOutEntityMetadataHandle metaPacket = PacketPlayOutEntityMetadataHandle.createNew(this.entityId, metadata, true);
+            metadata.set(ArmorStandHandle.DATA_POSE_ARM_RIGHT, this.rotation);
+            ClientboundSetEntityDataPacketHandle metaPacket = ClientboundSetEntityDataPacketHandle.createNew(this.entityId, metadata, true);
 
             for (Player viewer : viewers) {
                 PacketUtil.sendPacket(viewer, tpPacket);
-                PacketUtil.sendPacket(viewer, metaPacket);
+                PacketUtil.sendPacket(viewer, metaPacket.toCommonPacket());
             }
         }
         return this;
@@ -138,7 +138,7 @@ public class VirtualArrowItem {
      */
     public VirtualArrowItem updateItem(Player viewer) {
         if (this.entityId != -1) {
-            PacketPlayOutEntityEquipmentHandle equipPacket = Util.createNonPlayerEquipmentPacket(
+            ClientboundSetEquipmentPacketHandle equipPacket = Util.createNonPlayerEquipmentPacket(
                     this.entityId, EquipmentSlot.HAND, this.item);
             PacketUtil.sendPacket(viewer, equipPacket);
         }
@@ -157,12 +157,12 @@ public class VirtualArrowItem {
             DataWatcher metadata = new DataWatcher();
             metadata.setByte(EntityHandle.DATA_FLAGS, EntityHandle.DATA_FLAG_FLYING | EntityHandle.DATA_FLAG_INVISIBLE);
             metadata.setFlag(EntityHandle.DATA_FLAGS, EntityHandle.DATA_FLAG_ON_FIRE, Common.evaluateMCVersion(">", "1.8"));
-            metadata.setByte(EntityArmorStandHandle.DATA_ARMORSTAND_FLAGS, EntityArmorStandHandle.DATA_FLAG_HAS_ARMS | EntityArmorStandHandle.DATA_FLAG_SET_MARKER);
+            metadata.setByte(ArmorStandHandle.DATA_ARMORSTAND_FLAGS, ArmorStandHandle.DATA_FLAG_HAS_ARMS | ArmorStandHandle.DATA_FLAG_SET_MARKER);
             if (this.glowing) {
                 metadata.setFlag(EntityHandle.DATA_FLAGS, EntityHandle.DATA_FLAG_GLOWING, true);
             }
-            PacketPlayOutEntityMetadataHandle metaPacket = PacketPlayOutEntityMetadataHandle.createNew(this.entityId, metadata, true);
-            PacketUtil.sendPacket(viewer, metaPacket);
+            ClientboundSetEntityDataPacketHandle metaPacket = ClientboundSetEntityDataPacketHandle.createNew(this.entityId, metadata, true);
+            PacketUtil.sendPacket(viewer, metaPacket.toCommonPacket());
         }
         return this;
     }
@@ -178,7 +178,7 @@ public class VirtualArrowItem {
         if (this.entityId == -1) {
             this.entityId = EntityUtil.getUniqueEntityId();
         }
-        PacketPlayOutSpawnEntityHandle spawnPacket = PacketPlayOutSpawnEntityHandle.createNew();
+        ClientboundAddEntityPacketHandle spawnPacket = ClientboundAddEntityPacketHandle.createNew();
         spawnPacket.setEntityId(this.entityId);
         spawnPacket.setEntityUUID(UUID.randomUUID());
         spawnPacket.setEntityType(EntityType.ARMOR_STAND);
@@ -191,16 +191,16 @@ public class VirtualArrowItem {
         metadata.set(EntityHandle.DATA_NO_GRAVITY, true);
         metadata.setByte(EntityHandle.DATA_FLAGS, EntityHandle.DATA_FLAG_FLYING | EntityHandle.DATA_FLAG_INVISIBLE);
         metadata.setFlag(EntityHandle.DATA_FLAGS, EntityHandle.DATA_FLAG_ON_FIRE, Common.evaluateMCVersion(">", "1.8"));
-        metadata.setByte(EntityArmorStandHandle.DATA_ARMORSTAND_FLAGS, EntityArmorStandHandle.DATA_FLAG_HAS_ARMS
-                | EntityArmorStandHandle.DATA_FLAG_SET_MARKER | EntityArmorStandHandle.DATA_FLAG_NO_BASEPLATE);
+        metadata.setByte(ArmorStandHandle.DATA_ARMORSTAND_FLAGS, ArmorStandHandle.DATA_FLAG_HAS_ARMS
+                | ArmorStandHandle.DATA_FLAG_SET_MARKER | ArmorStandHandle.DATA_FLAG_NO_BASEPLATE);
         if (glowing) {
             metadata.setFlag(EntityHandle.DATA_FLAGS, EntityHandle.DATA_FLAG_GLOWING, true);
         }
-        metadata.set(EntityArmorStandHandle.DATA_POSE_ARM_RIGHT, rotation);
-        PacketPlayOutEntityMetadataHandle metaPacket = PacketPlayOutEntityMetadataHandle.createNew(this.entityId, metadata, true);
-        PacketUtil.sendPacket(viewer, metaPacket);
+        metadata.set(ArmorStandHandle.DATA_POSE_ARM_RIGHT, rotation);
+        ClientboundSetEntityDataPacketHandle metaPacket = ClientboundSetEntityDataPacketHandle.createNew(this.entityId, metadata, true);
+        PacketUtil.sendPacket(viewer, metaPacket.toCommonPacket());
 
-        PacketPlayOutEntityEquipmentHandle equipPacket = Util.createNonPlayerEquipmentPacket(
+        ClientboundSetEquipmentPacketHandle equipPacket = Util.createNonPlayerEquipmentPacket(
                 this.entityId, EquipmentSlot.HAND, this.item);
         PacketUtil.sendPacket(viewer, equipPacket);
 
@@ -215,7 +215,7 @@ public class VirtualArrowItem {
      */
     public void destroy(Player viewer) {
         if (this.entityId != -1) {
-            PacketUtil.sendPacket(viewer, PacketPlayOutEntityDestroyHandle.createNewSingle(this.entityId));
+            PacketUtil.sendPacket(viewer, ClientboundRemoveEntitiesPacketHandle.createNewSingle(this.entityId));
         }
     }
 }

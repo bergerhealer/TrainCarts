@@ -10,8 +10,8 @@ import com.bergerkiller.bukkit.tc.attachments.FakePlayerSpawner;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityDestroyHandle;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityTeleportHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundRemoveEntitiesPacketHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundEntityPositionSyncPacketHandle;
 
 /**
  * Information for a seated entity that is left standing/unseated. The entity
@@ -70,7 +70,7 @@ class SeatedEntityStanding extends SeatedEntityNormal {
     private void makeFakePlayerInvisible(AttachmentViewer viewer) {
         // De-spawn the fake player itself
         VehicleMountController vmc = viewer.getVehicleMountController();
-        viewer.send(PacketPlayOutEntityDestroyHandle.createNewSingle(this._fakeEntityId));
+        viewer.send(ClientboundRemoveEntitiesPacketHandle.createNewSingle(this._fakeEntityId));
         vmc.remove(this._fakeEntityId);
     }
 
@@ -123,7 +123,7 @@ class SeatedEntityStanding extends SeatedEntityNormal {
                 continue;
             }
 
-            PacketPlayOutEntityTeleportHandle p = PacketPlayOutEntityTeleportHandle.createNew(this._fakeEntityId,
+            ClientboundEntityPositionSyncPacketHandle p = ClientboundEntityPositionSyncPacketHandle.createNew(this._fakeEntityId,
                     pos.getX(), pos.getY(), pos.getZ(),
                     orientation.getPassengerYaw(), orientation.getPassengerPitch(), false);
             viewer.send(p);

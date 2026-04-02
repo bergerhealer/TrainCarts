@@ -1,7 +1,7 @@
 package com.bergerkiller.bukkit.tc.attachments.surface;
 
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityDestroyHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundRemoveEntitiesPacketHandle;
 import org.bukkit.block.BlockFace;
 
 import java.util.ArrayList;
@@ -127,18 +127,18 @@ final class ShulkerTracker {
             return;
         }
 
-        if (PacketPlayOutEntityDestroyHandle.canDestroyMultiple()) {
+        if (ClientboundRemoveEntitiesPacketHandle.canDestroyMultiple()) {
             int[] ids = new int[shulkers.size() * 2];
             int idx = 0;
             for (Shulker shulker : shulkers) {
                 ids[idx++] = shulker.entityId;
                 ids[idx++] = shulker.mountEntityId;
             }
-            viewer.send(PacketPlayOutEntityDestroyHandle.createNewMultiple(ids));
+            viewer.send(ClientboundRemoveEntitiesPacketHandle.createNewMultiple(ids));
         } else {
             for (Shulker shulker : shulkers) {
-                viewer.send(PacketPlayOutEntityDestroyHandle.createNewSingle(shulker.entityId));
-                viewer.send(PacketPlayOutEntityDestroyHandle.createNewSingle(shulker.mountEntityId));
+                viewer.send(ClientboundRemoveEntitiesPacketHandle.createNewSingle(shulker.entityId));
+                viewer.send(ClientboundRemoveEntitiesPacketHandle.createNewSingle(shulker.mountEntityId));
             }
         }
     }

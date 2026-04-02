@@ -17,8 +17,8 @@ import com.bergerkiller.bukkit.tc.attachments.FakePlayerSpawner;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityDestroyHandle;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutEntityMetadataHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundSetEntityDataPacketHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundRemoveEntitiesPacketHandle;
 import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
 
 /**
@@ -69,12 +69,11 @@ class SeatedEntityNormal extends SeatedEntity {
             DataWatcher metaTmp = new DataWatcher();
             metaTmp.set(EntityHandle.DATA_CUSTOM_NAME, FakePlayerSpawner.UPSIDEDOWN.getPlayerName());
             metaTmp.set(EntityHandle.DATA_CUSTOM_NAME_VISIBLE, false);
-            PacketPlayOutEntityMetadataHandle metaPacket = PacketPlayOutEntityMetadataHandle.createNew(this.entity.getEntityId(), metaTmp, true);
-            viewer.send(metaPacket);
+            viewer.send(ClientboundSetEntityDataPacketHandle.createNew(this.entity.getEntityId(), metaTmp, true).toCommonPacket());
         } else {
             // Send the default metadata of this entity
             DataWatcher metaTmp = EntityHandle.fromBukkit(this.entity).getDataWatcher();
-            viewer.send(PacketPlayOutEntityMetadataHandle.createNew(this.entity.getEntityId(), metaTmp, true));
+            viewer.send(ClientboundSetEntityDataPacketHandle.createNew(this.entity.getEntityId(), metaTmp, true).toCommonPacket());
         }
     }
 
@@ -133,7 +132,7 @@ class SeatedEntityNormal extends SeatedEntity {
     private void makeFakePlayerInvisible(AttachmentViewer viewer) {
         // De-spawn the fake player itself
         VehicleMountController vmc = viewer.getVehicleMountController();
-        viewer.send(PacketPlayOutEntityDestroyHandle.createNewSingle(this._fakeEntityId));
+        viewer.send(ClientboundRemoveEntitiesPacketHandle.createNewSingle(this._fakeEntityId));
         vmc.remove(this._fakeEntityId);
 
         // If used, de-spawn the upside-down vehicle too
@@ -366,10 +365,8 @@ class SeatedEntityNormal extends SeatedEntity {
             }
 
             applyFakePlayerMetadata(metadata);
-            PacketPlayOutEntityMetadataHandle packet = PacketPlayOutEntityMetadataHandle.createNew(
-                    this._fakeEntityId, metadata, true);
-            for (AttachmentViewer viewer : seat.getAttachmentViewers()) {
-                viewer.send(packet);
+            for (AttachmentViewer viewer : seat.getAttachmentViewersSynced()) {
+                viewer.send(ClientboundSetEntityDataPacketHandle.createNew(this.entity.getEntityId(), metadata, true).toCommonPacket());
             }
         }
     }

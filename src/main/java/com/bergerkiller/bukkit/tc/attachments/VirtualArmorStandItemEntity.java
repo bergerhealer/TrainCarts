@@ -14,7 +14,7 @@ import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentManager;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
-import com.bergerkiller.generated.net.minecraft.world.entity.decoration.EntityArmorStandHandle;
+import com.bergerkiller.generated.net.minecraft.world.entity.decoration.ArmorStandHandle;
 
 /**
  * Wraps the logic for updating a virtual item held inside an ArmorStand.
@@ -35,10 +35,10 @@ public class VirtualArmorStandItemEntity extends VirtualEntity {
         this.setSyncMode(SyncMode.ITEM);
 
         this.getMetaData().set(EntityHandle.DATA_FLAGS, (byte) EntityHandle.DATA_FLAG_INVISIBLE);
-        this.getMetaData().setFlag(EntityArmorStandHandle.DATA_ARMORSTAND_FLAGS,
-                EntityArmorStandHandle.DATA_FLAG_HAS_ARMS, false);
-        this.getMetaData().setFlag(EntityArmorStandHandle.DATA_ARMORSTAND_FLAGS,
-                EntityArmorStandHandle.DATA_FLAG_NO_BASEPLATE, true);
+        this.getMetaData().setFlag(ArmorStandHandle.DATA_ARMORSTAND_FLAGS,
+                ArmorStandHandle.DATA_FLAG_HAS_ARMS, false);
+        this.getMetaData().setFlag(ArmorStandHandle.DATA_ARMORSTAND_FLAGS,
+                ArmorStandHandle.DATA_FLAG_NO_BASEPLATE, true);
 
         this.transformType = ArmorStandItemTransformType.HEAD;
         this.item = null;
@@ -63,8 +63,8 @@ public class VirtualArmorStandItemEntity extends VirtualEntity {
             if (this.item != null) {
                 this.broadcast(this.transformType.createEquipmentPacket(this.getEntityId(), this.item));
             }
-            this.getMetaData().setFlag(EntityArmorStandHandle.DATA_ARMORSTAND_FLAGS,
-                    EntityArmorStandHandle.DATA_FLAG_IS_SMALL, transformType.isSmallArmorStand());
+            this.getMetaData().setFlag(ArmorStandHandle.DATA_ARMORSTAND_FLAGS,
+                    ArmorStandHandle.DATA_FLAG_IS_SMALL, transformType.isSmallArmorStand());
         }
     }
 
@@ -130,18 +130,18 @@ public class VirtualArmorStandItemEntity extends VirtualEntity {
         Vector rotation = Util.getArmorStandPose(poseOrientation);
         DataWatcher meta = this.getMetaData();
         if (this.transformType.isHead()) {
-            meta.set(EntityArmorStandHandle.DATA_POSE_HEAD, rotation);
+            meta.set(ArmorStandHandle.DATA_POSE_HEAD, rotation);
         } else if (this.transformType == ArmorStandItemTransformType.CHEST || this.transformType == ArmorStandItemTransformType.SMALL_CHEST) {
-            meta.set(EntityArmorStandHandle.DATA_POSE_BODY, rotation);
+            meta.set(ArmorStandHandle.DATA_POSE_BODY, rotation);
         } else if (this.transformType.isLeftHand()) {
             rotation.setX(rotation.getX() - 90.0);
-            meta.set(EntityArmorStandHandle.DATA_POSE_ARM_LEFT, rotation);
+            meta.set(ArmorStandHandle.DATA_POSE_ARM_LEFT, rotation);
         } else if (this.transformType.isRightHand()) {
             rotation.setX(rotation.getX() - 90.0);
-            meta.set(EntityArmorStandHandle.DATA_POSE_ARM_RIGHT, rotation);
+            meta.set(ArmorStandHandle.DATA_POSE_ARM_RIGHT, rotation);
         } else if (this.transformType.isLeg()) {
-            meta.set(EntityArmorStandHandle.DATA_POSE_LEG_LEFT, rotation);
-            meta.set(EntityArmorStandHandle.DATA_POSE_LEG_RIGHT, rotation);
+            meta.set(ArmorStandHandle.DATA_POSE_LEG_LEFT, rotation);
+            meta.set(ArmorStandHandle.DATA_POSE_LEG_RIGHT, rotation);
         }
 
         // This must be run every tick (and is fine async) as otherwise the change in pose
@@ -161,7 +161,7 @@ public class VirtualArmorStandItemEntity extends VirtualEntity {
 
     @Override
     protected void applyGlowing(ChatColor color) {
-        this.getMetaData().setFlag(EntityArmorStandHandle.DATA_ARMORSTAND_FLAGS, EntityArmorStandHandle.DATA_FLAG_SET_MARKER,
+        this.getMetaData().setFlag(ArmorStandHandle.DATA_ARMORSTAND_FLAGS, ArmorStandHandle.DATA_FLAG_SET_MARKER,
                 color != null);
         this.getMetaData().setFlag(EntityHandle.DATA_FLAGS, EntityHandle.DATA_FLAG_GLOWING | EntityHandle.DATA_FLAG_ON_FIRE,
                 color != null);

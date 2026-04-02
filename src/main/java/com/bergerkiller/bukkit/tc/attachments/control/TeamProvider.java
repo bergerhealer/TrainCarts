@@ -5,7 +5,7 @@ import com.bergerkiller.bukkit.common.component.LibraryComponent;
 import com.bergerkiller.bukkit.common.wrappers.ChatText;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.PacketPlayOutScoreboardTeamHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundSetPlayerTeamPacketHandle;
 import com.bergerkiller.mountiplex.reflection.util.UniqueHash;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
@@ -384,8 +384,8 @@ public class TeamProvider implements LibraryComponent {
             }
         }
 
-        private PacketPlayOutScoreboardTeamHandle createPacket(int method) {
-            PacketPlayOutScoreboardTeamHandle packet = PacketPlayOutScoreboardTeamHandle.createNew();
+        private ClientboundSetPlayerTeamPacketHandle createPacket(int method) {
+            ClientboundSetPlayerTeamPacketHandle packet = ClientboundSetPlayerTeamPacketHandle.createNew();
             packet.setName(name);
             packet.setDisplayName(displayName);
             packet.setColor(color);
@@ -547,7 +547,7 @@ public class TeamProvider implements LibraryComponent {
                     this.pendingRemove = Collections.emptySet();
                     this.pendingAdd = Collections.emptySet();
                     this.entities.clear();
-                    viewer.send(team.createPacket(PacketPlayOutScoreboardTeamHandle.METHOD_REMOVE));
+                    viewer.send(team.createPacket(ClientboundSetPlayerTeamPacketHandle.METHOD_REMOVE));
                 }
             }
 
@@ -561,7 +561,7 @@ public class TeamProvider implements LibraryComponent {
                     reset();
                 } else if (!pendingRemove.isEmpty()) {
                     // Remove the set of entities for this viewer
-                    PacketPlayOutScoreboardTeamHandle packet = team.createPacket(PacketPlayOutScoreboardTeamHandle.METHOD_LEAVE);
+                    ClientboundSetPlayerTeamPacketHandle packet = team.createPacket(ClientboundSetPlayerTeamPacketHandle.METHOD_LEAVE);
                     packet.setPlayers(pendingRemove);
                     pendingRemove = Collections.emptySet();
                     viewer.send(packet);
@@ -578,13 +578,13 @@ public class TeamProvider implements LibraryComponent {
                     teamCreated = true;
 
                     // We are sending all entities for a team for the first time. Create the team with these entities.
-                    PacketPlayOutScoreboardTeamHandle packet = team.createPacket(PacketPlayOutScoreboardTeamHandle.METHOD_ADD);
+                    ClientboundSetPlayerTeamPacketHandle packet = team.createPacket(ClientboundSetPlayerTeamPacketHandle.METHOD_ADD);
                     packet.setPlayers(pendingAdd);
                     pendingAdd = Collections.emptySet();
                     viewer.send(packet);
                 } else {
                     // Add the set of entities for this viewer
-                    PacketPlayOutScoreboardTeamHandle packet = team.createPacket(PacketPlayOutScoreboardTeamHandle.METHOD_JOIN);
+                    ClientboundSetPlayerTeamPacketHandle packet = team.createPacket(ClientboundSetPlayerTeamPacketHandle.METHOD_JOIN);
                     packet.setPlayers(pendingAdd);
                     pendingAdd = Collections.emptySet();
                     viewer.send(packet);
