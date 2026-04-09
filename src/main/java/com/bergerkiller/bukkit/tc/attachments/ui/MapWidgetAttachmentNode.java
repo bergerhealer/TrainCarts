@@ -370,13 +370,15 @@ public class MapWidgetAttachmentNode extends MapWidget implements ItemDropTarget
     public boolean checkModifyPermissions() {
         if (display != null) {
             AttachmentType type = getType();
-            for (Player player : display.getOwners()) {
-                if (!type.hasPermission(player)) {
-                    for (Player notifPlayer : display.getOwners()) {
-                        notifPlayer.sendMessage(ChatColor.RED +
-                                "You do not have permission to modify this type of attachment");
+            if (type != null) {
+                for (Player player : display.getOwners()) {
+                    if (!type.hasPermission(player)) {
+                        for (Player notifPlayer : display.getOwners()) {
+                            notifPlayer.sendMessage(ChatColor.RED +
+                                    "You do not have permission to modify this type of attachment");
+                        }
+                        return false;
                     }
-                    return false;
                 }
             }
         }
