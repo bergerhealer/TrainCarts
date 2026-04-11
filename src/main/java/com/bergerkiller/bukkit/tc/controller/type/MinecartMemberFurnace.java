@@ -77,7 +77,7 @@ public class MinecartMemberFurnace extends MinecartMember<CommonMinecartFurnace>
     }
 
     @Override
-    public InteractionResult onInteractBy(HumanEntity human, HumanHand hand) {
+    public InteractionResult onInteractBy(HumanEntity human, HumanHand hand, Vector location) {
         if (!this.isInteractable()) {
             return InteractionResult.PASS;
         }

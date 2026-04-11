@@ -326,7 +326,7 @@ class TCPacketListener implements PacketListener {
         }
 
         // Interact
-        member.onInteractBy(player, hand);
+        member.onInteractBy(player, hand, atPosition);
     }
 
     private final class HitTimeCleanTask extends Task {

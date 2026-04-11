@@ -19,6 +19,7 @@ import java.util.List;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.HumanEntity;
 import org.bukkit.entity.Player;
+import org.bukkit.util.Vector;
 
 public class MinecartMemberRideable extends MinecartMember<CommonMinecartRideable> {
     private List<Entity> oldPassengers = new ArrayList<Entity>();
@@ -28,7 +29,7 @@ public class MinecartMemberRideable extends MinecartMember<CommonMinecartRideabl
     }
 
     @Override
-    public InteractionResult onInteractBy(HumanEntity interacter, HumanHand hand) {
+    public InteractionResult onInteractBy(HumanEntity interacter, HumanHand hand, Vector location) {
         // Note: humans can technically sneak too! But Bukkit has no method for it in the API.
         if ((interacter instanceof Player) && ((Player) interacter).isSneaking()) {
             return InteractionResult.PASS;
