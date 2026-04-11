@@ -4,7 +4,7 @@ import com.bergerkiller.bukkit.common.map.MapColorPalette;
 import com.bergerkiller.bukkit.common.map.MapFont;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
 import com.bergerkiller.bukkit.common.wrappers.BlockData;
-import com.bergerkiller.bukkit.common.wrappers.BlockState;
+import com.bergerkiller.bukkit.common.wrappers.BlockProperty;
 
 import java.awt.*;
 import java.util.Map;
@@ -62,8 +62,8 @@ public class MapWidgetBlockStateListTooltip extends MapWidget implements BlockDa
         // Block name
         drawText(y, this.block.getBlockName());
         y += ROW_HEIGHT + NAME_STATE_GAP;
-        for (Map.Entry<? extends BlockState<?>, Comparable<?>> entry : this.block.getStates().entrySet()) {
-            String text = entry.getKey().name() + " = " + entry.getKey().valueName(entry.getValue());
+        for (BlockProperty<?> property : this.block.getProperties()) {
+            String text = property.name() + " = " + property.valueName(this.block.getProperty(property));
             drawText(y, text);
             y += ROW_HEIGHT;
         }
@@ -89,7 +89,7 @@ public class MapWidgetBlockStateListTooltip extends MapWidget implements BlockDa
         if (this.block != null) {
             // Position this tooltip centered in the middle, preserving width and pos y
             this.setBounds(x, y, this.getWidth(),
-                    NAME_STATE_GAP + (1 + this.block.getStates().size()) * ROW_HEIGHT);
+                    NAME_STATE_GAP + (1 + this.block.getProperties().size()) * ROW_HEIGHT);
         } else {
             this.setBounds(x, y, this.getWidth(), 0);
         }

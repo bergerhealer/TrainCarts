@@ -6,6 +6,7 @@ import com.bergerkiller.bukkit.common.collections.ImplicitlySharedSet;
 import com.bergerkiller.bukkit.common.conversion.type.HandleConversion;
 import com.bergerkiller.bukkit.common.events.PacketReceiveEvent;
 import com.bergerkiller.bukkit.common.events.PacketSendEvent;
+import com.bergerkiller.bukkit.common.internal.CommonCapabilities;
 import com.bergerkiller.bukkit.common.protocol.CommonPacket;
 import com.bergerkiller.bukkit.common.protocol.PacketListener;
 import com.bergerkiller.bukkit.common.protocol.PacketType;
@@ -15,9 +16,9 @@ import com.bergerkiller.bukkit.common.wrappers.HumanHand;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroupStore;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ServerboundAttackPacketHandle;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.ServerboundPlayerInputPacketHandle;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.ServerboundInteractPacketHandle;
-import com.bergerkiller.generated.net.minecraft.world.InteractionHandHandle;
 import com.bergerkiller.generated.net.minecraft.world.entity.player.PlayerHandle;
 
 import java.util.HashMap;
@@ -27,9 +28,11 @@ import java.util.function.Consumer;
 
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
+import org.bukkit.event.player.PlayerInteractAtEntityEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.util.Vector;
 
 /**
  * Temporary (???) packet listener to handle and cancel player SHIFT presses to cancel vehicle exit
@@ -37,7 +40,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 class TCPacketListener implements PacketListener {
     public static final int ATTACK_SUPPRESS_DURATION = 250; // 250ms
     public static final PacketType[] LISTENED_TYPES = new PacketType[] {
-            PacketType.IN_STEER_VEHICLE, PacketType.IN_USE_ENTITY, PacketType.IN_ENTITY_ACTION
+            PacketType.IN_STEER_VEHICLE, PacketType.IN_INTERACT, PacketType.IN_ATTACK, PacketType.IN_PLAYER_COMMAND
     };
 
     private final TrainCarts traincarts;
@@ -116,8 +119,8 @@ class TCPacketListener implements PacketListener {
         // We will allow the unmount, but if it spawns a vehicle exit event later on, we must cancel that
         // event. This is a compromise so that other plugins can still freely eject the player, without
         // the player exit property blocking that behavior.
-        if (event.getType() == PacketType.IN_ENTITY_ACTION) {
-            String action = ((Enum<?>) packet.read(PacketType.IN_ENTITY_ACTION.action)).name();
+        if (event.getType() == PacketType.IN_PLAYER_COMMAND) {
+            String action = ((Enum<?>) packet.read(PacketType.IN_PLAYER_COMMAND.action)).name();
             if (action.equals("START_SNEAKING") || action.equals("PRESS_SHIFT_KEY")) {
                 // Player wants to exit, if inside a vehicle
                 if (player.getVehicle() == null) {
@@ -134,7 +137,52 @@ class TCPacketListener implements PacketListener {
             return;
         }
 
-        if (event.getType() == PacketType.IN_USE_ENTITY) {
+        if (event.getType() == PacketType.IN_ATTACK) {
+            ServerboundAttackPacketHandle packet_attack = ServerboundAttackPacketHandle.createHandle(event.getPacket().getHandle());
+
+            // When a player interacts with a virtual attachment, the main entity should receive the interaction
+            int entityId = packet_attack.getEntityId();
+            if (WorldUtil.getEntityById(event.getPlayer().getWorld(), entityId) != null) {
+                return; // Is a valid Entity. Ignore it.
+            }
+
+            // Don't know how to deal with this one
+            if (event.getPlayer().getGameMode().name().equals("SPECTATOR")) {
+                return;
+            }
+
+            // Find all Minecart entities that are nearby the player
+            Location eyeLoc = event.getPlayer().getEyeLocation();
+            try (ImplicitlySharedSet<MinecartGroup> groups = MinecartGroupStore.getGroups().clone()) {
+                for (MinecartGroup group : groups) {
+                    if (group.getWorld() != eyeLoc.getWorld()) {
+                        continue;
+                    }
+
+                    for (MinecartMember<?> member : group) {
+                        if (!member.getAttachments().isViewer(event.getPlayer())) {
+                            continue; // If not visible, don't loop through the model to check this
+                        }
+                        if (!member.getAttachments().isAttachment(entityId)) {
+                            continue; // Id is not used in the model
+                        }
+
+                        // If nearby the player, allow standard interaction. Otherwise, do all of this ourselves.
+                        // Minecraft enforces a 3 block radius when not having line of sight, assume this limit.
+                        if (member.getEntity().loc.distanceSquared(eyeLoc) < (3.0 * 3.0)) {
+                            // Rewrite the packet
+                            event.setPacket(ServerboundAttackPacketHandle.createNew(member.getEntity().getEntityId()));
+                            return; // Allow
+                        }
+
+                        // Cancel the attack and handle this ourselves.
+                        fakeAttack(member, event.getPlayer());
+                        event.setCancelled(true);
+                        return;
+                    }
+                }
+            }
+        } else if (event.getType() == PacketType.IN_INTERACT) {
             ServerboundInteractPacketHandle packet_use = ServerboundInteractPacketHandle.createHandle(event.getPacket().getHandle());
 
             // Since 1.16 this packet has a sneaking property
@@ -143,7 +191,8 @@ class TCPacketListener implements PacketListener {
                 if (player.getVehicle() == null) {
                     TCSeatChangeListener.markForUnmounting(traincarts, player);
                 } else if (!traincarts.handlePlayerVehicleChange(player, null)) {
-                    packet_use.setUsingSecondaryAction(false);
+                    packet_use = ServerboundInteractPacketHandle.withUsingSecondaryAction(packet_use, false);
+                    event.setPacket(packet_use);
                 }
             }
 
@@ -174,11 +223,11 @@ class TCPacketListener implements PacketListener {
                             continue; // Id is not used in the model
                         }
 
-                        // UseAction INTERACT_AT fires for all entities, including Armorstands
-                        // The INTERACT only fires for interactable entities, like Minecarts
-                        // Since INTERACT_AT also fires for Minecarts, it is easier to ignore INTERACT
-                        // and do all handling using INTERACT_AT.
-                        if (packet_use.isInteract()) {
+                        // Interaction with position fires for all entities including Armorstands
+                        // Before 26.1, it only fires without position for interactable entities, like Minecarts
+                        // Since it fires with position also for Minecarts, it is easier to ignore the one without
+                        // and do all handling with the one that has position.
+                        if (!packet_use.hasInteractAtPosition()) {
                             event.setCancelled(true);
                             return;
                         }
@@ -186,34 +235,19 @@ class TCPacketListener implements PacketListener {
                         // If nearby the player, allow standard interaction. Otherwise, do all of this ourselves.
                         // Minecraft enforces a 3 block radius when not having line of sight, assume this limit.
                         if (member.getEntity().loc.distanceSquared(eyeLoc) < (3.0 * 3.0)) {
-                            
-                            // For some reason this is needed, though.
-                            if (packet_use.isInteractAt()) {
-                                HumanHand hand = packet_use.getInteractHand(event.getPlayer());
-                                packet_use.setInteract(event.getPlayer(), hand);
-                            }
-
                             // Must track this to cancel superfluous LEFT clicks that happen later
-                            if (packet_use.isInteract() || packet_use.isInteractAt()) {
-                                this.suppressAttacksFor(event.getPlayer(), ATTACK_SUPPRESS_DURATION);
-                            }
+                            this.suppressAttacksFor(event.getPlayer(), ATTACK_SUPPRESS_DURATION);
 
                             // Rewrite the packet
-                            packet_use.setUsedEntityId(member.getEntity().getEntityId());
+                            packet_use = ServerboundInteractPacketHandle.withUsedEntityId(packet_use, member.getEntity().getEntityId());
+                            event.setPacket(packet_use);
                             return; // Allow
                         }
 
                         // Cancel the interaction and handle this ourselves.
-                        if (packet_use.isInteract() || packet_use.isInteractAt()) {
-                            // Get hand used for interaction
-                            HumanHand hand = packet_use.getInteractHand(event.getPlayer());
-                            fakeInteraction(member, event.getPlayer(), hand);
-                            event.setCancelled(true);
-                        } else if (packet_use.isAttack()) {
-                            // Attack
-                            fakeAttack(member, event.getPlayer());
-                            event.setCancelled(true);
-                        }
+                        HumanHand hand = packet_use.getHand(event.getPlayer());
+                        fakeInteraction(member, event.getPlayer(), hand, packet_use.getInteractAtPosition());
+                        event.setCancelled(true);
                         return;
                     }
                 }
@@ -242,7 +276,7 @@ class TCPacketListener implements PacketListener {
         PlayerHandle.createHandle(playerHandleRaw).attack(member.getEntity().getEntity());
     }
 
-    public void fakeInteraction(final MinecartMember<?> member, final Player player, final HumanHand hand) {
+    public void fakeInteraction(final MinecartMember<?> member, final Player player, final HumanHand hand, final Vector atPosition) {
         this.suppressAttacksFor(player, ATTACK_SUPPRESS_DURATION);
 
         // Fix cross-thread access
@@ -250,7 +284,7 @@ class TCPacketListener implements PacketListener {
             CommonUtil.nextTick(new Runnable() {
                 @Override
                 public void run() {
-                    fakeInteraction(member, player, hand);
+                    fakeInteraction(member, player, hand, atPosition);
                 }
             });
             return;
@@ -261,7 +295,7 @@ class TCPacketListener implements PacketListener {
             return;
         }
 
-        if (InteractionHandHandle.T.isAvailable()) {
+        if (CommonCapabilities.PLAYER_OFF_HAND) {
             HumanHand mainHand = HumanHand.getMainHand(player);
 
             // Fire a Bukkit event first, as defined in PlayerConnection PacketPlayInUseEntity handler
@@ -274,13 +308,18 @@ class TCPacketListener implements PacketListener {
             }
 
             // Post-1.9: EquipmentSlot parameter
-            PlayerInteractEntityEvent interactEvent = new PlayerInteractEntityEvent(player, member.getEntity().getEntity(), slot);
-            if (CommonUtil.callEvent(interactEvent).isCancelled()) {
+            PlayerInteractAtEntityEvent interactAtEvent = new PlayerInteractAtEntityEvent(player, member.getEntity().getEntity(), atPosition, slot);
+            if (CommonUtil.callEvent(interactAtEvent).isCancelled()) {
                 return;
             }
         } else {
             // Pre-1.9
-            PlayerInteractEntityEvent interactEvent = new PlayerInteractEntityEvent(player, member.getEntity().getEntity());
+            PlayerInteractEntityEvent interactEvent;
+            if (atPosition != null) {
+                interactEvent = new PlayerInteractAtEntityEvent(player, member.getEntity().getEntity(), atPosition);
+            } else {
+                interactEvent = new PlayerInteractEntityEvent(player, member.getEntity().getEntity());
+            }
             if (CommonUtil.callEvent(interactEvent).isCancelled()) {
                 return;
             }

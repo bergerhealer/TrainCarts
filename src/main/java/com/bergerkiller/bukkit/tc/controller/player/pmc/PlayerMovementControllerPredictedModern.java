@@ -201,7 +201,7 @@ class PlayerMovementControllerPredictedModern extends PlayerMovementControllerPr
                 ClientboundPlayerAbilitiesPacketHandle pp = ClientboundPlayerAbilitiesPacketHandle.createNew(pa);
                 PacketUtil.queuePacket(event.getPlayer(), pp);
             }
-        } else if (event.getType() == PacketType.IN_ENTITY_ACTION) {
+        } else if (event.getType() == PacketType.IN_PLAYER_COMMAND) {
             ServerboundPlayerCommandPacketHandle packet = ServerboundPlayerCommandPacketHandle.createHandle(event.getPacket().getHandle());
             Object action = packet.getAction();
             if (action != null) {

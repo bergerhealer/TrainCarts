@@ -118,7 +118,7 @@ public enum PowerState {
                 // TODO: Use BlockDataState
                 String sideKey = redstoneWireSideKey.get(from.getOppositeFace());
                 if (sideKey != null) {
-                    BlockData updated = fromBlockInfo.setState(sideKey, "side");
+                    BlockData updated = fromBlockInfo.setProperty(sideKey, "side");
                     if (fromBlockInfo != updated) {
                         // Note: do not use setBlockData() because we don't want to fire block physics
                         // When block physics fire and adjacent to a redstone wire is another wire also

@@ -478,7 +478,7 @@ public abstract class PlayerMovementController implements AttachmentViewer.Movem
         public static final ControllerType MODERN = new ControllerType(PlayerMovementControllerPredictedModern::new,
                 PacketType.IN_CLIENT_TICK_END,
                 PacketType.IN_POSITION, PacketType.IN_POSITION_LOOK,
-                PacketType.IN_STEER_VEHICLE, PacketType.IN_ABILITIES, PacketType.IN_ENTITY_ACTION);
+                PacketType.IN_STEER_VEHICLE, PacketType.IN_ABILITIES, PacketType.IN_PLAYER_COMMAND);
 
         /**
          * Selects the most appropriate controller type to use for a certain player viewer.

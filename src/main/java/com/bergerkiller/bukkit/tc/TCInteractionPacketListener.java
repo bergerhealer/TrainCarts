@@ -28,9 +28,9 @@ class TCInteractionPacketListener implements PacketListener {
 
     public static final PacketType[] TYPES = {
             PacketType.IN_USE_ITEM,
-            PacketType.IN_BLOCK_PLACE,
-            PacketType.IN_ENTITY_ANIMATION,
-            PacketType.IN_BLOCK_DIG
+            PacketType.IN_USE_ITEM_ON,
+            PacketType.IN_SWING,
+            PacketType.IN_PLAYER_ACTION
     };
 
     private void cancelBlockChanges(Player player, IntVector3 pos) {
@@ -60,13 +60,13 @@ class TCInteractionPacketListener implements PacketListener {
         }
 
         // Store last hit when USE_ITEM is called, to avoid ENTITY_ANIMATION attack() being called incorrectly
-        if (event.getType() == PacketType.IN_USE_ITEM) {
+        if (event.getType() == PacketType.IN_USE_ITEM_ON) {
             mainPacketListener.suppressAttacksFor(event.getPlayer(), TCPacketListener.ATTACK_SUPPRESS_DURATION);
         }
 
         // Ignore IN_BLOCK_DIG packets that are uninteresting to us
-        if (event.getType() == PacketType.IN_BLOCK_DIG) {
-            String status = event.getPacket().read(PacketType.IN_BLOCK_DIG.status).toString();
+        if (event.getType() == PacketType.IN_PLAYER_ACTION) {
+            String status = event.getPacket().read(PacketType.IN_PLAYER_ACTION.status).toString();
             if (!status.equals("START_DESTROY_BLOCK")) {
                 return;
             }
@@ -76,10 +76,10 @@ class TCInteractionPacketListener implements PacketListener {
         // When we cancel a BLOCK_DIG event, be sure to send a block update of the block being dug
         // For arm animation, make sure it is that of the player's off hand.
         boolean isAttackClick = false;
-        if (event.getType() == PacketType.IN_BLOCK_DIG) {
+        if (event.getType() == PacketType.IN_PLAYER_ACTION) {
             isAttackClick = true;
-        } else if (event.getType() == PacketType.IN_ENTITY_ANIMATION) {
-            HumanHand hand = PacketType.IN_ENTITY_ANIMATION.getHand(event.getPacket(), event.getPlayer());
+        } else if (event.getType() == PacketType.IN_SWING) {
+            HumanHand hand = PacketType.IN_SWING.getHand(event.getPacket(), event.getPlayer());
             if (hand == HumanHand.getOffHand(event.getPlayer())) {
                 if (mainPacketListener.isAttackSuppressed(event.getPlayer())) {
                     event.setCancelled(true);
@@ -95,8 +95,8 @@ class TCInteractionPacketListener implements PacketListener {
                 TCPacketListener.fakeAttack(member, event.getPlayer());
 
                 // When packet is IN_BLOCK_DIG, send a block change to correct the changed block
-                if (event.getType() == PacketType.IN_BLOCK_DIG) {
-                    IntVector3 pos = event.getPacket().read(PacketType.IN_BLOCK_DIG.position);
+                if (event.getType() == PacketType.IN_PLAYER_ACTION) {
+                    IntVector3 pos = event.getPacket().read(PacketType.IN_PLAYER_ACTION.position);
                     cancelBlockChanges(event.getPlayer(), pos);
                 }
             }
@@ -106,24 +106,24 @@ class TCInteractionPacketListener implements PacketListener {
         // IN_BLOCK_PLACE occurs when the player right-clicks the air while holding an item
         // USE_ITEM occurs when the player right-clicks a block
         // In both cases, when clicking on a cart, cancel the event and perform interaction
-        if (event.getType() == PacketType.IN_BLOCK_PLACE || event.getType() == PacketType.IN_USE_ITEM) {
+        if (event.getType() == PacketType.IN_USE_ITEM || event.getType() == PacketType.IN_USE_ITEM_ON) {
             MinecartMember<?> member = MinecartMemberStore.getFromHitTest(event.getPlayer().getEyeLocation());
             if (member != null) {
                 HumanHand hand;
-                if (event.getType() == PacketType.IN_BLOCK_PLACE) {
-                    hand = PacketType.IN_BLOCK_PLACE.getHand(event.getPacket(), event.getPlayer());
-                } else {
+                if (event.getType() == PacketType.IN_USE_ITEM) {
                     hand = PacketType.IN_USE_ITEM.getHand(event.getPacket(), event.getPlayer());
+                } else {
+                    hand = PacketType.IN_USE_ITEM_ON.getHand(event.getPacket(), event.getPlayer());
 
                     // Cancel any block changes by re-sending the block clicked (and the block at the face)
-                    IntVector3 pos = event.getPacket().read(PacketType.IN_USE_ITEM.position);
-                    BlockFace dir =  event.getPacket().read(PacketType.IN_USE_ITEM.direction);
+                    IntVector3 pos = event.getPacket().read(PacketType.IN_USE_ITEM_ON.position);
+                    BlockFace dir =  event.getPacket().read(PacketType.IN_USE_ITEM_ON.direction);
                     cancelBlockChanges(event.getPlayer(), pos);
                     cancelBlockChanges(event.getPlayer(), pos.add(dir));
                 }
 
                 event.setCancelled(true);
-                this.mainPacketListener.fakeInteraction(member, event.getPlayer(), hand);
+                this.mainPacketListener.fakeInteraction(member, event.getPlayer(), hand, member.getEntity().getLocation().toVector());
             }
 
             return;
