@@ -18,6 +18,13 @@ repositories {
             includeGroup("com.mojang")
         }
     }
+    // Used for cloud-minecraft snapshots. Can be dropped once a release is out
+    maven {
+        url = uri("https://central.sonatype.com/repository/maven-snapshots/")
+        content {
+            includeGroup("org.incendo")
+        }
+    }
     maven("https://ci.mg-dev.eu/plugin/repository/everything/")
     maven("https://repo.papermc.io/repository/maven-public/")
 }
