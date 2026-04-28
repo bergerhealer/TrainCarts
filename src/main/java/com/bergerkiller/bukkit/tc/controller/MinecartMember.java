@@ -2212,6 +2212,17 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         return direction;
     }
 
+    @Override
+    public void onMove(MoveType moveType, double dx, double dy, double dz) {
+        // When moved by a piston, disable this movement when block collision is off.
+        // Do be careful that the cart can be unloaded, we don't want errors in onMove.
+        if (moveType == MoveType.PISTON && hasInitializedGroup() && getGroup().getProperties().getCollision().blockMode() == CollisionMode.CANCEL) {
+            return;
+        }
+
+        super.onMove(moveType, dx, dy, dz);
+    }
+
     /**
      * Moves the minecart and performs post-movement logic such as events,
      * onBlockChanged and other (rail) logic Physics stage: <b>4</b>
