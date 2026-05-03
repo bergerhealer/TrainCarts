@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.tc.utils;
 
+import java.util.List;
 import java.util.logging.Level;
 
 import org.bukkit.block.Block;
@@ -22,23 +23,29 @@ import com.bergerkiller.mountiplex.reflection.util.FastMethod;
  * create a new block physics event in a multi-version supported way.
  */
 public abstract class BlockPhysicsEventDataAccessor {
-    public static BlockPhysicsEventDataAccessor INSTANCE;
-    static {
+    public static BlockPhysicsEventDataAccessor INSTANCE = createAccessor();
+
+    private static BlockPhysicsEventDataAccessor createAccessor() {
+        List<Throwable> failures = new java.util.ArrayList<>();
         try {
-            INSTANCE = new BlockPhysicsEventDataAccessorEventField();
+            return new BlockPhysicsEventDataAccessorEventField_1_17_to_1_21_11();
         } catch (Throwable t) {
-            //t.printStackTrace();
-            try {
-                if (Common.evaluateMCVersion(">=", "1.13")) {
-                    INSTANCE = new BlockPhysicsEventDataAccessorDefaultModern();
-                } else {
-                    INSTANCE = new BlockPhysicsEventDataAccessorDefaultLegacy();
-                }
-            } catch (Throwable t2) {
-                TrainCarts.plugin.getLogger().log(Level.SEVERE,
-                        "Failed to initialize block physics event data accessor", t);
-                INSTANCE = new BlockPhysicsEventDataAccessorFallback();
+            failures.add(t);
+        }
+
+        try {
+            if (Common.evaluateMCVersion(">=", "1.13")) {
+                return new BlockPhysicsEventDataAccessorDefaultModern();
+            } else {
+                return new BlockPhysicsEventDataAccessorDefaultLegacy();
             }
+        } catch (Throwable t2) {
+            failures.add(t2);
+            TrainCarts.plugin.getLogger().severe("Failed to initialize block physics event data accessor. Failed initializations:");
+            for (Throwable t : failures) {
+                TrainCarts.plugin.getLogger().log(Level.SEVERE, " - ", t);
+            }
+            return new BlockPhysicsEventDataAccessorFallback();
         }
     }
 
@@ -88,7 +95,11 @@ public abstract class BlockPhysicsEventDataAccessor {
         public BlockPhysicsEventDataAccessorDefaultModern() throws Throwable {
             Class<?> bd = CommonUtil.getClass("org.bukkit.block.data.BlockData");
             Class<?> cbd = CommonUtil.getClass("org.bukkit.craftbukkit.block.data.CraftBlockData");
-            this.toBukkitBlockData = new FastMethod<Object>(cbd.getDeclaredMethod("fromData", BlockStateHandle.T.getType()));
+            this.toBukkitBlockData = new FastMethod<Object>(cbd.getDeclaredMethod(
+                    (Common.IS_PAPERSPIGOT_SERVER && Common.evaluateMCVersion(">=", "26.1"))
+                            ? "createData"
+                            : "fromData",
+                    BlockStateHandle.T.getType()));
             this.eventConstructor = new FastConstructor<BlockPhysicsEvent>(BlockPhysicsEvent.class.getConstructor(Block.class, bd));
             this.toBukkitBlockData.forceInitialization();
             this.eventConstructor.forceInitialization();
@@ -106,11 +117,11 @@ public abstract class BlockPhysicsEventDataAccessor {
     }
     
     // Since a late 1.17.1 version of paper there is a custom method to quickly retrieve the block data
-    private static final class BlockPhysicsEventDataAccessorEventField extends BlockPhysicsEventDataAccessorDefaultModern {
+    private static final class BlockPhysicsEventDataAccessorEventField_1_17_to_1_21_11 extends BlockPhysicsEventDataAccessorDefaultModern {
         private final FastMethod<Object> blockDataGetter;
         private final FastMethod<Object> blockDataGetState;
 
-        public BlockPhysicsEventDataAccessorEventField() throws Throwable {
+        public BlockPhysicsEventDataAccessorEventField_1_17_to_1_21_11() throws Throwable {
             Class<?> cbd = CommonUtil.getClass("org.bukkit.craftbukkit.block.data.CraftBlockData");
             this.blockDataGetter = new FastMethod<Object>(BlockPhysicsEvent.class.getDeclaredMethod("getChangedBlockData"));
             this.blockDataGetState = new FastMethod<Object>(cbd.getDeclaredMethod("getState"));
@@ -132,6 +143,7 @@ public abstract class BlockPhysicsEventDataAccessor {
             }
         }
     }
+
 
     // Fallback impl that cant possibly raise errors anymore, but disables stuff
     private static final class BlockPhysicsEventDataAccessorFallback extends BlockPhysicsEventDataAccessor {
