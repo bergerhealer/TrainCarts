@@ -1376,7 +1376,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 
         try {
             // Call CraftBukkit event
-            VehicleDamageEvent event = new VehicleDamageEvent(entity.getEntity(), damager, damage);
+            VehicleDamageEvent event = Util.DAMAGE_EVENT_CONSTRUCTOR.createDamageEvent(entity.getEntity(), damagesource, damager, damage);
             if (CommonUtil.callEvent(event).isCancelled()) {
                 return executePostLogic;
             }
@@ -1401,7 +1401,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
                         drops.add(new ItemStack(entity.getCombinedItem()));
                     }
                 }
-                VehicleDestroyEvent destroyEvent = new VehicleDestroyEvent(entity.getEntity(), damager);
+                VehicleDestroyEvent destroyEvent = Util.DAMAGE_EVENT_CONSTRUCTOR.createDestroyEvent(entity.getEntity(), damagesource, damager);
                 if (CommonUtil.callEvent(destroyEvent).isCancelled()) {
                     entity.setDamage(MAXIMUM_DAMAGE_SUSTAINED);
                     return executePostLogic;

@@ -22,6 +22,8 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.logging.Level;
 
+import com.bergerkiller.bukkit.common.Common;
+import com.bergerkiller.bukkit.common.wrappers.DamageSource;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
@@ -45,8 +47,11 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.HumanEntity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Vehicle;
 import org.bukkit.event.block.BlockPhysicsEvent;
 import org.bukkit.event.block.SignChangeEvent;
+import org.bukkit.event.vehicle.VehicleDamageEvent;
+import org.bukkit.event.vehicle.VehicleDestroyEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
@@ -2137,5 +2142,41 @@ public class Util {
      */
     public static Color toColor(ChatColor chatColor) {
         return COLOR_TO_RGB.getOrDefault(chatColor, UNKNOWN_CHAT_COLOR);
+    }
+
+    // Can remove this after 2.0.0 or later is a hard dep, just here so peoples stuff doesn't break prematurely
+    public static final DamageEventConstructor DAMAGE_EVENT_CONSTRUCTOR = createDamageEventConstructor();
+
+    private static DamageEventConstructor createDamageEventConstructor() {
+        if (Common.hasCapability("Common:DamageSource:CreateVehicleDamageEvent")) {
+            return new DamageEventConstructor() {
+                @Override
+                public VehicleDamageEvent createDamageEvent(Vehicle vehicle, DamageSource damageSource, Entity attacker, double damage) {
+                    return damageSource.createVehicleDamageEvent(vehicle, attacker, damage);
+                }
+
+                @Override
+                public VehicleDestroyEvent createDestroyEvent(Vehicle vehicle, DamageSource damageSource, Entity attacker) {
+                    return damageSource.createVehicleDestroyEvent(vehicle, attacker);
+                }
+            };
+        } else {
+            return new DamageEventConstructor() {
+                @Override
+                public VehicleDamageEvent createDamageEvent(Vehicle vehicle, DamageSource damageSource, Entity attacker, double damage) {
+                    return new VehicleDamageEvent(vehicle, attacker, damage);
+                }
+
+                @Override
+                public VehicleDestroyEvent createDestroyEvent(Vehicle vehicle, DamageSource damageSource, Entity attacker) {
+                    return new VehicleDestroyEvent(vehicle, attacker);
+                }
+            };
+        }
+    }
+
+    public interface DamageEventConstructor {
+        VehicleDamageEvent createDamageEvent(Vehicle vehicle, DamageSource damageSource, Entity attacker, double damage);
+        VehicleDestroyEvent createDestroyEvent(Vehicle vehicle, DamageSource damageSource, Entity attacker);
     }
 }
