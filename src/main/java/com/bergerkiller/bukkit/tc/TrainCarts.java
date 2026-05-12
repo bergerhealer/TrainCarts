@@ -243,7 +243,15 @@ public class TrainCarts extends PluginBase {
             .withInitializer(p -> {
                 try {
                     // The implementation lives in the :multiverse-provider subproject and may not be present at runtime
-                    Class<?> cls = Class.forName("com.bergerkiller.bukkit.tc.portals.plugins.MultiversePortalsLegacyProvider");
+                    Class<?> cls;
+                    if (p.getClass().getName().equals("com.onarandombox.MultiversePortals.MultiversePortals")) {
+                        // Older versions of multiverse-portals, use the legacy provider
+                        cls = Class.forName("com.bergerkiller.bukkit.tc.portals.plugins.MultiversePortalsLegacyProvider");
+                    } else {
+                        // Newer versions of multiverse-portals, use the newer provider
+                        cls = Class.forName("com.bergerkiller.bukkit.tc.portals.plugins.MultiversePortalsProvider");
+                    }
+
                     return com.bergerkiller.bukkit.tc.portals.PortalProvider.class.cast(
                             cls.getConstructor(TrainCarts.class, org.bukkit.plugin.Plugin.class)
                                .newInstance(TrainCarts.this, p)

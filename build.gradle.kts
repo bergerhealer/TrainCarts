@@ -121,7 +121,7 @@ tasks {
         relocate("com.bergerkiller.bukkit.common.softdependency", "com.bergerkiller.bukkit.tc.dep.softdependency")
 
         // Ensure the provider subproject classes are built first, and include its compiled classes into the shadow jar.
-        val providerProjectNames = listOf("multiverse-portal-provider-legacy", "myworlds-portal-provider")
+        val providerProjectNames = listOf("multiverse-portal-provider-legacy", "multiverse-portal-provider", "myworlds-portal-provider")
         providerProjectNames.forEach { providerName ->
             val projPath = ":libs:$providerName"
             val classesDir = project(projPath).layout.buildDirectory.dir("classes/java/main")

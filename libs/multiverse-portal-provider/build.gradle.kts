@@ -15,8 +15,8 @@ dependencies {
     compileOnly(project(":"))
     compileOnly(libs.spigot.api)
     compileOnly(libs.bkcommonlib)
-    compileOnly("com.onarandombox.multiversecore:Multiverse-Core:4.2.0")
-    compileOnly("com.onarandombox.multiverseportals:Multiverse-Portals:4.2.0")
+    compileOnly("org.mvplugins.multiverse.core:multiverse-core:5.6.2")
+    compileOnly("org.mvplugins.multiverse.portals:multiverse-portals:5.2.2")
 }
 
 java {
