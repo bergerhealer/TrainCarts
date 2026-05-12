@@ -42,7 +42,6 @@ import com.bergerkiller.bukkit.tc.commands.Commands;
 import com.bergerkiller.bukkit.tc.commands.selector.SelectorHandlerRegistry;
 import com.bergerkiller.bukkit.tc.commands.selector.TCSelectorHandlerRegistry;
 import com.bergerkiller.bukkit.tc.controller.*;
-import com.bergerkiller.bukkit.tc.controller.components.RailTracker;
 import com.bergerkiller.bukkit.tc.controller.global.ActionSignHighlighter;
 import com.bergerkiller.bukkit.tc.controller.global.EffectLoopPlayerController;
 import com.bergerkiller.bukkit.tc.controller.global.SignController;
@@ -59,8 +58,6 @@ import com.bergerkiller.bukkit.tc.offline.sign.OfflineSignStore;
 import com.bergerkiller.bukkit.tc.pathfinding.PathProvider;
 import com.bergerkiller.bukkit.tc.pathfinding.RouteManager;
 import com.bergerkiller.bukkit.tc.portals.TCPortalManager;
-import com.bergerkiller.bukkit.tc.portals.plugins.MultiversePortalsProvider;
-import com.bergerkiller.bukkit.tc.portals.plugins.MyWorldsPortalsProvider;
 import com.bergerkiller.bukkit.tc.properties.SavedTrainPropertiesStore;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.api.IPropertyRegistry;
@@ -225,15 +222,40 @@ public class TrainCarts extends PluginBase {
             })
             .whenDisable(p -> AttachmentTypeRegistry.instance().unregister(CartAttachmentLight.TYPE))
             .create();
-    private final SoftDependency<MyWorldsPortalsProvider> myWorldsPortalProvider = SoftDependency.build(this, "My_Worlds")
-            .withInitializer(p -> new MyWorldsPortalsProvider(this, p))
-            .whenEnable(s -> TCPortalManager.addPortalSupport(s.name(), s.get()))
-            .whenDisable(s -> TCPortalManager.removePortalSupport(s.name()))
+    private final SoftDependency<com.bergerkiller.bukkit.tc.portals.PortalProvider> myWorldsPortalProvider = SoftDependency.build(this, "My_Worlds")
+            .withInitializer(p -> {
+                try {
+                    Class<?> cls = Class.forName("com.bergerkiller.bukkit.tc.portals.plugins.MyWorldsPortalsProvider");
+                    return com.bergerkiller.bukkit.tc.portals.PortalProvider.class.cast(
+                            cls.getConstructor(TrainCarts.class, org.bukkit.plugin.Plugin.class)
+                                    .newInstance(TrainCarts.this, p)
+                    );
+                } catch (Throwable t) {
+                    // Log the full stack trace to help diagnose startup issues
+                    getLogger().log(Level.WARNING, "My_Worlds portal integration not available", t);
+                    return null;
+                }
+            })
+            .whenEnable(s -> { if (s.get() != null) TCPortalManager.addPortalSupport(s.name(), s.get()); })
+            .whenDisable(s -> { if (s.get() != null) TCPortalManager.removePortalSupport(s.name()); })
             .create();
-    private final SoftDependency<MultiversePortalsProvider> multiversePortalProvider = SoftDependency.build(this, "Multiverse-Portals")
-            .withInitializer(p -> new MultiversePortalsProvider(TrainCarts.this, p))
-            .whenEnable(s -> TCPortalManager.addPortalSupport(s.name(), s.get()))
-            .whenDisable(s -> TCPortalManager.removePortalSupport(s.name()))
+    private final SoftDependency<com.bergerkiller.bukkit.tc.portals.PortalProvider> multiversePortalProvider = SoftDependency.build(this, "Multiverse-Portals")
+            .withInitializer(p -> {
+                try {
+                    // The implementation lives in the :multiverse-provider subproject and may not be present at runtime
+                    Class<?> cls = Class.forName("com.bergerkiller.bukkit.tc.portals.plugins.MultiversePortalsLegacyProvider");
+                    return com.bergerkiller.bukkit.tc.portals.PortalProvider.class.cast(
+                            cls.getConstructor(TrainCarts.class, org.bukkit.plugin.Plugin.class)
+                               .newInstance(TrainCarts.this, p)
+                    );
+                } catch (Throwable t) {
+                    // Log the full stack trace to help diagnose startup issues
+                    getLogger().log(Level.WARNING, "Multiverse-Portals integration not available", t);
+                    return null;
+                }
+            })
+            .whenEnable(s -> { if (s.get() != null) TCPortalManager.addPortalSupport(s.name(), s.get()); })
+            .whenDisable(s -> { if (s.get() != null) TCPortalManager.removePortalSupport(s.name()); })
             .create();
     private final SoftServiceDependency<Economy> vaultEconomy = new SoftServiceDependency<Economy>(this, "net.milkbowl.vault.economy.Economy") {
         @Override

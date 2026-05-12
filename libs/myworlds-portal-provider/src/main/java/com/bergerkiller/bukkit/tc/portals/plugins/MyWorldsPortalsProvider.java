@@ -18,7 +18,7 @@ import com.bergerkiller.bukkit.tc.portals.PortalProvider;
 /**
  * Handles portal destinations for My Worlds [portal] signs
  */
-public class MyWorldsPortalsProvider extends PortalProvider {
+public class MyWorldsPortalsProvider implements PortalProvider {
 
     public MyWorldsPortalsProvider(TrainCarts traincarts, Plugin plugin) {
         traincarts.log(Level.INFO, "MyWorlds detected, support for portal sign train teleportation added!");
@@ -48,7 +48,7 @@ public class MyWorldsPortalsProvider extends PortalProvider {
 
     /**
      * Gets the Portal destination name for a [portal] sign
-     * 
+     *
      * @param portalLocation sign location
      * @return portal destination name, null if not found or set
      */
@@ -59,5 +59,14 @@ public class MyWorldsPortalsProvider extends PortalProvider {
         } else {
             return portal.getDestinationName();
         }
+    }
+
+    @Override
+    public String getPreferredDestination(SignActionEvent event) {
+        // Only handle signs that match the MyWorlds portal sign mode
+        if (event.getHeader().getModeText().equals("portal")) {
+            return MyWorldsPortalsProvider.getPortalDestination(event.getLocation());
+        }
+        return null;
     }
 }

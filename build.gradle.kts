@@ -46,9 +46,6 @@ dependencies {
     // Optional dependencies for integrations with other plugins
     compileOnly(libs.lightapi.fork)
     compileOnly(libs.lightapi.v5)
-    compileOnly(libs.multiverse.core)
-    compileOnly(libs.multiverse.portals)
-    compileOnly(libs.myworlds)
     implementation(libs.neznamy.tab.hider)
     compileOnly(libs.signlink)
     compileOnly(libs.vault.api)
@@ -122,6 +119,15 @@ tasks {
         relocate("org.objectweb.asm", "com.bergerkiller.mountiplex.dep.org.objectweb.asm")
         relocate("com.bergerkiller.bukkit.neznamytabnametaghider", "com.bergerkiller.bukkit.tc.dep.neznamytabnametaghider")
         relocate("com.bergerkiller.bukkit.common.softdependency", "com.bergerkiller.bukkit.tc.dep.softdependency")
+
+        // Ensure the provider subproject classes are built first, and include its compiled classes into the shadow jar.
+        val providerProjectNames = listOf("multiverse-portal-provider-legacy", "myworlds-portal-provider")
+        providerProjectNames.forEach { providerName ->
+            val projPath = ":libs:$providerName"
+            val classesDir = project(projPath).layout.buildDirectory.dir("classes/java/main")
+            dependsOn(project(projPath).tasks.named("classes"))
+            from(classesDir)
+        }
 
         destinationDirectory.set(layout.buildDirectory)
         archiveFileName.set("${project.name}-${project.version}-$buildNumber.jar")

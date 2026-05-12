@@ -2,7 +2,9 @@ package com.bergerkiller.bukkit.tc.portals;
 
 import java.util.HashMap;
 
+import com.bergerkiller.bukkit.tc.portals.plugins.TrainCartsPortalProvider;
 import org.bukkit.World;
+import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 
 /**
  * Manages all plugins that provide portal teleportation logic for use by TrainCarts.
@@ -11,6 +13,10 @@ import org.bukkit.World;
  */
 public class TCPortalManager {
     private static final HashMap<String, PortalProvider> portalProviders = new HashMap<String, PortalProvider>();
+    static {
+        // Register built-in TrainCarts portal provider which resolves standard [teleport] signs
+        addPortalSupport("TrainCarts", new TrainCartsPortalProvider());
+    }
 
     /**
      * Registers a portal provider and the name of the plugin that provides it.
@@ -58,5 +64,24 @@ public class TCPortalManager {
             }
         }
         return dest;
+    }
+
+    /**
+     * Let providers optionally resolve a preferred destination name from a sign event.
+     * Iterates providers in insertion order and returns the first non-null preferred destination.
+     *
+     * Note: provider exceptions are not swallowed here and will propagate to the caller.
+     *
+     * @param event sign action event
+     * @return preferred destination name, or null if none provided by any provider
+     */
+    public static String getPreferredDestination(SignActionEvent event) {
+        for (PortalProvider provider : portalProviders.values()) {
+            String pref = provider.getPreferredDestination(event);
+            if (pref != null) {
+                return pref;
+            }
+        }
+        return null;
     }
 }

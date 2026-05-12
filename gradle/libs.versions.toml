@@ -3,8 +3,6 @@ bkcommonlib = "2.0.0-SNAPSHOT"
 junit = "4.11"
 lightapi-fork = "3.4.2-SNAPSHOT"
 lightapi-v5 = "5.0.0"
-multiverse = "4.2.0"
-myworlds = "1.11.2-v2-SNAPSHOT"
 neznamy-tab-hider = "1.02"
 preloader = "1.10"
 # Use GradleUp Shadow continuation for Gradle 9+ compatibility
@@ -24,9 +22,6 @@ cloud-paper = { module = "org.incendo:cloud-paper" }
 junit = { module = "junit:junit", version.ref = "junit" }
 lightapi-fork = { module = "io.github.qveshn:LightAPI-fork", version.ref = "lightapi-fork" }
 lightapi-v5 = { module = "ru.beykerykt.minecraft:lightapi-bukkit-common", version.ref = "lightapi-v5" }
-multiverse-core = { module = "com.onarandombox.multiversecore:Multiverse-Core", version.ref = "multiverse" }
-multiverse-portals = { module = "com.onarandombox.multiverseportals:Multiverse-Portals", version.ref = "multiverse" }
-myworlds = { module = "com.bergerkiller.bukkit:MyWorlds", version.ref = "myworlds" }
 neznamy-tab-hider = { module = "com.bergerkiller.bukkit.neznamytabnametaghider:NeznamyTABNameTagHider-Core", version.ref = "neznamy-tab-hider" }
 preloader = { module = "com.bergerkiller.bukkit.preloader:PluginPreloader", version.ref = "preloader" }
 softdependency = { module = "com.bergerkiller.bukkit.softdependency:SoftDependency", version.ref = "softdependency" }

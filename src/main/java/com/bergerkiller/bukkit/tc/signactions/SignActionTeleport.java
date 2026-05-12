@@ -11,7 +11,6 @@ import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 import com.bergerkiller.bukkit.tc.portals.PortalDestination;
 import com.bergerkiller.bukkit.tc.portals.TCPortalManager;
-import com.bergerkiller.bukkit.tc.portals.plugins.MyWorldsPortalsProvider;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
 import com.bergerkiller.bukkit.tc.utils.BlockTimeoutMap;
 import com.bergerkiller.bukkit.tc.utils.SignBuildOptions;
@@ -60,18 +59,9 @@ public class SignActionTeleport extends SignAction {
             group = groups.iterator().next();
         }
 
-        String destName;
-        if (matchMyWorlds(info)) {
-            if (!TCPortalManager.isAvailable("My_Worlds")) {
-                return;
-            }
-            destName = MyWorldsPortalsProvider.getPortalDestination(info.getLocation());
-        } else {
-            // Parse destination on third line
-            destName = info.getLine(2);
-        }
+        String destName = TCPortalManager.getPreferredDestination(info);
         if (destName == null) {
-            return;
+            return; // No destination.
         }
 
         PortalDestination dest = TCPortalManager.getPortalDestination(group.getWorld(), destName);
