@@ -17,6 +17,7 @@ import org.bukkit.ChatColor;
 import org.bukkit.util.Vector;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 /**
@@ -33,6 +34,7 @@ public class CartAttachmentPlatformPlane extends CartAttachmentPlatform {
     public void onLoad(ConfigurationNode config) {
         Vector3 size = LogicUtil.fixNull(this.getConfiguredPosition().size, DEFAULT_SIZE);
         bbox.setSize(new Vector(size.x, 0.0, size.z));
+        playerSurfaces.forEach(this::applyName);
     }
 
     @Override
@@ -57,6 +59,7 @@ public class CartAttachmentPlatformPlane extends CartAttachmentPlatform {
 
         PlayerSurface ps = new PlayerSurface(viewer, viewer.createCollisionSurface());
         ps.surface.setShape(bbox);
+        applyName(ps);
         playerSurfaces.add(ps);
     }
 
@@ -74,6 +77,15 @@ public class CartAttachmentPlatformPlane extends CartAttachmentPlatform {
                 return false;
             }
         });
+    }
+
+    private void applyName(PlayerSurface surface) {
+        Iterator<String> namesIter = getNames().iterator();
+        if (namesIter.hasNext()) {
+            surface.surface.setDebugName(namesIter.next());
+        } else {
+            surface.surface.setDebugName(null);
+        }
     }
 
     public void setPlaneColor(ChatColor color) {
