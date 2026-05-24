@@ -176,6 +176,12 @@ public final class TrainCartsAttachmentViewer implements AttachmentViewer {
     }
 
     @Override
+    public CollisionSurface debugFindCollisionSurface() {
+        CollisionSurfaceTracker collisionSurfaceTracker = this.collisionSurfaceTracker;
+        return collisionSurfaceTracker == null ? CollisionSurface.DISABLED : collisionSurfaceTracker.findSurfaceLookingAt();
+    }
+
+    @Override
     public void forAllStationaryCollisionElements(int minX, int minY, int minZ, int maxX, int maxY, int maxZ, Consumer<StationaryCollisionElement> action) {
         CollisionSurfaceTracker collisionSurfaceTracker = this.collisionSurfaceTracker;
         if (collisionSurfaceTracker != null) {

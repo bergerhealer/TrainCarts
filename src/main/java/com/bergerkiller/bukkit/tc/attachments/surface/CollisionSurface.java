@@ -18,6 +18,20 @@ public interface CollisionSurface {
         }
 
         @Override
+        public OrientedBoundingBox getShape() {
+            return null;
+        }
+
+        @Override
+        public String getDebugName() {
+            return "";
+        }
+
+        @Override
+        public void setDebugName(String name) {
+        }
+
+        @Override
         public void setShape(OrientedBoundingBox surface) {
         }
 
@@ -35,6 +49,30 @@ public interface CollisionSurface {
      * @return Update counter state value
      */
     int getUpdateCounter();
+
+    /**
+     * Gets the surface shape this surface is set to. Returns null when this surface is removed, such
+     * as {@link #DISABLED}.
+     * Do not modify this returned shape.
+     *
+     * @return OrientedBoundingBox
+     */
+    OrientedBoundingBox getShape();
+
+    /**
+     * Gets the name set using {@link #setDebugName(String)}. This is used for debugging purposes only.
+     * Returns null if none was set.
+     *
+     * @return Debug name, or null if not set
+     */
+    String getDebugName();
+
+    /**
+     * Assigns this surface a unique name, so that it can more easily be debugged.
+     *
+     * @param name Debug name to set
+     */
+    void setDebugName(String name);
 
     /**
      * Sets the surface shape, represented as an oriented bounding box.
