@@ -28,7 +28,7 @@ import com.bergerkiller.generated.net.minecraft.network.protocol.game.Clientboun
 import com.bergerkiller.generated.net.minecraft.world.entity.AgeableMobHandle;
 import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
 import com.bergerkiller.generated.net.minecraft.world.entity.InteractionHandle;
-import com.bergerkiller.generated.net.minecraft.world.entity.monster.SlimeHandle;
+import com.bergerkiller.generated.net.minecraft.world.entity.monster.cubemob.SlimeHandle;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.entity.EntityType;
