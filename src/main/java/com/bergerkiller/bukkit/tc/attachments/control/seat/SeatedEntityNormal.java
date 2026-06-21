@@ -365,8 +365,10 @@ class SeatedEntityNormal extends SeatedEntity {
             }
 
             applyFakePlayerMetadata(metadata);
+
+            int id = (this.entity != null) ? this.entity.getEntityId() : this._fakeEntityId;
             for (AttachmentViewer viewer : seat.getAttachmentViewersSynced()) {
-                viewer.send(ClientboundSetEntityDataPacketHandle.createNew(this.entity.getEntityId(), metadata, true).toCommonPacket());
+                viewer.send(ClientboundSetEntityDataPacketHandle.createNew(id, metadata, true).toCommonPacket());
             }
         }
     }
