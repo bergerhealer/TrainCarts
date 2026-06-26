@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.tc.portals;
 
+import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import org.bukkit.World;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 
@@ -13,9 +14,11 @@ public interface PortalProvider {
      *
      * @param world from which is teleported as a hint for the portal name
      * @param portalName to teleport to
+     * @param group MinecartGroup that is about to teleport and is looking for the destination. Can be null
+     *              if not known (portal destination requested without providing a group)
      * @return portal destination information, or null if not found
      */
-    PortalDestination getPortalDestination(World world, String portalName);
+    PortalDestination getPortalDestination(World world, String portalName, MinecartGroup group);
 
     /**
      * Optionally retrieve a preferred destination name from a sign event.

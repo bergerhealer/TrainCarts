@@ -2,6 +2,9 @@ package com.bergerkiller.bukkit.tc.portals;
 
 import java.util.HashSet;
 
+import com.bergerkiller.bukkit.tc.controller.components.RailPiece;
+import com.bergerkiller.bukkit.tc.controller.components.RailState;
+import com.bergerkiller.bukkit.tc.utils.TrackWalkingPoint;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
@@ -113,13 +116,28 @@ public class PortalDestination {
     /**
      * Looks for suitable rails inside or against a block region, selecting the destination if found.
      * The direction is used for the spawn direction and to filter the rails to spawn at.
-     * 
+     *
      * @param regionMin minimum coordinates of the region
      * @param regionMax maximum coordinates of the region
      * @param direction preferred
      * @return destination, null if not found
      */
     public static PortalDestination findDestination(Block regionMin, Block regionMax, Direction direction) {
+        return findDestination(regionMin, regionMax, direction, 0.0);
+    }
+
+    /**
+     * Looks for suitable rails inside or against a block region, selecting the destination if found.
+     * The direction is used for the spawn direction and to filter the rails to spawn at.
+     * 
+     * @param regionMin minimum coordinates of the region
+     * @param regionMax maximum coordinates of the region
+     * @param direction preferred direction
+     * @param requiredTrainLength the required train length to fit on the rails. Pins a direction on the track that achieves at least
+     *                                                      this amount of length.
+     * @return destination, null if not found
+     */
+    public static PortalDestination findDestination(Block regionMin, Block regionMax, Direction direction, double requiredTrainLength) {
         // Transform the Direction into a BlockFace direction vector
         int dx = regionMax.getX() - regionMin.getX();
         int dy = regionMax.getY() - regionMin.getY();
@@ -140,7 +158,7 @@ public class PortalDestination {
             for (int x = regionMin.getX(); x <= regionMax.getX(); x++) {
                 for (int z = regionMin.getZ(); z <= regionMax.getZ(); z++) {
                     Block block = regionMin.getWorld().getBlockAt(x, y, z);
-                    dest = findRailDestination(block, spawnDirection);
+                    dest = findRailDestination(block, spawnDirection, requiredTrainLength);
                     if (dest != null) {
                         return dest;
                     }
@@ -149,19 +167,19 @@ public class PortalDestination {
         }
 
         // Try directly against the portal, facing the suggested spawn direction
-        dest = findAgainst(regionMin, regionMax, spawnDirection);
+        dest = findAgainst(regionMin, regionMax, spawnDirection, requiredTrainLength);
         if (dest != null) {
             return dest;
         }
 
         // Try into the facing direction of the portal
-        dest = findAgainst(regionMin, regionMax, portalFacing);
+        dest = findAgainst(regionMin, regionMax, portalFacing, requiredTrainLength);
         if (dest != null) {
             return dest;
         }
 
         // Try into the opposite facing direction of the portal
-        dest = findAgainst(regionMin, regionMax, portalFacing.getOppositeFace());
+        dest = findAgainst(regionMin, regionMax, portalFacing.getOppositeFace(), requiredTrainLength);
         if (dest != null) {
             return dest;
         }
@@ -170,7 +188,7 @@ public class PortalDestination {
         return null;
     }
 
-    public static PortalDestination findAgainst(Block regionMin, Block regionMax, BlockFace spawnDirection) {
+    private static PortalDestination findAgainst(Block regionMin, Block regionMax, BlockFace spawnDirection, double requiredTrainLength) {
         int x1 = regionMin.getX();
         int y1 = regionMin.getY();
         int z1 = regionMin.getZ();
@@ -188,7 +206,7 @@ public class PortalDestination {
             for (int x = x1; x <= x2; x++) {
                 for (int z = z1; z <= z2; z++) {
                     Block block = regionMin.getWorld().getBlockAt(x, y, z);
-                    PortalDestination dest = findRailDestination(block, spawnDirection);
+                    PortalDestination dest = findRailDestination(block, spawnDirection, requiredTrainLength);
                     if (dest != null) {
                         return dest;
                     }
@@ -198,12 +216,52 @@ public class PortalDestination {
         return null;
     }
 
-    public static PortalDestination findRailDestination(Block rails, BlockFace direction) {
+    private static PortalDestination findRailDestination(Block rails, BlockFace direction, double requiredTrainLength) {
         RailType railType = RailType.getType(rails);
-        if (railType != RailType.NONE) {
-            return new PortalDestination(rails, new BlockFace[] {direction});
-        } else {
+        if (railType == RailType.NONE) {
             return null;
+        }
+        RailState state = RailState.getSpawnState(RailPiece.create(railType, rails));
+
+        TrackDistanceCalculator forwards = new TrackDistanceCalculator(state);
+        TrackDistanceCalculator backwards = new TrackDistanceCalculator(state.cloneAndInvertMotion());
+
+        // Always pick preferred direction (overridden/requested by player) if the required train length can fit
+        if (forwards.direction == direction && forwards.computeDistance(requiredTrainLength) >= requiredTrainLength) {
+            return forwards.destination;
+        } else if (backwards.direction == direction && backwards.computeDistance(requiredTrainLength) >= requiredTrainLength) {
+            return backwards.destination;
+        }
+
+        // Compute distance up to required train length for all and if one succeeds and the other doesn't, pick the one that succeeds
+        double distForward = forwards.computeDistance(Math.max(16.0, requiredTrainLength));
+        double distBackward = backwards.computeDistance(Math.max(16.0, requiredTrainLength));
+        if (distForward >= distBackward) {
+            return forwards.destination;
+        } else {
+            return backwards.destination;
+        }
+    }
+
+    private static class TrackDistanceCalculator {
+        final TrackWalkingPoint wp;
+        final BlockFace direction;
+        final PortalDestination destination;
+
+        public TrackDistanceCalculator(RailState state) {
+            state.initEnterDirection();
+            this.wp = new TrackWalkingPoint(state);
+            this.direction = state.enterFace();
+            this.destination = new PortalDestination(state.railBlock(), new BlockFace[] {this.direction});
+        }
+
+        public double computeDistance(double minimal) {
+            while (this.wp.moveFull()) {
+                if (this.wp.movedTotal >= minimal) {
+                    break;
+                }
+            }
+            return this.wp.movedTotal;
         }
     }
 }

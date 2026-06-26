@@ -2,6 +2,7 @@ package com.bergerkiller.bukkit.tc.portals;
 
 import java.util.HashMap;
 
+import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.portals.plugins.TrainCartsPortalProvider;
 import org.bukkit.World;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
@@ -50,15 +51,30 @@ public class TCPortalManager {
 
     /**
      * Gets the portal destination information for a particular portal name
-     * 
+     *
      * @param world from which to look (portal search hint)
      * @param portalName to find
      * @return destination information
+     * @deprecated Please call the overload passing a MinecartGroup instead. If you really don't have one, pass <i>null</i>
      */
+    @Deprecated
     public static PortalDestination getPortalDestination(World world, String portalName) {
+        return getPortalDestination(world, portalName, null);
+    }
+
+    /**
+     * Gets the portal destination information for a particular portal name
+     * 
+     * @param world from which to look (portal search hint)
+     * @param portalName to find
+     * @param group The MinecartGroup that is about to teleport and is looking for the destination.
+     *              Use null to not provide it as a hint, and it will try to find a best guess destination.
+     * @return destination information
+     */
+    public static PortalDestination getPortalDestination(World world, String portalName, MinecartGroup group) {
         PortalDestination dest = null;
         for (PortalProvider provider : portalProviders.values()) {
-            dest = provider.getPortalDestination(world, portalName);
+            dest = provider.getPortalDestination(world, portalName, group);
             if (dest != null) {
                 break;
             }

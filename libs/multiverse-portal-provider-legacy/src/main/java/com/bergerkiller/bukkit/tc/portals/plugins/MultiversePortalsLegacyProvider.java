@@ -2,6 +2,7 @@ package com.bergerkiller.bukkit.tc.portals.plugins;
 
 import java.util.logging.Level;
 
+import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.plugin.Plugin;
@@ -28,7 +29,7 @@ public class MultiversePortalsLegacyProvider implements PortalProvider {
     }
 
     @Override
-    public PortalDestination getPortalDestination(World world, String portalName) {
+    public PortalDestination getPortalDestination(World world, String portalName, MinecartGroup group) {
         // Discover the portal and direction to spawn into
         MVPortal portal = this.plugin.getPortalManager().getPortal(portalName);
         Direction direction = Direction.NONE;
@@ -53,7 +54,8 @@ public class MultiversePortalsLegacyProvider implements PortalProvider {
         }
         Block minBlock = WrapperConversion.toIntVector3FromVector(portalPos.getMinimum()).toBlock(portalWorld);
         Block maxBlock = WrapperConversion.toIntVector3FromVector(portalPos.getMaximum()).toBlock(portalWorld);
-        return PortalDestination.findDestination(minBlock, maxBlock, direction);
+        double requiredTrainDistance = group == null ? 0.0 : group.getProperties().getIdealTotalTrainLength();
+        return PortalDestination.findDestination(minBlock, maxBlock, direction, requiredTrainDistance);
     }
 
 }

@@ -64,7 +64,7 @@ public class SignActionTeleport extends SignAction {
             return; // No destination.
         }
 
-        PortalDestination dest = TCPortalManager.getPortalDestination(group.getWorld(), destName);
+        PortalDestination dest = TCPortalManager.getPortalDestination(group.getWorld(), destName, group);
         if (dest != null && dest.getRailsBlock() != null) {
 
             // This prevents instant teleporting back to the other end

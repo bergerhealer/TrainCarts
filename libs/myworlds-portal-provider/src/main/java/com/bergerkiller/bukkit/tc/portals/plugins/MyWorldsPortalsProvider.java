@@ -2,6 +2,7 @@ package com.bergerkiller.bukkit.tc.portals.plugins;
 
 import java.util.logging.Level;
 
+import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.rails.RailLookup;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -25,7 +26,7 @@ public class MyWorldsPortalsProvider implements PortalProvider {
     }
 
     @Override
-    public PortalDestination getPortalDestination(World world, String portalName) {
+    public PortalDestination getPortalDestination(World world, String portalName, MinecartGroup group) {
         Location destLoc = Portal.getPortalLocation(portalName, world.getName());
         if (destLoc == null) {
             return null;
