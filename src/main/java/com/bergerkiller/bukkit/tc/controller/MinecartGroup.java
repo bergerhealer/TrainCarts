@@ -1328,6 +1328,16 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
         return false;
     }
 
+    public boolean hasPlayerPassenger() {
+        for (MinecartMember<?> mm : this) {
+            CommonEntity<?> entity = mm.getEntity();
+            if (entity != null && entity.hasPlayerPassenger()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public boolean hasFuel() {
         for (MinecartMember<?> mm : this) {
             if (mm instanceof MinecartMemberFurnace && ((MinecartMemberFurnace) mm).getEntity().hasFuel()) {
@@ -1381,10 +1391,8 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
                 return false;
             }
         }
-        for (MinecartMember<?> member : this) {
-            if (member.getEntity() != null && member.getEntity().hasPlayerPassenger()) {
-                return false;
-            }
+        if (hasPlayerPassenger()) {
+            return false;
         }
         return !this.isTeleportImmune();
     }
@@ -1686,11 +1694,24 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
     private void updateChunkInformation(boolean keepChunksLoaded, boolean isRemoving) {
         /* Timings: updateChunkInformation  (Train Physics) */
         {
-            // If kept loaded, use the chunk loader radius limited by the globally configured limit (abuse!)
-            // If not kept loaded, default to unloading the train when one of the 5x5 chunk area the carts
-            // occupy unloads.
-            ChunkLoadOptions options = keepChunksLoaded ? getProperties().getChunkLoadOptions() : ChunkLoadOptions.DEFAULT;
-            int radius = keepChunksLoaded ? Math.min(TCConfig.maxKeepChunksLoadedRadius, options.radius()) : ChunkArea.CHUNK_RANGE;
+            ChunkLoadOptions options;
+            int radius;
+
+            if (!keepChunksLoaded) {
+                // If not kept loaded, default to unloading the train when one of the 5x5 chunk area the carts
+                // occupy unloads.
+                options = ChunkLoadOptions.DEFAULT;
+                radius = ChunkArea.CHUNK_RANGE;
+            } else if (this.getProperties().isKeepingChunksLoaded()) {
+                // Use the chunk loader radius limited by the globally configured limit (abuse!)
+                options = getProperties().getChunkLoadOptions();
+                radius = Math.min(TCConfig.maxKeepChunksLoadedRadius, options.radius());
+            } else {
+                // When a player is inside but chunk loading is disabled (or teleport immunity), set a minimal chunk loader so that the train
+                // won't unload while the player is inside. Otherwise, train teleports can cause a delayed player load ticker to cause glitches.
+                options = ChunkLoadOptions.of(ChunkLoadOptions.Mode.MINIMAL, 0);
+                radius = 0;
+            }
 
             // Refresh the chunk area tracker using this information
             this.chunkArea.refresh(this.getWorld(), radius, this.loadChunksBuffer());
