@@ -13,6 +13,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.Level;
 
+import com.bergerkiller.bukkit.tc.attachments.config.AttachmentModel;
 import com.bergerkiller.bukkit.tc.properties.defaults.DefaultProperties;
 import com.bergerkiller.bukkit.tc.properties.standard.type.ChunkLoadOptions;
 import org.bukkit.GameMode;
@@ -1385,6 +1386,34 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
                 return opt;
             }
         });
+    }
+
+    /**
+     * Computes the idealized length in blocks this train occupies when spawned on the track.
+     * This is the amount of space required to teleport this train to another location without
+     * any bunching up happening.
+     *
+     * @return Ideal train length in blocks
+     */
+    public double getIdealTotalTrainLength() {
+        if (this.isEmpty()) {
+            return 0.0;
+        } else {
+            boolean first = true;
+            double totalLength = 0.0;
+            double previousCartCouplerLength = 0.0;
+            for (CartProperties prop : this) {
+                AttachmentModel model =  prop.getModel();
+                if (first) {
+                    first = false;
+                } else {
+                    totalLength += previousCartCouplerLength + model.getCartCouplerLength();
+                }
+                previousCartCouplerLength = model.getCartCouplerLength();
+                totalLength += model.getCartLength();
+            }
+            return totalLength;
+        }
     }
 
     /**
