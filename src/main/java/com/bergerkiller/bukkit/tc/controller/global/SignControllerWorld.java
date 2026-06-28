@@ -344,6 +344,11 @@ public class SignControllerWorld {
                 return false;
             }
 
+            // If sign column is a horizontal direction (vertical rails), ensure the wall sign is on the same Y level as the rail block
+            if (direction.getModY() == 0 && offset.getModY() != 0) {
+                return false;
+            }
+
             BlockFace facing = blockData.getAttachedFace();
             return facing == offset || facing == direction.getOppositeFace();
         } else {
