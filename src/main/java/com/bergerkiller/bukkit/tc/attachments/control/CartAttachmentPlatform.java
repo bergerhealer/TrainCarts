@@ -20,6 +20,7 @@ import com.bergerkiller.bukkit.tc.attachments.api.AttachmentType;
 import org.bukkit.entity.Player;
 
 public abstract class CartAttachmentPlatform extends CartAttachment {
+    private static final boolean ENABLE_PLANE_MODE = false; // Once surfaces are stable, this can be removed
     protected static final Vector3 DEFAULT_SIZE = new Vector3(1.0, 1.0, 1.0);
     public static final AttachmentType TYPE = new AttachmentType() {
         @Override
@@ -72,6 +73,10 @@ public abstract class CartAttachmentPlatform extends CartAttachment {
 
         @Override
         public void createPositionMenu(PositionMenu.Builder builder) {
+            if (!ENABLE_PLANE_MODE) {
+                return;
+            }
+
             builder.addRow(menu -> new MapWidgetSizeBox() {
                         @Override
                         public void onAttached() {
@@ -124,8 +129,8 @@ public abstract class CartAttachmentPlatform extends CartAttachment {
     };
 
     protected static PlatformMode readPlatformMode(ConfigurationNode config) {
-        return PlatformMode.SHULKER; // Disabled for now as the platform feature is incomplete.
-        //return config.getOrDefault("platformMode", PlatformMode.SHULKER);
+        if (!ENABLE_PLANE_MODE) return PlatformMode.SHULKER; // Disabled for now as the platform feature is incomplete.
+        return config.getOrDefault("platformMode", PlatformMode.SHULKER);
     }
 
     @Override
