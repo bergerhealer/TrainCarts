@@ -14,6 +14,7 @@ import com.bergerkiller.bukkit.tc.Localization;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
 import com.bergerkiller.bukkit.tc.attachments.config.SavedAttachmentModel;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
 import com.bergerkiller.bukkit.tc.chest.TrainChestCommands;
@@ -90,6 +91,7 @@ public class Commands {
     private final CartCommands commands_cart = new CartCommands();
     private final TrainCommands commands_train = new TrainCommands();
     private final GlobalCommands commands_train_global = new GlobalCommands();
+    private final AttachmentCommands commands_train_attachments = new AttachmentCommands();
     private final DebugCommands commands_train_debug = new DebugCommands();
     private final TrainChestCommands commands_train_chest = new TrainChestCommands();
     private final TrainLocatorCommands commands_train_locator = new TrainLocatorCommands();
@@ -205,6 +207,10 @@ public class Commands {
         cloud.parse(DirectionOrFormattedSpeed.directionOrFormattedSpeedParser());
 
         // Register attachment list arguments
+        cloud.parse("cartItemDisplayAttachments", p -> AttachmentByNameParser.all(Attachment.ItemDisplayAttachment.class, false).createParser());
+        cloud.parse("trainItemDisplayAttachments", p -> AttachmentByNameParser.all(Attachment.ItemDisplayAttachment.class, true).createParser());
+        cloud.parse("cartTextDisplayAttachments", p -> AttachmentByNameParser.all(Attachment.TextDisplayAttachment.class, false).createParser());
+        cloud.parse("trainTextDisplayAttachments", p -> AttachmentByNameParser.all(Attachment.TextDisplayAttachment.class, true).createParser());
         cloud.parse("cartSeatAttachments", p -> AttachmentByNameParser.seats(false).createParser());
         cloud.parse("trainSeatAttachments", p -> AttachmentByNameParser.seats(true).createParser());
         cloud.parse("cartEffectAttachments", p -> AttachmentByNameParser.effects(false).createParser());
@@ -278,6 +284,7 @@ public class Commands {
         cloud.annotations(commands_cart);
         cloud.annotations(commands_train);
         cloud.annotations(commands_train_global);
+        cloud.annotations(commands_train_attachments);
         cloud.annotations(commands_train_debug);
         cloud.annotations(commands_train_chest);
         cloud.annotations(commands_train_locator);

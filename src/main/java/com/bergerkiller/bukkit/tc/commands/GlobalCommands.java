@@ -719,19 +719,6 @@ public class GlobalCommands {
         sender.sendMessage("Given editor map item (note: broken)");
     }
 
-    @CommandRequiresPermission(Permission.COMMAND_GIVE_EDITOR)
-    @Command("train attachments")
-    @CommandDescription("Gives an attachment editor map item to the player")
-    private void commandGiveAttachmentEditor(
-            final Player sender
-    ) {
-        CommonItemStack item = CommonItemStack.of(MapDisplay.createMapItem(AttachmentEditor.class))
-                .setCustomNameMessage("Traincarts Attachments Editor")
-                .setFilledMapColor(0xFF0000);
-        sender.getInventory().addItem(item.toBukkit());
-        sender.sendMessage(ChatColor.GREEN + "Given a Traincarts attachments editor");
-    }
-
     public static void listTrains(TrainCarts plugin, CommandSender sender, String filter) {
         MessageBuilder builder = new MessageBuilder();
         builder.setSeparator(" / ");

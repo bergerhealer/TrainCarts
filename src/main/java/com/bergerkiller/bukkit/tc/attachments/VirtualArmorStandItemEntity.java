@@ -20,7 +20,7 @@ import com.bergerkiller.generated.net.minecraft.world.entity.decoration.ArmorSta
  * Wraps the logic for updating a virtual item held inside an ArmorStand.
  * The yaw rotation is automatically smoothed.
  */
-public class VirtualArmorStandItemEntity extends VirtualEntity {
+public class VirtualArmorStandItemEntity extends VirtualEntity implements VirtualSpawnableObject.ItemDisplay {
     private ArmorStandItemTransformType transformType;
     private ItemStack item;
     private Quaternion last_rot;
@@ -45,12 +45,18 @@ public class VirtualArmorStandItemEntity extends VirtualEntity {
         this.last_rot = null;
     }
 
+    public ArmorStandItemTransformType getTransformType() {
+        return transformType;
+    }
+
+    @Override
     public ItemStack getItem() {
         return item;
     }
 
-    public ArmorStandItemTransformType getTransformType() {
-        return transformType;
+    @Override
+    public void setItem(ItemStack item) {
+        setItem(this.transformType, item);
     }
 
     public void setItem(ArmorStandItemTransformType transformType, ItemStack item) {

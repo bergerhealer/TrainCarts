@@ -32,6 +32,12 @@ public class AttachmentByNameParser<T extends Attachment> implements QuotedArgum
     private final Predicate<Attachment> filter;
     private final Localization emptyMessage;
 
+    public static <T extends Attachment> AttachmentByNameParser<T> all(Class<? extends Attachment> attachmentType, boolean forTrain) {
+        return new AttachmentByNameParser<T>(forTrain,
+                attachmentType::isInstance,
+                Localization.COMMAND_INPUT_ATTACHMENTS_NO_OTHER);
+    }
+
     public static <T extends Attachment> AttachmentByNameParser<T> seats(boolean forTrain) {
         return new AttachmentByNameParser<T>(forTrain,
                 a -> a instanceof CartAttachmentSeat,

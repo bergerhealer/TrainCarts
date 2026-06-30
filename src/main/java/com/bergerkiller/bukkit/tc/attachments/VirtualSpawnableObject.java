@@ -7,6 +7,7 @@ import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import com.bergerkiller.generated.net.minecraft.network.protocol.PacketHandle;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.Vector;
 
 import java.util.ArrayList;
@@ -239,5 +240,13 @@ public abstract class VirtualSpawnableObject {
         } else {
             return AttachmentViewer.fallback(player);
         }
+    }
+
+    /**
+     * A type of VirtualSpawnableObject that displays an Item
+     */
+    public interface ItemDisplay {
+        ItemStack getItem();
+        void setItem(ItemStack item);
     }
 }

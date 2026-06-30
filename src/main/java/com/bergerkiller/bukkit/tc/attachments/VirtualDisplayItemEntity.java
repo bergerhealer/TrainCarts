@@ -15,7 +15,7 @@ import org.bukkit.inventory.ItemStack;
 /**
  * Extra utilities to move a 1.19.4+ Display Item entity around
  */
-public class VirtualDisplayItemEntity extends VirtualDisplayEntity {
+public class VirtualDisplayItemEntity extends VirtualDisplayEntity implements VirtualSpawnableObject.ItemDisplay {
     // This (unchanging) read-only metadata is used when spawning the mount of the display entity
     private static final DataWatcher MOUNT_METADATA = new DataWatcher();
     static {
@@ -59,12 +59,18 @@ public class VirtualDisplayItemEntity extends VirtualDisplayEntity {
         appliedClip = false;
     }
 
+    public ItemDisplayMode getMode() {
+        return mode;
+    }
+
+    @Override
     public ItemStack getItem() {
         return item;
     }
 
-    public ItemDisplayMode getMode() {
-        return mode;
+    @Override
+    public void setItem(ItemStack item) {
+        this.setItem(this.mode, item);
     }
 
     public void setItem(ItemDisplayMode mode, ItemStack item) {

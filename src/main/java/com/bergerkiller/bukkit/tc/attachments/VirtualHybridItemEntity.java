@@ -15,7 +15,7 @@ import org.bukkit.util.Vector;
  * clients that connect. Will not track it until at least one viewer
  * demands it, to avoid wasting resources.
  */
-public class VirtualHybridItemEntity extends VirtualSpawnableObject {
+public class VirtualHybridItemEntity extends VirtualSpawnableObject implements VirtualSpawnableObject.ItemDisplay {
     // This information is tracked when either type needs to be updated
     private HybridItemTransformType transformType = HybridItemTransformType.ARMORSTAND_HEAD;
     private ItemStack item = null;
@@ -43,6 +43,22 @@ public class VirtualHybridItemEntity extends VirtualSpawnableObject {
             return true;
         }
         return false;
+    }
+
+    @Override
+    public ItemStack getItem() {
+        return item;
+    }
+
+    @Override
+    public void setItem(ItemStack item) {
+        this.item = item;
+        if (armorstand != null) {
+            armorstand.setItem(item);
+        }
+        if (display != null) {
+            display.setItem(item);
+        }
     }
 
     public void setItem(HybridItemTransformType transformType, ItemStack item) {

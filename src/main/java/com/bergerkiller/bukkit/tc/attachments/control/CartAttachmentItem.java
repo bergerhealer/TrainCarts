@@ -29,7 +29,7 @@ import com.bergerkiller.bukkit.tc.attachments.helper.HelperMethods;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetAttachmentNode;
 import com.bergerkiller.bukkit.tc.attachments.ui.item.MapWidgetItemSelector;
 
-public class CartAttachmentItem extends CartAttachment {
+public class CartAttachmentItem extends CartAttachment implements Attachment.ItemDisplayAttachment {
 
     public static final AttachmentType TYPE = new AttachmentType() {
         @Override
@@ -227,6 +227,26 @@ public class CartAttachmentItem extends CartAttachment {
         // New settings
         ItemTransformType.deserialize(config, "position.transform")
                 .load(entity, config, getConfiguredPosition());
+    }
+
+    @Override
+    public ItemStack getDisplayedItem() {
+        if (entity instanceof VirtualSpawnableObject.ItemDisplay) {
+            return ((VirtualSpawnableObject.ItemDisplay) entity).getItem();
+        } else {
+            return null;
+        }
+    }
+
+    @Override
+    public void setDisplayedItem(ItemStack item) {
+        // A little duplicate to set it explicitly, but ensures this mechanism works and it applies instantly
+        if (entity instanceof VirtualSpawnableObject.ItemDisplay) {
+            ((VirtualSpawnableObject.ItemDisplay) entity).setItem(item);
+        }
+
+        // Make persistent
+        getConfig().set("item", item);
     }
 
     @Override

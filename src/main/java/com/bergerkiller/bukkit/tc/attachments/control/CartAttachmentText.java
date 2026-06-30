@@ -21,7 +21,7 @@ import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
-public class CartAttachmentText extends CartAttachment {
+public class CartAttachmentText extends CartAttachment implements Attachment.TextDisplayAttachment {
     public static final AttachmentType TYPE = new AttachmentType() {
         @Override
         public String getID() {
@@ -79,6 +79,7 @@ public class CartAttachmentText extends CartAttachment {
     };
 
     private VirtualEntity entity;
+    private ChatText text = ChatText.empty();
 
     @Override
     public void onAttached() {
@@ -101,13 +102,37 @@ public class CartAttachmentText extends CartAttachment {
         if (text.length() == 0) {
             text = " ";
         }
-
-        this.entity.getMetaData().set(EntityHandle.DATA_CUSTOM_NAME, ChatText.fromMessage(text));
-        this.entity.syncMetadata();
+        this.loadText( ChatText.fromMessage(text));
     }
 
     @Override
     public void onTick() {
+    }
+
+    @Override
+    public ChatText getDisplayedText() {
+        return null;
+    }
+
+    @Override
+    public void setDisplayedText(ChatText text) {
+        if (text == null) {
+            throw new IllegalArgumentException("Text cannot be null");
+        }
+
+        this.loadText(text);
+
+        //TODO: Also support chat components serialized/deserialized in yaml?
+        // Will need to check whether the text contains such components or is plain-text representable
+        getConfig().set("text", text.getMessage());
+    }
+
+    private void loadText(ChatText text) {
+        if (!this.text.equals(text)) {
+            this.text = text;
+            this.entity.getMetaData().set(EntityHandle.DATA_CUSTOM_NAME, this.text);
+            this.entity.syncMetadata();
+        }
     }
 
     @Override
@@ -151,5 +176,4 @@ public class CartAttachmentText extends CartAttachment {
     public void makeHidden(AttachmentViewer viewer) {
         entity.destroy(viewer);
     }
-
 }

@@ -9,7 +9,9 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
+import com.bergerkiller.bukkit.common.wrappers.ChatText;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
@@ -860,5 +862,51 @@ public interface Attachment extends AttachmentNameLookup.Supplier {
                 return new EffectOptions(volume, speed);
             }
         }
+    }
+
+    /**
+     * A type of attachment that displays an item somewhere. This interface defines methods
+     * to get and set this displayed item, so that it can be changed at runtime programmatically.
+     * This interface is checked in the attachments item set command.
+     */
+    interface ItemDisplayAttachment extends Attachment {
+        /**
+         * Gets the Item that is currently displayed by this attachment.
+         * Could return <i>null</i> if this attachment does not have one configured.
+         *
+         * @return Displayed item as a Bukkit ItemStack
+         */
+        ItemStack getDisplayedItem();
+
+        /**
+         * Changes the item that is displayed by this attachment, persistently. The change should also
+         * be saved to the underlying configuration ({@link #getConfig()}})
+         *
+         * @param item New Bukkit ItemStack to set
+         */
+        void setDisplayedItem(ItemStack item);
+    }
+
+    /**
+     * A type of attachment that displays text somewhere. This interface defines methods
+     * to get and set this displayed text, so that it can be changed at runtime programmatically.
+     * This interface is checked in the attachments text set command.
+     */
+    interface TextDisplayAttachment extends Attachment {
+        /**
+         * Gets the text that is currently displayed by this attachment.
+         * Could return {@link ChatText#empty()} if this attachment does not have one configured.
+         *
+         * @return Displayed text as BKCommonLib ChatText (chat components)
+         */
+        ChatText getDisplayedText();
+
+        /**
+         * Sets the text that is displayed by this attachment. The change should also
+         *be saved to the underlying configuration ({@link #getConfig()}})
+         *
+         * @param text New ChatText text to display
+         */
+        void setDisplayedText(ChatText text);
     }
 }
