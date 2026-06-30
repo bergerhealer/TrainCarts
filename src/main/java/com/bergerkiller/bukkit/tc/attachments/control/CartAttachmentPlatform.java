@@ -20,7 +20,7 @@ import com.bergerkiller.bukkit.tc.attachments.api.AttachmentType;
 import org.bukkit.entity.Player;
 
 public abstract class CartAttachmentPlatform extends CartAttachment {
-    private static final boolean ENABLE_PLANE_MODE = false; // Once surfaces are stable, this can be removed
+    private static final boolean ENABLE_PLANE_MODE = true; // Once surfaces are stable, this can be removed
     protected static final Vector3 DEFAULT_SIZE = new Vector3(1.0, 1.0, 1.0);
     public static final AttachmentType TYPE = new AttachmentType() {
         @Override
