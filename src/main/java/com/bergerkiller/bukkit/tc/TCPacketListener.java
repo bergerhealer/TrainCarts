@@ -6,6 +6,7 @@ import com.bergerkiller.bukkit.common.collections.ImplicitlySharedSet;
 import com.bergerkiller.bukkit.common.conversion.type.HandleConversion;
 import com.bergerkiller.bukkit.common.events.PacketReceiveEvent;
 import com.bergerkiller.bukkit.common.events.PacketSendEvent;
+import com.bergerkiller.bukkit.common.internal.CommonBootstrap;
 import com.bergerkiller.bukkit.common.internal.CommonCapabilities;
 import com.bergerkiller.bukkit.common.protocol.CommonPacket;
 import com.bergerkiller.bukkit.common.protocol.PacketListener;
@@ -42,6 +43,12 @@ class TCPacketListener implements PacketListener {
     public static final PacketType[] LISTENED_TYPES = new PacketType[] {
             PacketType.IN_STEER_VEHICLE, PacketType.IN_INTERACT, PacketType.IN_ATTACK, PacketType.IN_PLAYER_COMMAND
     };
+
+    /**
+     * After Minecraft 26.1 the interact-at position is expected to always be present. But before, the with and without at position
+     * had completely different handlers. And for things to work properly, we must null out any at position.
+     */
+    private static final boolean INTERACT_REWRITE_KEEP_AT = CommonBootstrap.evaluateMCVersion(">=", "26.1");
 
     private final TrainCarts traincarts;
     private final Map<Player, Long> lastHitTime = new HashMap<Player, Long>();
@@ -198,6 +205,7 @@ class TCPacketListener implements PacketListener {
 
             // When a player interacts with a virtual attachment, the main entity should receive the interaction
             int entityId = packet_use.getUsedEntityId();
+
             if (WorldUtil.getEntityById(event.getPlayer().getWorld(), entityId) != null) {
                 return; // Is a valid Entity. Ignore it.
             }
@@ -239,7 +247,16 @@ class TCPacketListener implements PacketListener {
                             this.suppressAttacksFor(event.getPlayer(), ATTACK_SUPPRESS_DURATION);
 
                             // Rewrite the packet
-                            packet_use = ServerboundInteractPacketHandle.withUsedEntityId(packet_use, member.getEntity().getEntityId());
+                            if (INTERACT_REWRITE_KEEP_AT) {
+                                packet_use = ServerboundInteractPacketHandle.withUsedEntityId(packet_use, member.getEntity().getEntityId());
+                            } else {
+                                packet_use = ServerboundInteractPacketHandle.createNew(
+                                        member.getEntity().getEntityId(),
+                                        packet_use.getHandRole(),
+                                        packet_use.isUsingSecondaryAction(),
+                                        null
+                                );
+                            }
                             event.setPacket(packet_use);
                             return; // Allow
                         }
@@ -317,13 +334,14 @@ class TCPacketListener implements PacketListener {
                 }
             }
 
-            // Before 26.2, the PlayerInteractEntityEvent has a handler list separate from at, and needs to be fired also.
+            // Before 26.1.2, the PlayerInteractEntityEvent has a handler list separate from at, and needs to be fired also.
             if (PlayerInteractAtEntityEvent.getHandlerList() != PlayerInteractEntityEvent.getHandlerList()) {
                 PlayerInteractEntityEvent interactAtEvent = new PlayerInteractEntityEvent(player, member.getEntity().getEntity(), slot);
                 if (CommonUtil.callEvent(interactAtEvent).isCancelled()) {
                     return;
                 }
             }
+
         } else {
             // Pre-1.9
             PlayerInteractEntityEvent interactEvent;
