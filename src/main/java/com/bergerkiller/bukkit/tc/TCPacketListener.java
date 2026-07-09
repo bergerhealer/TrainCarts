@@ -308,9 +308,21 @@ class TCPacketListener implements PacketListener {
             }
 
             // Post-1.9: EquipmentSlot parameter
-            PlayerInteractAtEntityEvent interactAtEvent = new PlayerInteractAtEntityEvent(player, member.getEntity().getEntity(), atPosition, slot);
-            if (CommonUtil.callEvent(interactAtEvent).isCancelled()) {
-                return;
+
+            // This event always fires
+            {
+                PlayerInteractAtEntityEvent interactAtEvent = new PlayerInteractAtEntityEvent(player, member.getEntity().getEntity(), atPosition, slot);
+                if (CommonUtil.callEvent(interactAtEvent).isCancelled()) {
+                    return;
+                }
+            }
+
+            // Before 26.2, the PlayerInteractEntityEvent has a handler list separate from at, and needs to be fired also.
+            if (PlayerInteractAtEntityEvent.getHandlerList() != PlayerInteractEntityEvent.getHandlerList()) {
+                PlayerInteractEntityEvent interactAtEvent = new PlayerInteractEntityEvent(player, member.getEntity().getEntity(), slot);
+                if (CommonUtil.callEvent(interactAtEvent).isCancelled()) {
+                    return;
+                }
             }
         } else {
             // Pre-1.9
