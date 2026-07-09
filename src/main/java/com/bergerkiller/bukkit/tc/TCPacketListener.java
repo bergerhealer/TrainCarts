@@ -178,7 +178,7 @@ class TCPacketListener implements PacketListener {
                         // Minecraft enforces a 3 block radius when not having line of sight, assume this limit.
                         if (member.getEntity().loc.distanceSquared(eyeLoc) < (3.0 * 3.0)) {
                             // Rewrite the packet
-                            event.setPacket(ServerboundAttackPacketHandle.createNew(member.getEntity().getEntityId()));
+                            event.setPacket(copyAttackPacketWithEntityId(packet_attack, member.getEntity().getEntityId()));
                             return; // Allow
                         }
 
@@ -270,6 +270,21 @@ class TCPacketListener implements PacketListener {
                 }
             }
         }
+    }
+
+    // Remove all this crap when BKCommonLib 2.0.2+ is a hard-dep
+    private static final boolean ATTACK_PACKET_HAS_SECONDARY_ACTION = Common.hasCapability("Common:ServerboundAttackPacket:HasSecondaryAction");
+
+    private static ServerboundAttackPacketHandle copyAttackPacketWithEntityId(ServerboundAttackPacketHandle packet, int entityId) {
+        if (ATTACK_PACKET_HAS_SECONDARY_ACTION) {
+            return copyAttackPacketWithEntityIdNewAPI(packet, entityId);
+        } else {
+            return ServerboundAttackPacketHandle.createNew(entityId);
+        }
+    }
+
+    private static ServerboundAttackPacketHandle copyAttackPacketWithEntityIdNewAPI(ServerboundAttackPacketHandle packet, int entityId) {
+        return ServerboundAttackPacketHandle.createNew(entityId, packet.isUsingSecondaryAction());
     }
 
     public static void fakeAttack(final MinecartMember<?> member, final Player player) {
