@@ -7,12 +7,14 @@ import com.bergerkiller.bukkit.common.map.widgets.MapWidgetTabView;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.common.wrappers.BlockData;
+import com.bergerkiller.bukkit.common.wrappers.Brightness;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.VirtualDisplayBlockEntity;
 import com.bergerkiller.bukkit.tc.attachments.VirtualDisplayEntity;
 import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentType;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
+import com.bergerkiller.bukkit.tc.attachments.api.type.BrightnessAdjustable;
 import com.bergerkiller.bukkit.tc.attachments.helper.HelperMethods;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetAttachmentNode;
 import com.bergerkiller.bukkit.tc.attachments.ui.block.BlockDataTextureCache;
@@ -25,7 +27,7 @@ import org.bukkit.util.Vector;
 /**
  * Shows a Block display entity
  */
-public class CartAttachmentBlock extends CartAttachment {
+public class CartAttachmentBlock extends CartAttachment implements BrightnessAdjustable {
     public static final AttachmentType TYPE = new AttachmentType() {
         @Override
         public String getID() {
@@ -168,5 +170,18 @@ public class CartAttachmentBlock extends CartAttachment {
     @Override
     public void onMove(boolean absolute) {
         entity.syncPosition(absolute);
+    }
+
+    @Override
+    public void setBrightness(Brightness brightness) {
+        entity.setBrightness(brightness);
+
+        // Make persistent
+        VirtualDisplayEntity.saveBrightnessToConfig(getConfig(), brightness);
+    }
+
+    @Override
+    public Brightness getBrightness() {
+        return entity.getBrightness();
     }
 }

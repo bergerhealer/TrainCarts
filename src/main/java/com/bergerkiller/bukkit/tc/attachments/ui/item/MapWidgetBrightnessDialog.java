@@ -3,11 +3,12 @@ package com.bergerkiller.bukkit.tc.attachments.ui.item;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetButton;
 import com.bergerkiller.bukkit.common.wrappers.Brightness;
 import com.bergerkiller.bukkit.tc.attachments.VirtualDisplayEntity;
+import com.bergerkiller.bukkit.tc.attachments.api.type.BrightnessAdjustable;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetAttachmentNode;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetMenu;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetNumberBox;
 
-public abstract class MapWidgetBrightnessDialog extends MapWidgetMenu {
+public abstract class MapWidgetBrightnessDialog extends MapWidgetMenu implements BrightnessAdjustable {
     private boolean disabled = true;
     private final MapWidgetNumberBox blockLight = new MapWidgetNumberBox() {
         @Override
@@ -59,6 +60,7 @@ public abstract class MapWidgetBrightnessDialog extends MapWidgetMenu {
      *
      * @param brightness Block and Sky Light. Brightness.UNSET for automatic/natural.
      */
+    @Override
     public void setBrightness(Brightness brightness) {
         if (brightness == Brightness.UNSET) {
             if (!this.disabled) {
@@ -95,6 +97,7 @@ public abstract class MapWidgetBrightnessDialog extends MapWidgetMenu {
         return disabled ? -1 : (int) skyLight.getValue();
     }
 
+    @Override
     public Brightness getBrightness() {
         return disabled ? Brightness.UNSET : Brightness.blockAndSkyLight(
                 (int) blockLight.getValue(), (int) skyLight.getValue());

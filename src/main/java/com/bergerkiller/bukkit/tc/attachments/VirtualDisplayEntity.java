@@ -12,6 +12,7 @@ import com.bergerkiller.bukkit.common.wrappers.Brightness;
 import com.bergerkiller.bukkit.common.wrappers.DataWatcher;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentManager;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
+import com.bergerkiller.bukkit.tc.attachments.api.type.BrightnessAdjustable;
 import com.bergerkiller.generated.net.minecraft.network.protocol.PacketHandle;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundRemoveEntitiesPacketHandle;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundMoveEntityPacketHandle;
@@ -33,7 +34,9 @@ import java.util.function.IntFunction;
 /**
  * Extra utilities to move a 1.19.4+ Display entity around
  */
-public abstract class VirtualDisplayEntity extends VirtualSpawnableObject {
+public abstract class VirtualDisplayEntity extends VirtualSpawnableObject
+        implements BrightnessAdjustable
+{
     public static final EntityType BLOCK_DISPLAY_ENTITY_TYPE = LogicUtil.tryMake(
             () -> EntityType.valueOf("BLOCK_DISPLAY"), null);
     public static final EntityType ITEM_DISPLAY_ENTITY_TYPE = LogicUtil.tryMake(
@@ -147,11 +150,17 @@ public abstract class VirtualDisplayEntity extends VirtualSpawnableObject {
         this.metadata.set(DisplayHandle.DATA_SCALE, this.scale);
     }
 
+    @Override
+    public Brightness getBrightness() {
+        return this.brightness;
+    }
+
     /**
      * Sets a brightness (emission) override. Use Brightness.UNSET to disable.
      *
      * @param brightness Emissive block and sky light
      */
+    @Override
     public void setBrightness(Brightness brightness) {
         if (!this.brightness.equals(brightness)) {
             this.brightness = brightness;

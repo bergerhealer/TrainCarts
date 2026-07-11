@@ -4,6 +4,7 @@ import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.wrappers.Brightness;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentManager;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
+import com.bergerkiller.bukkit.tc.attachments.api.type.BrightnessAdjustable;
 import com.bergerkiller.bukkit.tc.attachments.config.transform.HybridItemTransformType;
 import org.bukkit.ChatColor;
 import org.bukkit.inventory.ItemStack;
@@ -15,7 +16,10 @@ import org.bukkit.util.Vector;
  * clients that connect. Will not track it until at least one viewer
  * demands it, to avoid wasting resources.
  */
-public class VirtualHybridItemEntity extends VirtualSpawnableObject implements VirtualSpawnableObject.ItemDisplay {
+public class VirtualHybridItemEntity extends VirtualSpawnableObject
+        implements VirtualSpawnableObject.ItemDisplay, BrightnessAdjustable
+{
+
     // This information is tracked when either type needs to be updated
     private HybridItemTransformType transformType = HybridItemTransformType.ARMORSTAND_HEAD;
     private ItemStack item = null;
@@ -85,11 +89,17 @@ public class VirtualHybridItemEntity extends VirtualSpawnableObject implements V
         }
     }
 
+    @Override
     public void setBrightness(Brightness brightness) {
         this.brightness = brightness;
         if (display != null) {
             display.setBrightness(brightness);
         }
+    }
+
+    @Override
+    public Brightness getBrightness() {
+        return this.brightness;
     }
 
     @Override

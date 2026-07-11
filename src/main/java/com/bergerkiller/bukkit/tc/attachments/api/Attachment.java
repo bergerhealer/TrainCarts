@@ -22,8 +22,12 @@ import com.bergerkiller.bukkit.tc.attachments.config.ObjectPosition;
 import com.bergerkiller.bukkit.tc.attachments.helper.HelperMethods;
 
 /**
- * Controller object for attachments. This is added to the minecart
- * and is updated regularly.
+ * Controller object for attachments. Each individual Attachment is an implementation of this
+ * type.<br>
+ * <br>
+ * Some subtype interfaces exist for repurposing, such as {@link ItemDisplayAttachment}.
+ * They can also implement {@link com.bergerkiller.bukkit.tc.attachments.api.type.BrightnessAdjustable}, making
+ * the attachment emitted light level adjustable through commands/animations.
  */
 public interface Attachment extends AttachmentNameLookup.Supplier {
 
