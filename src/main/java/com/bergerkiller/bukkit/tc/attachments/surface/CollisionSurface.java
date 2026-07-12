@@ -18,6 +18,15 @@ public interface CollisionSurface {
         }
 
         @Override
+        public boolean isSimulated() {
+            return false;
+        }
+
+        @Override
+        public void setUseShulkers(boolean useShulkers) {
+        }
+
+        @Override
         public OrientedBoundingBox getShape() {
             return null;
         }
@@ -49,6 +58,22 @@ public interface CollisionSurface {
      * @return Update counter state value
      */
     int getUpdateCounter();
+
+    /**
+     * Gets whether this surface is simulated using the {@link PlayerCollisionSolver}. If this is the case, the player movement
+     * controller is used to simulate player walking server-side. If false, then this surface is either no longer present, or
+     * it is simulated using static shulkers instead.
+     *
+     * @return True if simulated
+     */
+    boolean isSimulated();
+
+    /**
+     * Sets whether this surface should be represented as shulker boxes when not in motion
+     *
+     * @param useShulkers True to spawn shulkers when stationary
+     */
+    void setUseShulkers(boolean useShulkers);
 
     /**
      * Gets the surface shape this surface is set to. Returns null when this surface is removed, such
