@@ -44,13 +44,41 @@ public abstract class CartAttachmentPlatform extends CartAttachment {
 
         @Override
         public void createAppearanceTab(MapWidgetTabView.Tab tab, MapWidgetAttachmentNode attachment) {
+            // Toggles whether shulkers spawn when the surface is not moving
+            // Shulker box color selector
+            tab.addWidget(new MapWidgetText())
+                    .setText("Stationary Shulkers")
+                    .setFont(MapFont.MINECRAFT)
+                    .setColor(MapColorPalette.COLOR_RED)
+                    .setBounds(0, 6, 50, 11);
+            tab.addWidget(new MapWidgetSelectionBox() {
+                @Override
+                public void onAttached() {
+                    super.onAttached();
+                    this.addItem("ON");
+                    this.addItem("OFF");
+                    this.setSelectedItem(attachment.getConfig().getOrDefault("stationaryShulkers", true) ? "ON" : "OFF");
+                }
+
+                @Override
+                public void onActivate() {
+                    this.setSelectedItem("ON".equals(this.getSelectedItem()) ? "OFF" : "ON");
+                }
+
+                @Override
+                public void onSelectedItemChanged() {
+                    attachment.getConfig().set("stationaryShulkers", "ON".equals(this.getSelectedItem()));
+                    sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
+                }
+            }).setBounds(0, 15, 100, 12);
+
             // Shulker box color selector
             tab.addWidget(new MapWidgetText())
                     .setText("Shulker Color")
                     .setFont(MapFont.MINECRAFT)
                     .setColor(MapColorPalette.COLOR_RED)
-                    .setBounds(15, 6, 50, 11);
-            final MapWidget boatTypeSelector = tab.addWidget(new MapWidgetSelectionBox() {
+                    .setBounds(15, 31, 50, 11);
+            tab.addWidget(new MapWidgetSelectionBox() {
                 @Override
                 public void onAttached() {
                     super.onAttached();
@@ -68,7 +96,7 @@ public abstract class CartAttachmentPlatform extends CartAttachment {
                     attachment.getConfig().set("shulkerColor", this.getSelectedItem());
                     sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
                 }
-            }).setBounds(0, 15, 100, 12);
+            }).setBounds(0, 40, 100, 12);
         }
 
         @Override
