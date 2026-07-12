@@ -27,6 +27,7 @@ import java.util.List;
  */
 public class CartAttachmentPlatformPlane extends CartAttachmentPlatform {
     private final OrientedBoundingBox bbox = new OrientedBoundingBox();
+    private boolean stationaryShulkers = true;
     private final List<PlayerSurface> playerSurfaces = new ArrayList<>();
     private Plane plane = null; // Null if not spawned
 
@@ -34,7 +35,8 @@ public class CartAttachmentPlatformPlane extends CartAttachmentPlatform {
     public void onLoad(ConfigurationNode config) {
         Vector3 size = LogicUtil.fixNull(this.getConfiguredPosition().size, DEFAULT_SIZE);
         bbox.setSize(new Vector(size.x, 0.0, size.z));
-        playerSurfaces.forEach(this::applyName);
+        stationaryShulkers = config.getOrDefault("stationaryShulkers", true);
+        playerSurfaces.forEach(this::applySettings);
     }
 
     @Override
@@ -59,7 +61,7 @@ public class CartAttachmentPlatformPlane extends CartAttachmentPlatform {
 
         PlayerSurface ps = new PlayerSurface(viewer, viewer.createCollisionSurface());
         ps.surface.setShape(bbox);
-        applyName(ps);
+        applySettings(ps);
         playerSurfaces.add(ps);
     }
 
@@ -79,13 +81,14 @@ public class CartAttachmentPlatformPlane extends CartAttachmentPlatform {
         });
     }
 
-    private void applyName(PlayerSurface surface) {
+    private void applySettings(PlayerSurface surface) {
         Iterator<String> namesIter = getNames().iterator();
         if (namesIter.hasNext()) {
             surface.surface.setDebugName(namesIter.next());
         } else {
             surface.surface.setDebugName(null);
         }
+        surface.surface.setUseShulkers(stationaryShulkers);
     }
 
     public void setPlaneColor(ChatColor color) {
