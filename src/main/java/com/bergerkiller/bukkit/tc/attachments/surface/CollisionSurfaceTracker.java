@@ -118,8 +118,8 @@ public class CollisionSurfaceTracker {
         for (CollisionSurfaceTrackerImpl surface : surfaces) {
             surface.nextUpdate();
 
-            if (!surface.isMoving()) {
-                //surface.spawnShulkers();
+            if (!surface.isSimulated()) {
+                surface.spawnShulkers();
             }
         }
 
@@ -131,8 +131,14 @@ public class CollisionSurfaceTracker {
         });
         shulkerCache.update(viewer, playerPusher);
 
+        // If the surface the player was walking on turned into shulkers, exit simulation mode immediately
+        if (simulatedPlayer != null && simulatedPlayer.lastSurface != null && !simulatedPlayer.lastSurface.isSimulated()) {
+            stopSimulatedPlayer(null);
+        }
+
         // Compute all of the surface transitions
         List<OBBSurfaceTransition<CollisionSurfaceTrackerImpl>> transitions = this.surfaces.stream()
+                .filter(CollisionSurfaceTrackerImpl::isSimulated)
                 .map(s -> new OBBSurfaceTransition<>(s.prevShape, s.shape, s))
                 .collect(Collectors.toList());
 
@@ -820,10 +826,17 @@ public class CollisionSurfaceTracker {
         private OrientedBoundingBox shape;
         private OrientedBoundingBox prevShape;
         private int moveDetectedAtCount = 0;
+        private boolean useShulkersWhenNotMoving = true;
         private boolean isMoving = false;
 
-        public boolean isMoving() {
-            return isMoving;
+        @Override
+        public boolean isSimulated() {
+            return isMoving || !useShulkersWhenNotMoving;
+        }
+
+        @Override
+        public void setUseShulkers(boolean useShulkers) {
+            useShulkersWhenNotMoving = useShulkers;
         }
 
         @Override
