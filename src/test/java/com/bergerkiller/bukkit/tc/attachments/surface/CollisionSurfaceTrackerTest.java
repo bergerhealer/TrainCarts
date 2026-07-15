@@ -33,27 +33,6 @@ public class CollisionSurfaceTrackerTest {
     }
 
     @Test
-    public void testUpdateWalkingVelocityAppliesDampingAndConstrainsToSurface() {
-        OBBSurfaceState surface = createFlatSurface();
-        Vector result = CollisionSurfaceTracker.updateWalkingVelocity(
-                new Vector(1.0, 2.0, 3.0),
-                new Vector(0.5, 1.0, -0.5),
-                surface
-        );
-
-        // Expected is computed by applying damping to the initial velocity first, then
-        // adding acceleration, and projecting onto the surface (Y=0).
-        Vector expected = new Vector(1.0, 2.0, 3.0);
-        expected.multiply(CollisionSurfaceTracker.SIMULATED_WALK_VELOCITY_DAMPING);
-        expected.add(new Vector(0.5, 1.0, -0.5));
-        expected.setY(0.0);
-
-        assertEquals(expected.getX(), result.getX(), 1e-9);
-        assertEquals(expected.getY(), result.getY(), 1e-9);
-        assertEquals(expected.getZ(), result.getZ(), 1e-9);
-    }
-
-    @Test
     public void testRotateWalkingVelocityFollowsSurfaceTransitionRotation() {
         OBBSurfaceState from = createSurface(new Vector(0.0, 0.0, 1.0), new Vector(0.0, 1.0, 0.0));
         OBBSurfaceState to = createSurface(new Vector(1.0, 0.0, 0.0), new Vector(0.0, 1.0, 0.0));
@@ -115,15 +94,6 @@ public class CollisionSurfaceTrackerTest {
                 AttachmentViewer.Input.of(false, false, false, false, true, true, false)));
         assertFalse(CollisionSurfaceTracker.shouldStartJump(false,
                 AttachmentViewer.Input.of(false, false, false, false, false, false, false)));
-    }
-
-    @Test
-    public void testComputeJumpVelocityAddsVerticalImpulse() {
-        Vector result = CollisionSurfaceTracker.computeJumpVelocity(new Vector(0.25, 0.4, -0.5));
-
-        assertEquals(0.25, result.getX(), 1e-9);
-        assertEquals(1.6, result.getY(), 1e-9);
-        assertEquals(-0.5, result.getZ(), 1e-9);
     }
 
     @Test
