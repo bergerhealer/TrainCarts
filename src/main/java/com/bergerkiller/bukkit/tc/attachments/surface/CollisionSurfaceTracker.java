@@ -32,13 +32,6 @@ import java.util.stream.Collectors;
 public class CollisionSurfaceTracker {
     /** How many ticks of no movement until a surface is considered "not moving" */
     private static final int TICKS_UNTIL_NOT_MOVING = 2;
-    private static final double SIMULATED_WALK_ACCELERATION = 0.1;
-    private static final double SIMULATED_AIR_MOVEMENT_SPEED = 0.06;
-    static final double SIMULATED_WALK_VELOCITY_DAMPING = 0.91 * 0.6;
-    private static final double SIMULATED_GRAVITY = 0.15;
-    private static final double SIMULATED_JUMP_IMPULSE = 1.2;
-    /** Minimum speed under which the player's simulated velocity is considered zero */
-    private static double MINIMUM_PLAYER_SPEED = 0.003;
     /** Maximum steepness (degrees) at which player input is still respected. Beyond this angle input is disabled. */
     private static final double MAX_INPUT_ANGLE = 80.0;
     /** Angle (degrees) at which gravity-based sliding starts scaling from 0 (at this angle) to full at 90 degrees. */
@@ -148,8 +141,8 @@ public class CollisionSurfaceTracker {
         AABBHandle bboxTo = playerHandle.getBoundingBox();
         if (simulatedPlayer != null) {
             if (viewer.getPlayer().isSneaking()) {
-                stopSimulatedPlayer(viewer.getPlayer().getLocation().toVector());
-                return;
+                //stopSimulatedPlayer(viewer.getPlayer().getLocation().toVector());
+                //return;
             }
             updateSimulatedPlayer(transitions, bboxTo);
             return;
@@ -216,30 +209,28 @@ public class CollisionSurfaceTracker {
             }
              */
 
-                if (!viewer.getPlayer().isSneaking()) {
-                    if (solution.lastCollisionMode == PlayerCollisionSolver.CollisionMode.FEET
-                            && solution.lastSurface != null
-                            && startSimulatedPlayer(solution.lastSurface, previousPosition, solPos, movement)) {
-                        return;
-                    }
-
-                    previousPlayerPosition.setX(solPos.getX());
-                    previousPlayerPosition.setY(solPos.getY());
-                    previousPlayerPosition.setZ(solPos.getZ());
-
-                Vector correctedVelocity = removeIntoSurfaceVelocity(
-                        viewer.getPlayer().getVelocity(),
-                        solution.lastCollisionMode,
-                        solution.lastSurfaceToState
-                );
-                viewer.getPlayer().setVelocity(correctedVelocity);
-
-                ClientboundPlayerPositionPacketHandle packet = ClientboundPlayerPositionPacketHandle.createNew(
-                        solPos.getX(), solPos.getY(), solPos.getZ(), 0.0f, 0.0f,
-                        correctedVelocity.getX(), correctedVelocity.getY(), correctedVelocity.getZ(),
-                        RelativeFlags.ABSOLUTE_POSITION.withRelativeRotation().withAbsoluteDelta());
-                viewer.send(packet);
+            if (solution.lastCollisionMode == PlayerCollisionSolver.CollisionMode.FEET
+                    && solution.lastSurface != null
+                    && startSimulatedPlayer(solution.lastSurface, previousPosition, solPos, movement)) {
+                return;
             }
+
+            previousPlayerPosition.setX(solPos.getX());
+            previousPlayerPosition.setY(solPos.getY());
+            previousPlayerPosition.setZ(solPos.getZ());
+
+            Vector correctedVelocity = removeIntoSurfaceVelocity(
+                    viewer.getPlayer().getVelocity(),
+                    solution.lastCollisionMode,
+                    solution.lastSurfaceToState
+            );
+            viewer.getPlayer().setVelocity(correctedVelocity);
+
+            ClientboundPlayerPositionPacketHandle packet = ClientboundPlayerPositionPacketHandle.createNew(
+                    solPos.getX(), solPos.getY(), solPos.getZ(), 0.0f, 0.0f,
+                    correctedVelocity.getX(), correctedVelocity.getY(), correctedVelocity.getZ(),
+                    RelativeFlags.ABSOLUTE_POSITION.withRelativeRotation().withAbsoluteDelta());
+            viewer.send(packet);
         }
 
         // Legacy active-surface / shulker switching code removed: movement is handled by the
@@ -307,9 +298,9 @@ public class CollisionSurfaceTracker {
 
         if (simulatedPlayer.flying) {
             // Simulate flying / falling off surfaces
-            simulatedPlayer.velocity.add(createAirMovementAdjustment(simulatedPlayer.viewer.getPlayer().getEyeLocation().getYaw(), input));
+            WalkInput walkInput = createWalkInput(simulatedPlayer, null, input);
+            simulatedPlayer.applyWalkingVelocity(walkInput.acceleration);
             nextPosition.add(simulatedPlayer.velocity);
-            simulatedPlayer.velocity.setY(simulatedPlayer.velocity.getY() - SIMULATED_GRAVITY);
         } else if (currentSurface != null) {
             OBBSurfaceTransition<CollisionSurfaceTrackerImpl> transition = findTransition(transitions, currentSurface);
             if (transition != null) {
@@ -325,7 +316,8 @@ public class CollisionSurfaceTracker {
 
                 // Compute walk input & horizontal walking acceleration
                 WalkInput walkInput = createWalkInput(simulatedPlayer, transition.to, input);
-                simulatedPlayer.velocity = updateWalkingVelocity(simulatedPlayer.velocity, walkInput.acceleration, transition.to);
+                simulatedPlayer.applyWalkingVelocity(walkInput.acceleration);
+                simulatedPlayer.velocity = transition.to.projectOntoNormalPlane(simulatedPlayer.velocity);
 
                 // Compute surface steepness (0 = flat, 90 = vertical). Use acos(|normal.y|).
                 // Treat inverted normals (normal.y < 0) as the same surface orientation for
@@ -359,7 +351,8 @@ public class CollisionSurfaceTracker {
                     // When jumping, transfer carry momentum into velocity immediately since the player
                     // is leaving the surface and carry will no longer be applied next tick.
                     simulatedPlayer.flying = true;
-                    simulatedPlayer.velocity = computeJumpVelocity(simulatedPlayer.velocity.add(surfaceCarryVelocity));
+                    simulatedPlayer.velocity.add(surfaceCarryVelocity);
+                    simulatedPlayer.applyJumpImpulse();
                     surfaceCarryVelocity = new Vector(); // carry already folded into velocity; don't apply to nextPosition again
                 } else if (gravityFactor <= 0.0) {
                     if (disableInput && simulatedPlayer.velocity.getY() > 0.0) {
@@ -374,7 +367,7 @@ public class CollisionSurfaceTracker {
                         downhillDir = transition.to.zAxis.clone().multiply(-1.0);
                     }
                     downhillDir.normalize();
-                    Vector downhillVel = downhillDir.clone().multiply(SIMULATED_GRAVITY * gravityFactor);
+                    Vector downhillVel = downhillDir.clone().multiply(SimulatedPlayer.SIMULATED_GRAVITY * gravityFactor);
 
                     // Carry is applied to nextPosition separately; velocity is pure player movement (downhill slide)
                     simulatedPlayer.velocity = downhillVel.clone();
@@ -386,7 +379,7 @@ public class CollisionSurfaceTracker {
                 nextPosition.add(simulatedPlayer.velocity);
 
                 // Detect when the player walks/falls off the surface, and toggle flying on right away
-                if (!simulatedPlayer.flying && !transition.hasSurfaceSupport(actualBounds, nextPosition, SIMULATED_GRAVITY, PLAYER_COLLISION_SOLVER)) {
+                if (!simulatedPlayer.flying && !transition.hasSurfaceSupport(actualBounds, nextPosition, SimulatedPlayer.SIMULATED_GRAVITY, PLAYER_COLLISION_SOLVER)) {
                     simulatedPlayer.flying = true;
                     // Transfer carry into the flying velocity so the player inherits the surface's momentum
                     simulatedPlayer.velocity.add(surfaceCarryVelocity);
@@ -491,6 +484,14 @@ public class CollisionSurfaceTracker {
             }
         }
 
+        // These effects to velocity are applied after the velocity is used to move the player (post-tick)
+        // The effects (such as gravity) are applied the next tick
+        if (simulatedPlayer.flying) {
+            simulatedPlayer.applyGravity();
+        }
+        simulatedPlayer.applyDrag();
+        simulatedPlayer.applyMinimumSpeed();
+
         if (!simulatedPlayer.pmc.update(nextPosition, true)) {
             stopSimulatedPlayer(currentPosition);
             return;
@@ -507,53 +508,80 @@ public class CollisionSurfaceTracker {
             return WalkInput.NONE;
         }
 
-        // Use an upward-facing normal for input basis so that upside-down surfaces
-        // don't invert left/right controls. The projection onto the plane is sign
-        // independent, but the cross product for left-hand direction depends on
-        // the sign of the normal. Use a canonical 'up' vector here.
-        Vector forward = projectOntoPlane(createHorizontalDirectionFromYaw(simulatedPlayer.viewer.getPlayer().getEyeLocation().getYaw()), surface.groundNormal);
-        if (forward.lengthSquared() < 1e-20) {
-            forward = surface.zAxis.clone();
-        } else {
-            forward.normalize();
-        }
+        Vector forward, left;
 
-        Vector left = cross(surface.groundNormal, forward);
-        if (left.lengthSquared() < 1e-20) {
-            left = surface.xAxis.clone().multiply(-1.0);
+        if (surface != null) {
+            // Use an upward-facing normal for input basis so that upside-down surfaces
+            // don't invert left/right controls. The projection onto the plane is sign
+            // independent, but the cross product for left-hand direction depends on
+            // the sign of the normal. Use a canonical 'up' vector here.
+            forward = surface.projectOntoGroundPlane(simulatedPlayer.getPlayerForward());
+            if (forward.lengthSquared() < 1e-20) {
+                forward = surface.zAxis.clone();
+            } else {
+                forward.normalize();
+            }
+
+            left = cross(surface.groundNormal, forward);
+            if (left.lengthSquared() < 1e-20) {
+                left = surface.xAxis.clone().multiply(-1.0);
+            } else {
+                left.normalize();
+            }
         } else {
-            left.normalize();
+            // Air movement always points where the player is looking
+            forward = simulatedPlayer.getPlayerForward();
+            left = cross(new Vector(0.0, 1.0, 0.0), forward);
         }
 
         Vector acceleration = new Vector();
         double forwardInput = input.forwardsSigNum();
         double sidewaysInput = input.sidewaysSigNum();
         if (forwardInput != 0.0) {
-            acceleration.add(forward.clone().multiply(SIMULATED_WALK_ACCELERATION * forwardInput));
+            acceleration.add(forward.clone().multiply(forwardInput));
         }
         if (sidewaysInput != 0.0) {
-            acceleration.add(left.clone().multiply(SIMULATED_WALK_ACCELERATION * sidewaysInput));
+            acceleration.add(left.clone().multiply(sidewaysInput));
         }
-        if (acceleration.lengthSquared() < 1e-20) {
+
+        // Normalize the movement vector, return no input if 0
+        // This makes it so that forward + left turns into a diagonal movement vector,
+        // without making the movement faster.
+        final double accelerationLS = acceleration.lengthSquared();
+        if (accelerationLS< 1e-20) {
             return WalkInput.NONE;
+        } else {
+            acceleration.multiply(1.0 / Math.sqrt(accelerationLS));
         }
 
-        if (Math.abs(acceleration.getY()) <= 1e-3) {
-            // No uphill component
-            acceleration = projectOntoPlane(acceleration, surface.normal);
-            return new WalkInput(acceleration, false, 0.0);
+        acceleration.multiply(SimulatedPlayer.SIMULATED_WALK_ACCELERATION);
+
+        if (input.sneaking()) {
+            acceleration.multiply(0.3);
+        } else if (input.sprinting()) {
+            acceleration.multiply(1.3);
         }
 
-        Vector direction = acceleration.clone().normalize();
-        double angleDeg = Math.toDegrees(Math.asin(direction.getY()));
-        if (angleDeg >= MAX_INPUT_ANGLE) {
-            return new WalkInput(new Vector(), true, angleDeg);
+        double angleDeg = 0.0;
+        if (surface != null) {
+            if (Math.abs(acceleration.getY()) <= 1e-3) {
+                // No uphill component
+                acceleration = surface.projectOntoNormalPlane(acceleration);
+                return new WalkInput(acceleration, false, 0.0);
+            }
+
+            Vector direction = acceleration.clone().normalize();
+            angleDeg = Math.toDegrees(Math.asin(direction.getY()));
+            if (angleDeg >= MAX_INPUT_ANGLE) {
+                return new WalkInput(new Vector(), true, angleDeg);
+            }
+
+            double factor = computeUphillWalkSpeedFactor(angleDeg);
+            acceleration.multiply(Math.max(0.0, factor));
+            // Ensure walk input does not add any component along the surface normal
+            acceleration = surface.projectOntoNormalPlane(acceleration);
         }
 
-        double factor = computeUphillWalkSpeedFactor(angleDeg);
-        acceleration.multiply(Math.max(0.0, factor));
-        // Ensure walk input does not add any component along the surface normal
-        acceleration = projectOntoPlane(acceleration, surface.normal);
         return new WalkInput(acceleration, false, angleDeg);
     }
 
@@ -564,21 +592,6 @@ public class CollisionSurfaceTracker {
             return 1.0;
         }
         return 0.0;
-    }
-
-
-    static Vector updateWalkingVelocity(Vector velocity, Vector acceleration, OBBSurfaceState surface) {
-        // Apply damping to the existing velocity first, then add acceleration.
-        Vector result = velocity.clone();
-        result.multiply(SIMULATED_WALK_VELOCITY_DAMPING);
-        result.add(acceleration);
-        result = projectOntoPlane(result, surface.normal);
-        // If the resulting velocity is extremely small, treat it as zero. Use the
-        // configured minimum player speed threshold so this behavior is centralized.
-        if (result.lengthSquared() < (MINIMUM_PLAYER_SPEED * MINIMUM_PLAYER_SPEED)) {
-            return new Vector();
-        }
-        return result;
     }
 
     static <T> Vector computeSurfaceCarryVelocity(OBBSurfaceTransition<T> surface, Vector surfaceLocalPosition) {
@@ -601,46 +614,6 @@ public class CollisionSurfaceTracker {
 
     static boolean shouldStartJump(boolean lastJumpInput, AttachmentViewer.Input input) {
         return input.jumping() && !input.sneaking() && !lastJumpInput;
-    }
-
-    static Vector computeJumpVelocity(Vector velocity) {
-        Vector result = velocity.clone();
-        result.setY(result.getY() + SIMULATED_JUMP_IMPULSE);
-        return result;
-    }
-
-    static Vector createAirMovementAdjustment(float eyeYaw, AttachmentViewer.Input input) {
-        if (input == null || !input.hasWalkInput()) {
-            return new Vector();
-        }
-
-        Vector forward = createHorizontalDirectionFromYaw(eyeYaw);
-
-        Vector left = cross(new Vector(0.0, 1.0, 0.0), forward);
-        if (left.lengthSquared() < 1e-20) {
-            left.setX(1.0);
-            left.setY(0.0);
-            left.setZ(0.0);
-        } else {
-            left.normalize();
-        }
-
-        Vector adjustment = new Vector();
-        double forwardInput = input.forwardsSigNum();
-        double sidewaysInput = input.sidewaysSigNum();
-        if (forwardInput != 0.0) {
-            adjustment.add(forward.multiply(SIMULATED_AIR_MOVEMENT_SPEED * forwardInput));
-        }
-        if (sidewaysInput != 0.0) {
-            adjustment.add(left.multiply(SIMULATED_AIR_MOVEMENT_SPEED * sidewaysInput));
-        }
-        adjustment.setY(0.0);
-        return adjustment;
-    }
-
-    static Vector createHorizontalDirectionFromYaw(float yaw) {
-        double yawRad = Math.toRadians(yaw);
-        return new Vector(-Math.sin(yawRad), 0.0, Math.cos(yawRad));
     }
 
     static Vector removeIntoSurfaceVelocity(Vector velocity, PlayerCollisionSolver.CollisionMode mode, OBBSurfaceState surface) {
