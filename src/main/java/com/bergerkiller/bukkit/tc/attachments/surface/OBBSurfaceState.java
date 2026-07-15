@@ -192,6 +192,20 @@ public class OBBSurfaceState {
                 bounds.getMaxX(), bounds.getMaxY() + maxShift, bounds.getMaxZ());
     }
 
+   public Vector projectOntoNormalPlane(Vector vector) {
+        Vector result = vector.clone();
+        double dot = result.dot(normal);
+        result.subtract(normal.clone().multiply(dot));
+        return result;
+    }
+
+    public Vector projectOntoGroundPlane(Vector vector) {
+        Vector result = vector.clone();
+        double dot = result.dot(groundNormal);
+        result.subtract(groundNormal.clone().multiply(dot));
+        return result;
+    }
+
     /**
      * Returns a new half-size vector expanded by radius on X/Z (Y retained).
      */
