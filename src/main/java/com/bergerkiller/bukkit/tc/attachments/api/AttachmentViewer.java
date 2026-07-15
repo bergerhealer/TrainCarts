@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.tc.attachments.api;
 
 import com.bergerkiller.bukkit.common.Common;
+import com.bergerkiller.bukkit.common.internal.CommonBootstrap;
 import com.bergerkiller.bukkit.common.internal.CommonCapabilities;
 import com.bergerkiller.bukkit.common.math.OrientedBoundingBox;
 import com.bergerkiller.bukkit.common.protocol.PacketListener;
@@ -13,6 +14,9 @@ import com.bergerkiller.bukkit.tc.controller.player.network.PlayerPacketListener
 import com.bergerkiller.bukkit.common.math.Quaternion;
 
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.ServerboundPlayerInputPacketHandle;
+import com.bergerkiller.mountiplex.reflection.declarations.ClassResolver;
+import com.bergerkiller.mountiplex.reflection.declarations.MethodDeclaration;
+import com.bergerkiller.mountiplex.reflection.util.FastMethod;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
@@ -33,6 +37,7 @@ import org.bukkit.util.Vector;
 import java.util.Iterator;
 import java.util.UUID;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 /**
  * Represents a Player that views train attachments. Can be used as a
@@ -899,6 +904,49 @@ public interface AttachmentViewer extends TrainCarts.Provider {
             if (condition) {
                 str.append(text);
             }
+        }
+
+        /** Method to get the last known player input using Bukkit API. Available since 1.21.3. */
+        private static final Function<Player, Input> PLAYER_COMPOSED_INPUT_FUNCTION = getPlayerInputMethod();
+        private static Function<Player, Input> getPlayerInputMethod() {
+            // Only available on 1.21.3+
+            if (CommonBootstrap.evaluateMCVersion("<", "1.21.3")) {
+                return player -> Input.NONE;
+            }
+
+            try {
+                final ClassResolver resolver = new ClassResolver();
+                resolver.setClassLoader(AttachmentViewer.class.getClassLoader());
+                resolver.setDeclaredClass(AttachmentViewer.class);
+                MethodDeclaration getInputDec = new MethodDeclaration(resolver, "" +
+                        "public static AttachmentViewer$Input getInput(org.bukkit.entity.Player player) {\n" +
+                        "    org.bukkit.Input input = player.getCurrentInput();\n" +
+                        "    return AttachmentViewer$Input.of(\n" +
+                        "        input.isLeft(), input.isRight(), input.isForward(), input.isBackward(),\n" +
+                        "        input.isJump(), input.isSneak(), input.isSprint()\n" +
+                        "    );\n" +
+                        "}");
+
+                final FastMethod<Input> fast = new FastMethod<>();
+                fast.init(getInputDec);
+                fast.forceInitialization();
+                return player -> fast.invoke(null, player);
+            } catch (final Throwable t) {
+                return player -> {
+                    throw new UnsupportedOperationException("Failed to read player input", t);
+                };
+            }
+        }
+
+        /**
+         * Gets the last-known Server-received input of a Player. Only works on Minecraft 1.21.3+, returns just
+         * {@link #NONE} on versions prior.
+         *
+         * @param player Player
+         * @return Input of that Player
+         */
+        public static Input ofPlayer(Player player) {
+            return PLAYER_COMPOSED_INPUT_FUNCTION.apply(player);
         }
     }
 }

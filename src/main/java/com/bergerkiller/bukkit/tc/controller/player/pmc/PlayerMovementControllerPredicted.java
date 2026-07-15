@@ -155,8 +155,7 @@ abstract class PlayerMovementControllerPredicted extends PlayerMovementControlle
             this.currYaw = player.getEyeLocation().getYaw();
             this.currForward = ForwardMotion.get(currYaw);
             this.currSpeed = 0.5F * player.getFlySpeed();
-            this.lastInput = ComposedInput.NONE;
-            this.currInput = ComposedInput.NONE;
+            this.lastInput = this.currInput = new ComposedInput(AttachmentViewer.Input.ofPlayer(viewer.getPlayer()));
 
             // I have NO idea why the client is inconsistent like that
             if (viewer.evaluateGameVersion(">=", "1.21.8")) {
