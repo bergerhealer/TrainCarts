@@ -301,6 +301,10 @@ public abstract class PlayerMovementController implements AttachmentViewer.Movem
                     sprinting);
         }
 
+        public ComposedInput withSprinting(boolean sprinting) {
+            return new ComposedInput(input.withSprinting(sprinting));
+        }
+
         @Override
         public boolean equals(Object o) {
             if (o == this) {

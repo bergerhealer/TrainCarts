@@ -36,6 +36,15 @@ class PlayerMovementControllerPredictedModern extends PlayerMovementControllerPr
 
     protected PlayerMovementControllerPredictedModern(ControllerType type, AttachmentViewer viewer) {
         super(type, viewer);
+
+        // Sprint is sent as a separate action from player input (double-tap W), so adapt to it
+        // Sadly there is no way to tell that the player double-tapped W and also holds the sprint button
+        hasSprintButtonAction = input.currInput.sprinting;
+        if (viewer.getPlayer().isSprinting()) {
+            input.currInput = input.currInput.withSprinting(true);
+            input.lastInput = input.lastInput.withSprinting(true);
+            hasSprintDoubleTapAction = true;
+        }
     }
 
     private static final RelativeFlags FLAGS_ONLY_MOVE = RelativeFlags.RELATIVE_POSITION_ROTATION
@@ -188,7 +197,7 @@ class PlayerMovementControllerPredictedModern extends PlayerMovementControllerPr
             synchronized (PlayerMovementControllerPredictedModern.this) {
                 hasSprintButtonAction = packet.isSprint();
                 if (hasSprintDoubleTapAction) {
-                    currInput = new ComposedInput(currInput.input.withSprinting(true));
+                    currInput = currInput.withSprinting(true);
                 }
                 input.currInput = currInput;
             }
@@ -209,12 +218,12 @@ class PlayerMovementControllerPredictedModern extends PlayerMovementControllerPr
                 if ("START_SPRINTING".equals(actionName)) {
                     synchronized (PlayerMovementControllerPredictedModern.this) {
                         hasSprintDoubleTapAction = true;
-                        input.currInput = new ComposedInput(input.currInput.input.withSprinting(true));
+                        input.currInput = input.currInput.withSprinting(true);
                     }
                 } else if ("STOP_SPRINTING".equals(actionName)) {
                     synchronized (PlayerMovementControllerPredictedModern.this) {
                         hasSprintDoubleTapAction = false;
-                        input.currInput = new ComposedInput(input.currInput.input.withSprinting(hasSprintButtonAction));
+                        input.currInput = input.currInput.withSprinting(hasSprintButtonAction);
                     }
                 }
             }
