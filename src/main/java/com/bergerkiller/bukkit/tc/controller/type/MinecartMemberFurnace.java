@@ -189,8 +189,15 @@ public class MinecartMemberFurnace extends MinecartMember<CommonMinecartFurnace>
                     }
                     dir.multiply(0.04 + TCConfig.poweredCartBoost);
 
-                    entity.vel.multiply(0.8);
-                    entity.vel.add(dir);
+                    Vector oldVelocity = entity.getVelocity();
+                    Vector newVelocity = oldVelocity.clone();
+                    newVelocity.multiply(0.8);
+                    newVelocity.add(dir);
+
+                    // Only apply this velocity change if it is faster, or the opposite direction
+                    if (newVelocity.dot(oldVelocity) < 0.0 || newVelocity.lengthSquared() > oldVelocity.lengthSquared()) {
+                        entity.vel.set(newVelocity);
+                    }
                 }
             }
 
