@@ -76,6 +76,7 @@ public class TCConfig {
     public static boolean enableSeatThirdPersonView;
     public static double slowDownMultiplierSlow;
     public static double slowDownMultiplierNormal;
+    public static double slowDownMultiplierNoFuel;
     public static boolean refillAtStations;
     public static boolean instantCreativeDestroy;
     public static boolean allowRailEditing;
@@ -206,9 +207,10 @@ public class TCConfig {
 
         config.setHeader("slowDownMultiplier", "\nThe multiplier used to slow down minecarts");
         config.addHeader("slowDownMultiplier", "Normal is the default, slow is when the minecart is meant to slow down.");
+        config.addHeader("slowDownMultiplier", "NoFuel is when the minecart has no fuel, and is meant to slow down faster than normal.");
         slowDownMultiplierNormal = config.get("slowDownMultiplier.normal", 0.997);
         slowDownMultiplierSlow = config.get("slowDownMultiplier.slow", 0.96);
-
+        slowDownMultiplierNoFuel = config.get("slowDownMultiplier.noFuel", 0.98);
 
         config.setHeader("maxEnterDistance", "\nThe maximum allowed enter radius for enter signs");
         maxEnterDistance = config.get("maxEnterDistance", 50.0);

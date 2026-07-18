@@ -2389,12 +2389,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
             // Slowing down of minecarts
             TrainProperties trainProp = this.getGroup().getProperties();
             if (trainProp.isSlowingDown(SlowdownMode.FRICTION) && entity.getMaxSpeed() > 0.0) {
-                double factor;
-                if (entity.hasPassenger() || !entity.isSlowWhenEmpty() || !TCConfig.slowDownEmptyCarts) {
-                    factor = TCConfig.slowDownMultiplierNormal;
-                } else {
-                    factor = TCConfig.slowDownMultiplierSlow;
-                }
+                double factor = getSlowDownFactor();
                 factor = Math.max(0.0, 1.0 + trainProp.getFriction() * (factor - 1.0));
                 if (this.getGroup().getUpdateStepCount() > 1) {
                     factor = Math.pow(factor, this.getGroup().getUpdateSpeedFactor());
@@ -2519,6 +2514,19 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         // The server breaks entity last location by resetting it. Restore that info here.
         if (lastLocationSync != null && lastLocationSync.getWorld() == entity.getWorld()) {
             entity.last.set(lastLocationSync);
+        }
+    }
+
+    /**
+     * Gets the velocity multiplier by which this cart slows down over time.
+     *
+     * @return Slow-down factor [0 - 1]
+     */
+    protected double getSlowDownFactor() {
+        if (entity.hasPassenger() || !entity.isSlowWhenEmpty() || !TCConfig.slowDownEmptyCarts) {
+            return TCConfig.slowDownMultiplierNormal;
+        } else {
+            return TCConfig.slowDownMultiplierSlow;
         }
     }
 

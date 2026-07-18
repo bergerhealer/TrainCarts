@@ -191,13 +191,20 @@ public class MinecartMemberFurnace extends MinecartMember<CommonMinecartFurnace>
 
                     entity.vel.multiply(0.8);
                     entity.vel.add(dir);
-                } else if (this.getGroup().getProperties().isSlowingDown(SlowdownMode.FRICTION)) {
-                    entity.vel.multiply(0.98);
                 }
             }
 
             // Persistence
             this.updatePushXZ();
+        }
+    }
+
+    @Override
+    protected double getSlowDownFactor() {
+        if (entity.hasFuel()) {
+            return TCConfig.slowDownMultiplierNormal;
+        } else {
+            return TCConfig.slowDownMultiplierNoFuel;
         }
     }
 
