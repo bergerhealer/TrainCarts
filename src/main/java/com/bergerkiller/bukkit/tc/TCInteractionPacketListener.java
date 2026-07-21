@@ -92,7 +92,7 @@ class TCInteractionPacketListener implements PacketListener {
             MinecartMember<?> member = MinecartMemberStore.getFromHitTest(Util.getRealEyeLocation(event.getPlayer()));
             if (member != null) {
                 event.setCancelled(true);
-                TCPacketListener.fakeAttack(member, event.getPlayer());
+                mainPacketListener.simulateDefaultAttack(member, event.getPlayer());
 
                 // When packet is IN_BLOCK_DIG, send a block change to correct the changed block
                 if (event.getType() == PacketType.IN_PLAYER_ACTION) {
@@ -123,7 +123,7 @@ class TCInteractionPacketListener implements PacketListener {
                 }
 
                 event.setCancelled(true);
-                this.mainPacketListener.fakeInteraction(member, event.getPlayer(), hand, member.getEntity().getLocation().toVector());
+                this.mainPacketListener.simulateDefaultInteract(member, event.getPlayer(), hand, member.getEntity().getLocation().toVector());
             }
 
             return;

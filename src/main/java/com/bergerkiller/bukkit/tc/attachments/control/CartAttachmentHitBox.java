@@ -41,7 +41,8 @@ import java.util.UUID;
 
 /**
  * Is invisible, unless focused. Represents a box that players can interact with
- * to enter or destroy the cart.
+ * to enter or destroy the cart. Can be overrided for custom attachments to
+ * handle your own click actions for a configurable box in space.
  */
 public class CartAttachmentHitBox extends CartAttachment {
     private static final Vector3 DEFAULT_SCALE = new Vector3(1.0, 1.0, 1.0);

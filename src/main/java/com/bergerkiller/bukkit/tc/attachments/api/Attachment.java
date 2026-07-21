@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Set;
 
 import com.bergerkiller.bukkit.common.wrappers.ChatText;
+import com.bergerkiller.bukkit.tc.events.attachment.AttachmentInteractEvent;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
@@ -278,6 +279,17 @@ public interface Attachment extends AttachmentNameLookup.Supplier {
      */
     default void makeHidden(AttachmentViewer viewer) {
         this.makeHidden(viewer.getPlayer());
+    }
+
+    /**
+     * Called when a Player attacks or interacts with an Entity that this attachment says it
+     * {@link #containsEntityId(int) contains}. This only occurs if the original event was not cancelled.
+     * You can call {@link AttachmentInteractEvent#preventDefault()} to prevent the default behavior
+     * of attacking the vehicle / entering the vehicle.
+     *
+     * @param event AttachmentInteractEvent with interaction details
+     */
+    default void onInteract(AttachmentInteractEvent event) {
     }
 
     /**

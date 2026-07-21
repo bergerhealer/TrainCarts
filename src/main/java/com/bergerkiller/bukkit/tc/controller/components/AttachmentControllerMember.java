@@ -711,12 +711,22 @@ public class AttachmentControllerMember
      * @return True if an attachment uses this Entity Id
      */
     public synchronized boolean isAttachment(int entityId) {
+        return findAttachmentByEntityId(entityId) != null;
+    }
+
+    /**
+     * Finds an Attachment that spawned a particular Entity ID to players. Used for interaction handling.
+     *
+     * @param entityId Entity ID
+     * @return Found Attachment, or <i>null</i> if not contained.
+     */
+    public synchronized Attachment findAttachmentByEntityId(int entityId) {
         for (Attachment attachment : this.flattenedAttachments) {
             if (attachment.containsEntityId(entityId)) {
-                return true;
+                return attachment;
             }
         }
-        return false;
+        return null;
     }
 
     /**
