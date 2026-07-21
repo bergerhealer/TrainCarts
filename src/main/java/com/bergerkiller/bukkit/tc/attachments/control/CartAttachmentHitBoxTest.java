@@ -3,7 +3,6 @@ package com.bergerkiller.bukkit.tc.attachments.control;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentType;
-import com.bergerkiller.bukkit.tc.attachments.helper.HelperMethods;
 import org.bukkit.ChatColor;
 
 /**
@@ -27,12 +26,12 @@ public class CartAttachmentHitBoxTest extends CartAttachmentHitBox {
 
     @Override
     public void onFocus() {
-        setBoxColor(ChatColor.BLACK);
+        hitbox.spawnWireframe(ChatColor.BLACK);
     }
 
     @Override
     public void onBlur() {
-        setBoxColor(mode.getColor());
+        hitbox.spawnWireframe(mode.getColor());
     }
 
     @Override
@@ -53,8 +52,10 @@ public class CartAttachmentHitBoxTest extends CartAttachmentHitBox {
                 }
             };
 
-            setBoxColor(mode.getColor());
+            hitbox.spawnWireframe(mode.getColor());
         }
+
+        hitbox.syncPosition(true);
     }
 
     private enum Mode {
