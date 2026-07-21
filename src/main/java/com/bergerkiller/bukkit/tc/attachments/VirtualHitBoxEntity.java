@@ -150,6 +150,8 @@ public class VirtualHitBoxEntity extends VirtualSpawnableObject {
         if (hitboxEntityId == entityId) {
             return true;
         }
+
+        Box box = this.box;
         if (box != null && box.entity.containsEntityId(entityId)) {
             return true;
         }
