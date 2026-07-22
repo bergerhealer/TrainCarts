@@ -36,6 +36,8 @@ public class CollisionSurfaceTracker {
     private static final double MAX_INPUT_ANGLE = 80.0;
     /** Angle (degrees) at which gravity-based sliding starts scaling from 0 (at this angle) to full at 90 degrees. */
     private static final double GRAVITY_START_ANGLE = 50.0;
+    /** When true, pressing sneak forces surface collisions off. Useful for testing. */
+    private static final boolean SNEAKING_DISABLES_SURFACE_COLLISIONS = false;
     private final AttachmentViewer viewer;
     private final int shulkerViewDistance;
     private final PlayerPusher playerPusher;
@@ -48,22 +50,8 @@ public class CollisionSurfaceTracker {
     private Vector previousPlayerPosition = null;
 
     // Shared solver instance for this tracker class. Initialized with a logger that
-    // routes messages to the plugin logger (same behavior as the previous
-    // PlayerCollisionSolver.setGlobalLog(...) call in the constructor).
-    private static final PlayerCollisionLogger PLAYER_COLLISION_LOGGER = new PlayerCollisionLogger() {
-        private final java.util.logging.Logger L = (TrainCarts.plugin != null) ? TrainCarts.plugin.getLogger() : null;
-        @Override public void info(String msg) { if (L != null) L.info(msg); }
-        @Override public void warn(String msg) { if (L != null) L.warning(msg); }
-        @Override public void debug(String msg) { if (L != null) L.info(msg); }
-        @Override public boolean isEnabled() { return false; }
-        @Override public void debugCandidate(OBBSurfaceTransition<?> st, double bestTheta, boolean isVertical, boolean feetCrossed, boolean headCrossed, Vector[] fromCorners, Vector[] toCorners) {}
-        @Override public void debugFeetClamp(OBBSurfaceTransition<?> st, double dy, double theta) {}
-        @Override public void debugHeadClamp(OBBSurfaceTransition<?> st, double dy, double theta) {}
-        @Override public void debugWallClamp(OBBSurfaceTransition<?> st, double dx, double dy, double dz) {}
-        @Override public void debugMultiSurfacePick(double bestScore, OBBSurfaceState lastSurfaceFromState) {}
-        @Override public void debugFeetLog(AABBHandle aabb, OBBSurfaceState surf, double y, double minY) {}
-        @Override public void debugHeadLog(AABBHandle aabb, OBBSurfaceState surf, double y, double maxY) {}
-    };
+    // routes messages to the plugin logger. Set disabled when not testing.
+    private static final PlayerCollisionLogger PLAYER_COLLISION_LOGGER = PlayerCollisionLogger.DISABLED;
     private static final PlayerCollisionSolver PLAYER_COLLISION_SOLVER = new PlayerCollisionSolver(PLAYER_COLLISION_LOGGER);
 
     public CollisionSurfaceTracker(AttachmentViewer viewer, int shulkerViewDistance) {
@@ -140,9 +128,9 @@ public class CollisionSurfaceTracker {
         ServerPlayerHandle playerHandle = ServerPlayerHandle.fromBukkit(viewer.getPlayer());
         AABBHandle bboxTo = playerHandle.getBoundingBox();
         if (simulatedPlayer != null) {
-            if (viewer.getPlayer().isSneaking()) {
-                //stopSimulatedPlayer(viewer.getPlayer().getLocation().toVector());
-                //return;
+            if (SNEAKING_DISABLES_SURFACE_COLLISIONS && viewer.getPlayer().isSneaking()) {
+                stopSimulatedPlayer(viewer.getPlayer().getLocation().toVector());
+                return;
             }
             updateSimulatedPlayer(transitions, bboxTo);
             return;
@@ -165,49 +153,23 @@ public class CollisionSurfaceTracker {
         );
         PlayerTransition playerTransition = new PlayerTransition(bboxFrom, bboxTo);
 
+        MathUtil.setVector(previousPlayerPosition, position);
+
+        // Sneak debug mode, pretend surfaces aren't there so player can be freed from the surfaces.
+        if (SNEAKING_DISABLES_SURFACE_COLLISIONS && viewer.getPlayer().isSneaking()) {
+            return;
+        }
+
         PlayerCollisionSolver.Result<CollisionSurfaceTrackerImpl> solution = PLAYER_COLLISION_SOLVER.solveDetailed(
                 transitions,
                 playerTransition
         );
-
-        // If the solver modifies the player bounds drastically (in Y), emit a repro snippet
-        // only for the surface that triggered the adjustment (if any). We consider either the
-        // minY or maxY changing by more than 50 units to be drastic.
-        try {
-            double deltaMinY = Math.abs(solution.bounds.getMinY() - playerTransition.to.bounds.getMinY());
-            double deltaMaxY = Math.abs(solution.bounds.getMaxY() - playerTransition.to.bounds.getMaxY());
-            if (deltaMinY > 10.0 || deltaMaxY > 10.0) {
-                TrainCarts.plugin.getLogger().info("Big jump detected, new bounds: " + solution.bounds);
-                logReproSnippet(solution.involvedTransitions, playerTransition.from.bounds, playerTransition.to.bounds);
-            }
-        } catch (Throwable t) {
-            // Be defensive: don't let logging failures break update
-        }
-
-        MathUtil.setVector(previousPlayerPosition, position);
 
         if (!solution.bounds.equals(playerTransition.to.bounds)) {
             Vector solPos = new Vector(
                     (solution.bounds.getMinX() + solution.bounds.getMaxX()) / 2.0,
                     solution.bounds.getMinY(),
                     (solution.bounds.getMinZ() + solution.bounds.getMaxZ()) / 2.0);
-            CommonUtil.broadcast("Player passed through [" + solPos + "] mode=" + solution.lastCollisionMode);
-
-            /*
-            TrainCarts.plugin.getLogger().info("Collision solver adjusted player for viewer=" + viewer.getPlayer().getName()
-                    + " mode=" + solution.lastCollisionMode
-                    + " surface=" + solution.lastSurface);
-            TrainCarts.plugin.getLogger().info("Player position from=" + previousPosition + " to=" + position + " movement=" + movement);
-            TrainCarts.plugin.getLogger().info("Player bbox from=" + bboxFrom + " to=" + bboxTo + " solved=" + solution.bounds);
-            if (solution.lastSurfaceFromState != null && solution.lastSurfaceToState != null) {
-                TrainCarts.plugin.getLogger().info("Surface transition fromPos=" + solution.lastSurfaceFromState.center
-                        + " toPos=" + solution.lastSurfaceToState.center
-                        + " fromHalfSize=" + solution.lastSurfaceFromState.halfSize
-                        + " toHalfSize=" + solution.lastSurfaceToState.halfSize);
-                TrainCarts.plugin.getLogger().info("Surface transition fromNormal=" + solution.lastSurfaceFromState.normal
-                        + " toNormal=" + solution.lastSurfaceToState.normal);
-            }
-             */
 
             if (solution.lastCollisionMode == PlayerCollisionSolver.CollisionMode.FEET
                     && solution.lastSurface != null
