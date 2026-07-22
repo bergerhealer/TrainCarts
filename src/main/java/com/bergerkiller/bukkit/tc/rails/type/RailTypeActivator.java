@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.tc.rails.type;
 
+import com.bergerkiller.bukkit.tc.controller.components.RailJunction;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.event.block.BlockPhysicsEvent;
@@ -10,6 +11,9 @@ import com.bergerkiller.bukkit.common.wrappers.BlockData;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.utils.PoweredTrackLogic;
 
+import java.util.Collections;
+import java.util.List;
+
 public class RailTypeActivator extends RailTypeRegular {
     private final boolean isPowered;
 
@@ -19,6 +23,16 @@ public class RailTypeActivator extends RailTypeRegular {
 
     public boolean isPowered() {
         return this.isPowered;
+    }
+
+    @Override
+    public List<RailJunction> getJunctions(Block railBlock) {
+        return Collections.emptyList();
+    }
+
+    @Override
+    public void switchJunction(Block railBlock, RailJunction from, RailJunction to) {
+        // No junctions
     }
 
     @Override

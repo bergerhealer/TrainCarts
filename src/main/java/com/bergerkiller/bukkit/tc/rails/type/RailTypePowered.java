@@ -7,6 +7,7 @@ import com.bergerkiller.bukkit.common.wrappers.BlockData;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
+import com.bergerkiller.bukkit.tc.controller.components.RailJunction;
 import com.bergerkiller.bukkit.tc.utils.PoweredTrackLogic;
 
 import org.bukkit.Material;
@@ -14,6 +15,9 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.event.block.BlockPhysicsEvent;
 import org.bukkit.material.Rails;
+
+import java.util.Collections;
+import java.util.List;
 
 public class RailTypePowered extends RailTypeRegular {
     public static final double START_BOOST = 0.02;
@@ -30,6 +34,16 @@ public class RailTypePowered extends RailTypeRegular {
     @Override
     public String toString() {
         return "RailTypePowered{powered=" + isPowered + "}";
+    }
+
+    @Override
+    public List<RailJunction> getJunctions(Block railBlock) {
+        return Collections.emptyList();
+    }
+
+    @Override
+    public void switchJunction(Block railBlock, RailJunction from, RailJunction to) {
+        // No junctions
     }
 
     @Override
