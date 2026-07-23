@@ -51,7 +51,7 @@ public class PlayerCollisionSolverExtremeOutputTest {
     private static void runAndAssert(List<OBBSurfaceTransition<String>> transitions, AABBHandle playerFrom, AABBHandle playerTo, double expectedMinY, double allowedDelta) {
         PlayerBoundsTransition pt = new PlayerBoundsTransition(playerFrom, playerTo);
         PlayerCollisionSolver.Result<String> result = TEST_SOLVER.solveDetailed(transitions, pt);
-        AABBHandle solved = result.bounds;
+        AABBHandle solved = result.state.bounds;
         System.out.println("Repro solved bounds: minY=" + solved.getMinY() + " maxY=" + solved.getMaxY());
         assertEquals("Solver produced an extreme minY (" + solved.getMinY() + ")",
                 expectedMinY, solved.getMinY(), allowedDelta);
@@ -74,7 +74,7 @@ public class PlayerCollisionSolverExtremeOutputTest {
         // Ensure finite and not ridiculously large (sanity check)
         PlayerBoundsTransition pt = new PlayerBoundsTransition(playerFrom, playerTo);
         PlayerCollisionSolver.Result<String> result = TEST_SOLVER.solveDetailed(java.util.Collections.singletonList(transition), pt);
-        AABBHandle solved = result.bounds;
+        AABBHandle solved = result.state.bounds;
         System.out.println("Solved bounds: minY=" + solved.getMinY() + " maxY=" + solved.getMaxY());
         assertTrue("minY is finite and within reasonable bounds", Double.isFinite(solved.getMinY()) && Math.abs(solved.getMinY()) < 1e6);
         assertTrue("maxY is finite and within reasonable bounds", Double.isFinite(solved.getMaxY()) && Math.abs(solved.getMaxY()) < 1e6);
