@@ -24,7 +24,7 @@ import java.util.Optional;
  * platforms to pick up players and descending platforms to push players down when intersecting
  * their head.
  */
-public class PlayerCollisionSolver {
+class PlayerCollisionSolver {
     private static final double EPS = 1e-9;
     /** Small downward sweep used when checking what surface the player is standing on */
     private static final double SUPPORT_SEARCH_DISTANCE = 0.15;
@@ -71,13 +71,13 @@ public class PlayerCollisionSolver {
     private static final class InteractionCandidate<T> {
         final OBBSurfaceTransition<T> st;
         final OBBSurfaceState surfaceAtTheta;
-        final PlayerState playerAtTheta;
+        final PlayerBoundsState playerAtTheta;
         final double theta; // first encounter parameter along motion [0..1]
         final boolean isVertical;
         final boolean feetCrossed;
         final boolean headCrossed;
 
-        InteractionCandidate(OBBSurfaceTransition<T> st, OBBSurfaceState surfaceAtTheta, PlayerState playerAtTheta, double theta, boolean isVertical,
+        InteractionCandidate(OBBSurfaceTransition<T> st, OBBSurfaceState surfaceAtTheta, PlayerBoundsState playerAtTheta, double theta, boolean isVertical,
                              boolean feetCrossed, boolean headCrossed) {
             this.st = st;
             this.surfaceAtTheta = surfaceAtTheta;
@@ -112,7 +112,7 @@ public class PlayerCollisionSolver {
     }
 
     private <T> Optional<InteractionCandidate<T>> computeInteractionCandidate(OBBSurfaceTransition<T> st,
-                                                                              PlayerTransition player,
+                                                                              PlayerBoundsTransition player,
                                                                               double minTheta) {
         double startTheta = Math.max(0.0, Math.min(1.0, minTheta));
         if (startTheta >= 1.0) {
@@ -122,12 +122,12 @@ public class PlayerCollisionSolver {
         final int ROUGH_STEPS = 12;
         double prevTheta = startTheta;
         OBBSurfaceState prevSurface = st.interpolate(prevTheta);
-        PlayerState prevPlayer = player.interpolate(prevTheta);
+        PlayerBoundsState prevPlayer = player.interpolate(prevTheta);
 
         for (int i = 1; i <= ROUGH_STEPS; i++) {
             double theta = startTheta + (1.0 - startTheta) * (i / (double) ROUGH_STEPS);
             OBBSurfaceState currSurface = st.interpolate(theta);
-            PlayerState currPlayer = player.interpolate(theta);
+            PlayerBoundsState currPlayer = player.interpolate(theta);
 
             Optional<InteractionCandidate<T>> cand = evaluateInteractionCandidateInterval(
                     st, prevSurface, currSurface, prevPlayer, currPlayer, prevTheta, theta);
@@ -147,9 +147,9 @@ public class PlayerCollisionSolver {
     }
 
     private static <T> Optional<InteractionCandidate<T>> evaluateInteractionCandidateInterval(OBBSurfaceTransition<T> st,
-                                                                                             OBBSurfaceState fromSurface, OBBSurfaceState toSurface,
-                                                                                             PlayerState fromPlayer, PlayerState toPlayer,
-                                                                                             double fromTheta, double toTheta) {
+                                                                                              OBBSurfaceState fromSurface, OBBSurfaceState toSurface,
+                                                                                              PlayerBoundsState fromPlayer, PlayerBoundsState toPlayer,
+                                                                                              double fromTheta, double toTheta) {
         boolean isVertical = Math.abs(fromSurface.normal.getY()) < VERTICAL_NORMAL_EPS && Math.abs(toSurface.normal.getY()) < VERTICAL_NORMAL_EPS;
         double bestTheta = Double.POSITIVE_INFINITY;
         boolean feetCrossed = false;
@@ -223,7 +223,7 @@ public class PlayerCollisionSolver {
         double localTheta = (toTheta <= fromTheta) ? 1.0 : (bestTheta - fromTheta) / (toTheta - fromTheta);
         localTheta = Math.max(0.0, Math.min(1.0, localTheta));
         OBBSurfaceState surfaceAtTheta = st.interpolate(bestTheta);
-        PlayerState playerAtTheta = fromPlayer.interpolate(toPlayer, localTheta);
+        PlayerBoundsState playerAtTheta = fromPlayer.interpolate(toPlayer, localTheta);
         InteractionCandidate<T> res = new InteractionCandidate<>(st, surfaceAtTheta, playerAtTheta, bestTheta, isVertical,
                 feetCrossed, headCrossed);
         return Optional.of(res);
@@ -233,7 +233,7 @@ public class PlayerCollisionSolver {
         return Math.abs(surface.normal.getY()) < VERTICAL_NORMAL_EPS;
     }
 
-    private static boolean boxTouchesVerticalSurface(OBBSurfaceState surface, PlayerState player) {
+    private static boolean boxTouchesVerticalSurface(OBBSurfaceState surface, PlayerBoundsState player) {
         return boxTouchesVerticalSurface(surface, player.bounds);
     }
 
@@ -281,7 +281,7 @@ public class PlayerCollisionSolver {
         public final OBBSurfaceState lastSurfaceFromState;
         public final OBBSurfaceState lastSurfaceToState;
         /** Player bounding box transition that caused this result */
-        public final PlayerTransition playerTransition;
+        public final PlayerBoundsTransition playerTransition;
         /** All surface transitions that caused the solver to modify the result */
         public final java.util.List<OBBSurfaceTransition<T>> involvedTransitions;
 
@@ -297,7 +297,7 @@ public class PlayerCollisionSolver {
                 CollisionMode lastCollisionMode,
                 OBBSurfaceState lastSurfaceFromState,
                 OBBSurfaceState lastSurfaceToState,
-                PlayerTransition playerTransition,
+                PlayerBoundsTransition playerTransition,
                 java.util.List<OBBSurfaceTransition<T>> involvedTransitions
         ) {
             this.bounds = bounds;
@@ -333,7 +333,7 @@ public class PlayerCollisionSolver {
          * @param indentStr Indent string to prefix each line by
          */
         public void printDebugTest(StringBuilder str, String indentStr) {
-            str.append(indentStr).append("PlayerTransition playerTransition = ");
+            str.append(indentStr).append("PlayerBoundsTransition playerTransition = ");
             playerTransition.printDebugCreate(str, indentStr);
             str.append("\n\n");
 
@@ -365,7 +365,7 @@ public class PlayerCollisionSolver {
      * typed surface lists so callers that use Collections.singletonList(...) or
      * raw lists do not require explicit generic type hints.
      */
-    public <T> AABBHandle solve(List<? extends OBBSurfaceTransition<T>> surfaces, PlayerTransition player) {
+    public <T> AABBHandle solve(List<? extends OBBSurfaceTransition<T>> surfaces, PlayerBoundsTransition player) {
         return this.solveDetailed(surfaces, player).bounds;
     }
 
@@ -373,7 +373,7 @@ public class PlayerCollisionSolver {
      * Instance variant of solveDetailed. Prefer using instance methods so the solver
      * can use its own logger.
      */
-    public <T> Result<T> solveDetailed(List<? extends OBBSurfaceTransition<T>> surfaces, PlayerTransition player) {
+    public <T> Result<T> solveDetailed(List<? extends OBBSurfaceTransition<T>> surfaces, PlayerBoundsTransition player) {
         if (surfaces == null || surfaces.isEmpty()) {
             return new Result<>(player.to.bounds, null, CollisionMode.NONE, null, null, player, java.util.Collections.emptyList());
         }
@@ -499,7 +499,7 @@ public class PlayerCollisionSolver {
     /**
      * Tests whether the player is standing on a surface directly below their feet.
      * This performs a very small downward sweep and returns the same {@link Result}
-     * type as {@link #solveDetailed(List, PlayerTransition)} so callers can inspect
+     * type as {@link #solveDetailed(List, PlayerBoundsTransition)} so callers can inspect
      * the surface that is currently supporting the player.
      *
      * @param surfaces Surface transitions to test against
@@ -511,10 +511,10 @@ public class PlayerCollisionSolver {
     public <T> Result<T> solveBelowFeetDetailed(List<? extends OBBSurfaceTransition<T>> surfaces, AABBHandle playerBounds) {
         if (surfaces == null || surfaces.isEmpty() || playerBounds == null) {
             return new Result<>(playerBounds, null, CollisionMode.NONE, null, null,
-                    new PlayerTransition(playerBounds, playerBounds), java.util.Collections.emptyList());
+                    new PlayerBoundsTransition(playerBounds, playerBounds), java.util.Collections.emptyList());
         }
 
-        PlayerTransition supportCheck = new PlayerTransition(
+        PlayerBoundsTransition supportCheck = new PlayerBoundsTransition(
                 playerBounds,
                 translate(playerBounds, 0.0, -SUPPORT_SEARCH_DISTANCE, 0.0)
         );
@@ -528,7 +528,7 @@ public class PlayerCollisionSolver {
 
     // Helper mutable context to collect result state while iterating surfaces
     private static final class CollisionContext<T> {
-        PlayerTransition playerTransition;
+        PlayerBoundsTransition playerTransition;
         AABBHandle result;
         T lastSurface = null;
         CollisionMode lastCollisionMode = CollisionMode.NONE;
@@ -536,13 +536,13 @@ public class PlayerCollisionSolver {
         OBBSurfaceState lastSurfaceToState = null;
         java.util.List<OBBSurfaceTransition<T>> involved = new java.util.ArrayList<>();
 
-        CollisionContext(PlayerTransition playerTransition) {
+        CollisionContext(PlayerBoundsTransition playerTransition) {
             this.playerTransition = playerTransition;
             this.result = playerTransition.to.bounds;
         }
     }
 
-    private <T> void processSurface(InteractionCandidate<T> cand, PlayerTransition player,
+    private <T> void processSurface(InteractionCandidate<T> cand, PlayerBoundsTransition player,
                                     CollisionContext<T> ctx, List<? extends OBBSurfaceTransition<T>> surfaces) {
         if (cand.isVertical) {
             this.processVerticalWallSurfaceAtInterp(cand, player, ctx, surfaces);
@@ -640,7 +640,7 @@ public class PlayerCollisionSolver {
         return false;
     }
 
-    private <T> void processVerticalWallSurfaceAtInterp(InteractionCandidate<T> cand, PlayerTransition player,
+    private <T> void processVerticalWallSurfaceAtInterp(InteractionCandidate<T> cand, PlayerBoundsTransition player,
                                                         CollisionContext<T> ctx, List<? extends OBBSurfaceTransition<T>> surfaces) {
         OBBSurfaceState surface = cand.surfaceAtTheta;
 
@@ -721,7 +721,7 @@ public class PlayerCollisionSolver {
         return res;
     }
 
-    private <T> void pickBestMultiSurfaceResultIfNeeded(CollisionContext<T> ctx, PlayerTransition player,
+    private <T> void pickBestMultiSurfaceResultIfNeeded(CollisionContext<T> ctx, PlayerBoundsTransition player,
                                                         List<? extends OBBSurfaceTransition<T>> surfaces) {
         if (surfaces == null || surfaces.size() < 2) {
             return;
@@ -809,7 +809,7 @@ public class PlayerCollisionSolver {
         }
     }
 
-    private <T> void validateResultBounds(CollisionContext<T> ctx, PlayerTransition player) {
+    private <T> void validateResultBounds(CollisionContext<T> ctx, PlayerBoundsTransition player) {
         try {
             double deltaMinY = Math.abs(ctx.result.getMinY() - player.to.bounds.getMinY());
             double deltaMaxY = Math.abs(ctx.result.getMaxY() - player.to.bounds.getMaxY());
@@ -884,7 +884,7 @@ public class PlayerCollisionSolver {
                 surf.normal.getZ() * distance);
     }
 
-    private static boolean isWrongDirectionWallClamp(PlayerState from, PlayerState to, OBBSurfaceState surface) {
+    private static boolean isWrongDirectionWallClamp(PlayerBoundsState from, PlayerBoundsState to, OBBSurfaceState surface) {
         Vector movement = center(to.bounds).subtract(center(from.bounds));
         if (movement.lengthSquared() < 1e-20) {
             return false;
@@ -911,7 +911,7 @@ public class PlayerCollisionSolver {
         return planarMovement.dot(uphillDir) <= 1e-6;
     }
 
-    private static Boolean preferredWallClampPositiveSide(PlayerState from, PlayerState to, OBBSurfaceState surface) {
+    private static Boolean preferredWallClampPositiveSide(PlayerBoundsState from, PlayerBoundsState to, OBBSurfaceState surface) {
         return preferredWallClampPositiveSide(from, to, surface, surface);
     }
 
@@ -922,7 +922,7 @@ public class PlayerCollisionSolver {
      * the beginning of the tick) to avoid mis-detecting the side when the wall shifted toward
      * the player's initial touching face.
      */
-    private static Boolean preferredWallClampPositiveSide(PlayerState from, PlayerState to,
+    private static Boolean preferredWallClampPositiveSide(PlayerBoundsState from, PlayerBoundsState to,
                                                           OBBSurfaceState fromSurface, OBBSurfaceState toSurface) {
         double fromMinSigned = minSignedDistanceToPlane(from.bounds, fromSurface);
         double fromMaxSigned = maxSignedDistanceToPlane(from.bounds, fromSurface);
