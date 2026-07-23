@@ -23,7 +23,16 @@ public interface CollisionSurface {
         }
 
         @Override
-        public void setUseShulkers(boolean useShulkers) {
+        public boolean isShulkerGrid() {
+            return false;
+        }
+
+        @Override
+        public void setSimulated(boolean simulated) {
+        }
+
+        @Override
+        public void setUseShulkerGrid(boolean useShulkers) {
         }
 
         @Override
@@ -69,11 +78,28 @@ public interface CollisionSurface {
     boolean isSimulated();
 
     /**
-     * Sets whether this surface should be represented as shulker boxes when not in motion
+     * Gets whether this surface is presently rendered onto the the "shulker grid". This is a 2D grid on each axis of the player
+     * where shulker boxes are spawned to restrict movement and provide a walking surface. This only occurs while this
+     * surface is stationary and {@link #setUseShulkerGrid(boolean)} is set to true.
+     *
+     * @return True if this surface is rendered onto a shulker grid
+     */
+    boolean isShulkerGrid();
+
+    /**
+     * Sets whether this surface is simulated server-side. When set to true and the surface is not stationary or
+     * using shulkers is disabled, the player movement will be server-side controlled and simulated.
+     *
+     * @param simulated True if simulated
+     */
+    void setSimulated(boolean simulated);
+
+    /**
+     * Sets whether this surface should be represented as shulker boxes on a grid when not in motion
      *
      * @param useShulkers True to spawn shulkers when stationary
      */
-    void setUseShulkers(boolean useShulkers);
+    void setUseShulkerGrid(boolean useShulkers);
 
     /**
      * Gets the surface shape this surface is set to. Returns null when this surface is removed, such
