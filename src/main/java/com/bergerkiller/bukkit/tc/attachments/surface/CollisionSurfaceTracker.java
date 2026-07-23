@@ -99,8 +99,8 @@ public class CollisionSurfaceTracker {
         for (CollisionSurfaceTrackerImpl surface : surfaces) {
             surface.nextUpdate();
 
-            if (!surface.isSimulated()) {
-                surface.spawnShulkers();
+            if (surface.isShulkerGrid()) {
+                surface.spawnOnShulkerGrid();
             }
         }
 
@@ -763,15 +763,26 @@ public class CollisionSurfaceTracker {
         private int moveDetectedAtCount = 0;
         private boolean useShulkersWhenNotMoving = true;
         private boolean isMoving = false;
+        private boolean simulationEnabled = true;
 
         @Override
-        public boolean isSimulated() {
-            return isMoving || !useShulkersWhenNotMoving;
+        public void setSimulated(boolean simulated) {
+            simulationEnabled = simulated;
         }
 
         @Override
-        public void setUseShulkers(boolean useShulkers) {
+        public void setUseShulkerGrid(boolean useShulkers) {
             useShulkersWhenNotMoving = useShulkers;
+        }
+
+        @Override
+        public boolean isSimulated() {
+            return simulationEnabled && (isMoving || !useShulkersWhenNotMoving);
+        }
+
+        @Override
+        public boolean isShulkerGrid() {
+            return useShulkersWhenNotMoving && !isMoving;
         }
 
         @Override
@@ -877,7 +888,7 @@ public class CollisionSurfaceTracker {
             }
         }
 
-        public void spawnShulkers() {
+        public void spawnOnShulkerGrid() {
             Vector playerPos = viewer.getPlayer().getLocation().toVector();
             OBBSurfaceContext context = new OBBSurfaceContext(shape, playerPos, shulkerViewDistance);
             if (context.isFullyClipped) {
