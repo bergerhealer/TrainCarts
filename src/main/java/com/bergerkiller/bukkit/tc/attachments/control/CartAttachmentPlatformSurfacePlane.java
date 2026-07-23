@@ -25,9 +25,9 @@ import java.util.List;
  * size of this plane can be adjusted. When players are detected falling
  * through this plane, they are teleported upwards.
  */
-public class CartAttachmentPlatformPlane extends CartAttachmentPlatform {
+public class CartAttachmentPlatformSurfacePlane extends CartAttachmentPlatform {
     private final OrientedBoundingBox bbox = new OrientedBoundingBox();
-    private boolean stationaryShulkers = true;
+    private PlatformMode platformMode = PlatformMode.SIMULATED_WITH_SHULKER_GRID;
     private final List<PlayerSurface> playerSurfaces = new ArrayList<>();
     private Plane plane = null; // Null if not spawned
 
@@ -35,22 +35,8 @@ public class CartAttachmentPlatformPlane extends CartAttachmentPlatform {
     public void onLoad(ConfigurationNode config) {
         Vector3 size = LogicUtil.fixNull(this.getConfiguredPosition().size, DEFAULT_SIZE);
         bbox.setSize(new Vector(size.x, 0.0, size.z));
-        stationaryShulkers = config.getOrDefault("stationaryShulkers", true);
+        platformMode = readPlatformMode(config);
         playerSurfaces.forEach(this::applySettings);
-    }
-
-    @Override
-    public boolean checkCanReload(ConfigurationNode config) {
-        if (!super.checkCanReload(config)) {
-            return false;
-        }
-
-        // Switches between attachment implementation class
-        if (readPlatformMode(config) != PlatformMode.PLANE) {
-            return false;
-        }
-
-        return true;
     }
 
     @Override
@@ -88,7 +74,8 @@ public class CartAttachmentPlatformPlane extends CartAttachmentPlatform {
         } else {
             surface.surface.setDebugName(null);
         }
-        surface.surface.setUseShulkers(stationaryShulkers);
+        surface.surface.setSimulated(platformMode.isSimulated());
+        surface.surface.setUseShulkerGrid(platformMode.isSpawningShulkerGrid());
     }
 
     public void setPlaneColor(ChatColor color) {
