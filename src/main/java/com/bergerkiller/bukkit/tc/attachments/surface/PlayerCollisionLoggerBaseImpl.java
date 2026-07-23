@@ -13,7 +13,7 @@ import java.nio.file.StandardOpenOption;
  * associated helper utilities. Concrete loggers can extend this class or use
  * the provided DISABLED instance for no-op logging.
  */
-public abstract class PlayerCollisionLoggerBaseImpl implements PlayerCollisionLogger {
+abstract class PlayerCollisionLoggerBaseImpl implements PlayerCollisionLogger {
     private static final String DEBUG_FILE = "/tmp/playercollision-debug.txt";
 
     @Override

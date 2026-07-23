@@ -8,7 +8,7 @@ import org.bukkit.util.Vector;
  * {@link PlayerCollisionLoggerBaseImpl} and concrete variants such as
  * {@link PlayerCollisionLoggerImpl}.
  */
-public interface PlayerCollisionLogger {
+interface PlayerCollisionLogger {
     /** A no-op logger instance constant for disabling all logging */
     PlayerCollisionLogger DISABLED = new PlayerCollisionLogger() {
         @Override public boolean isEnabled() { return false; }

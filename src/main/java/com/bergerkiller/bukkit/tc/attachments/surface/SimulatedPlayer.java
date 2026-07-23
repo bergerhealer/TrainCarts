@@ -8,7 +8,7 @@ import org.bukkit.util.Vector;
  * Stores the state of a player that is simulated while walking on a collision surface.
  * This is a data holder only for now.
  */
-public class SimulatedPlayer {
+class SimulatedPlayer {
     public static final double SIMULATED_VELOCITY_DRAG_XZ = 0.91;
     public static final double SIMULATED_VELOCITY_DRAG_Y = 0.98;
     public static final double SIMULATED_GRAVITY = 0.08;
@@ -21,7 +21,7 @@ public class SimulatedPlayer {
     public final AttachmentViewer viewer;
     public final AttachmentViewer.MovementController pmc;
     public Vector lastPosition;
-    public PlayerState lastDebugState = null;
+    public PlayerBoundsState lastDebugState = null;
     public Vector position;
     /** Velocity of the player relative to the surface or air. Does not include velocity of the surface itself. */
     public Vector velocity;

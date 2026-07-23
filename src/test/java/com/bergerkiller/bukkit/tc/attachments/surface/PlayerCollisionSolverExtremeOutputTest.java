@@ -49,7 +49,7 @@ public class PlayerCollisionSolverExtremeOutputTest {
     }
 
     private static void runAndAssert(List<OBBSurfaceTransition<String>> transitions, AABBHandle playerFrom, AABBHandle playerTo, double expectedMinY, double allowedDelta) {
-        PlayerTransition pt = new PlayerTransition(playerFrom, playerTo);
+        PlayerBoundsTransition pt = new PlayerBoundsTransition(playerFrom, playerTo);
         PlayerCollisionSolver.Result<String> result = TEST_SOLVER.solveDetailed(transitions, pt);
         AABBHandle solved = result.bounds;
         System.out.println("Repro solved bounds: minY=" + solved.getMinY() + " maxY=" + solved.getMaxY());
@@ -72,7 +72,7 @@ public class PlayerCollisionSolverExtremeOutputTest {
                 -344.5378490686932, 14.707600785268895, 307.0583185064141);
 
         // Ensure finite and not ridiculously large (sanity check)
-        PlayerTransition pt = new PlayerTransition(playerFrom, playerTo);
+        PlayerBoundsTransition pt = new PlayerBoundsTransition(playerFrom, playerTo);
         PlayerCollisionSolver.Result<String> result = TEST_SOLVER.solveDetailed(java.util.Collections.singletonList(transition), pt);
         AABBHandle solved = result.bounds;
         System.out.println("Solved bounds: minY=" + solved.getMinY() + " maxY=" + solved.getMaxY());
