@@ -81,7 +81,7 @@ public class CollisionSurfaceTracker {
                 .map(s -> new OBBSurfaceTransition<>(s.shape, s.shape, s))
                 .collect(Collectors.toList());
 
-        PlayerCollisionSolver.Result<CollisionSurfaceTrackerImpl> solution = PLAYER_COLLISION_SOLVER.solveDetailed(transitions, new PlayerTransition(from, to));
+        PlayerCollisionSolver.Result<CollisionSurfaceTrackerImpl> solution = PLAYER_COLLISION_SOLVER.solveDetailed(transitions, new PlayerBoundsTransition(from, to));
         if (!solution.hasCollision()) {
             return CollisionSurface.DISABLED;
         }
@@ -151,7 +151,7 @@ public class CollisionSurfaceTracker {
                 bboxTo.getMaxY() - movement.getY(),
                 bboxTo.getMaxZ() - movement.getZ()
         );
-        PlayerTransition playerTransition = new PlayerTransition(bboxFrom, bboxTo);
+        PlayerBoundsTransition playerTransition = new PlayerBoundsTransition(bboxFrom, bboxTo);
 
         MathUtil.setVector(previousPlayerPosition, position);
 
@@ -363,7 +363,7 @@ public class CollisionSurfaceTracker {
             }
         }
 
-        Vector actualFeetPosition = PlayerState.feetPosition(actualBounds);
+        Vector actualFeetPosition = PlayerBoundsState.feetPosition(actualBounds);
         AABBHandle bboxFrom = actualBounds.translate(
                 currentPosition.getX() - actualFeetPosition.getX(),
                 currentPosition.getY() - actualFeetPosition.getY(),
@@ -380,25 +380,25 @@ public class CollisionSurfaceTracker {
             AABBHandle bboxToSnapped = activeTransition.to.placeBoundsOnSurface(bboxTo);
             if (!bboxToSnapped.equals(bboxTo)) {
                 bboxTo = bboxToSnapped;
-                nextPosition = PlayerState.feetPosition(bboxTo);
+                nextPosition = PlayerBoundsState.feetPosition(bboxTo);
             }
         }
 
         PlayerCollisionSolver.Result<CollisionSurfaceTrackerImpl> solution = PLAYER_COLLISION_SOLVER.solveDetailed(
                 transitions,
-                new PlayerTransition(bboxFrom, bboxTo)
+                new PlayerBoundsTransition(bboxFrom, bboxTo)
         );
 
         boolean hasCornerPassedThrough = false;
         for (OBBSurfaceTransition<CollisionSurfaceTrackerImpl> surface : transitions) {
-            if (surface.hasCornerPassedThrough(new PlayerTransition(bboxFrom, solution.bounds))) {
+            if (surface.hasCornerPassedThrough(new PlayerBoundsTransition(bboxFrom, solution.bounds))) {
                 if (!solution.involvedTransitions.contains(surface)) {
                     solution.involvedTransitions.add(surface);
                 }
                 TrainCarts.plugin.getLogger().info("CORNER PASSED THROUGH [" + CommonUtil.getServerTicks() + "] surface=" + surface.source);
                 TrainCarts.plugin.getLogger().info("SOLUTION BOUNDS: " + solution.bounds);
                 hasCornerPassedThrough = true;
-            } else if ( surface.to.isClippingThrough(new PlayerState(solution.bounds))) {
+            } else if ( surface.to.isClippingThrough(new PlayerBoundsState(solution.bounds))) {
                 if (!solution.involvedTransitions.contains(surface)) {
                     solution.involvedTransitions.add(surface);
                 }
@@ -422,7 +422,7 @@ public class CollisionSurfaceTracker {
             hasSurfaceCollision = solution.hasCollision();
         }
         if (hasSurfaceCollision) {
-            nextPosition = PlayerState.feetPosition(solution.bounds);
+            nextPosition = PlayerBoundsState.feetPosition(solution.bounds);
             if (solution.lastSurface != null && isFloorLikeLanding(solution)) {
                 simulatedPlayer.lastSurface = solution.lastSurface;
                 simulatedPlayer.flying = false;
@@ -460,7 +460,7 @@ public class CollisionSurfaceTracker {
         }
 
         simulatedPlayer.lastPosition = currentPosition;
-        simulatedPlayer.lastDebugState = new PlayerState(solution.bounds);
+        simulatedPlayer.lastDebugState = new PlayerBoundsState(solution.bounds);
         simulatedPlayer.position = nextPosition;
         simulatedPlayer.lastJumpInput = input.jumping();
     }
