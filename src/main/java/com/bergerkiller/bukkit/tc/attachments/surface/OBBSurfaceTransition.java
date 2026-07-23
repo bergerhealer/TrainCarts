@@ -2,10 +2,8 @@ package com.bergerkiller.bukkit.tc.attachments.surface;
 
 import com.bergerkiller.bukkit.common.math.OrientedBoundingBox;
 import com.bergerkiller.bukkit.common.math.Quaternion;
-import com.bergerkiller.generated.net.minecraft.world.phys.AABBHandle;
 import org.bukkit.util.Vector;
 
-import java.util.Collections;
 import java.util.List;
 
 /**
@@ -65,10 +63,12 @@ public class OBBSurfaceTransition<T> {
      * the player body is actually on. This prevents false positives when the solver
      * correctly places a corner exactly on the surface (signedDist ≈ 0).</p>
      */
-    public boolean hasCornerPassedThrough(PlayerBoundsTransition transition) {
+    public boolean hasCornerPassedThrough(final PlayerBoundsTransition transition) {
+        Vector[] fromCorners = transition.from.corners();
+        Vector[] toCorners = transition.to.corners();
         for (int i = 0; i < 8; i++) {
-            Vector fromPos = transition.from.corners[i];
-            Vector toPos   = transition.to.corners[i];
+            Vector fromPos = fromCorners[i];
+            Vector toPos = toCorners[i];
 
             double signedFrom = from.signedDistanceToPlane(fromPos);
             double signedTo   = to  .signedDistanceToPlane(toPos);
@@ -81,7 +81,7 @@ public class OBBSurfaceTransition<T> {
             // If the old position is essentially on the surface, use the
             // opposite corner's old position as the reference side.
             if (Math.abs(signedFrom) < NEAR_SURFACE_EPS) {
-                signedFrom = from.signedDistanceToPlane(transition.from.corners[j]);
+                signedFrom = from.signedDistanceToPlane(fromCorners[j]);
             }
 
             // If the new position is essentially on the surface, use the
@@ -89,7 +89,7 @@ public class OBBSurfaceTransition<T> {
             // is on the positive side (just touching) or the negative side
             // (genuinely passed through).
             if (Math.abs(signedTo) < NEAR_SURFACE_EPS) {
-                double signedToOpposite = to.signedDistanceToPlane(transition.to.corners[j]);
+                double signedToOpposite = to.signedDistanceToPlane(toCorners[j]);
                 if (signedToOpposite >= -NEAR_SURFACE_EPS) {
                     // Opposite corner is on the correct (positive) side – the
                     // player is merely touching the surface, not passing through.
@@ -138,23 +138,6 @@ public class OBBSurfaceTransition<T> {
         OBBSurfaceState surfaceAtTheta = interpolate(theta);
         Vector projected = surfaceAtTheta.projectPointOntoPlane(crossingPoint, new Vector());
         return surfaceAtTheta.containsPointOnPlane(projected);
-    }
-
-    public boolean hasSurfaceSupport(AABBHandle actualBounds, Vector worldPosition, double gravity, PlayerCollisionSolver collisionSolver) {
-        Vector actualFeetPosition = PlayerBoundsState.feetPosition(actualBounds);
-        AABBHandle bboxAtPosition = actualBounds.translate(
-                worldPosition.getX() - actualFeetPosition.getX(),
-                worldPosition.getY() - actualFeetPosition.getY(),
-                worldPosition.getZ() - actualFeetPosition.getZ());
-        if (to.bottomFaceIntersectsSurfacePlane(bboxAtPosition)) {
-            return true;
-        }
-        AABBHandle bboxBelow = bboxAtPosition.translate(0.0, -gravity, 0.0);
-        PlayerCollisionSolver.Result<T> result = collisionSolver.solveDetailed(
-                Collections.singletonList(this),
-                new PlayerBoundsTransition(bboxAtPosition, bboxBelow)
-        );
-        return result.lastCollisionMode == PlayerCollisionSolver.CollisionMode.FEET;
     }
 
     private static Double crossingTheta(double signedFrom, double signedTo) {

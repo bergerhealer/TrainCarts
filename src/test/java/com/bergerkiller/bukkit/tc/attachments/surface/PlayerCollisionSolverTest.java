@@ -81,7 +81,7 @@ public class PlayerCollisionSolverTest {
 
         // We expect the minimum X-coordinate of the player to be clamped against the wall surface
         // The other end of the player should be away from the surface
-        assertEquals(-335.6303333333333, solution.bounds.getMinX(), 1e-6);
+        assertEquals(-335.6303333333333, solution.state.bounds.getMinX(), 1e-6);
     }
 
     /**
@@ -122,7 +122,7 @@ public class PlayerCollisionSolverTest {
         // Before the fix, the solver incorrectly pushed the player to the positive side so
         // that max-X ended up at -0.95 and min-X was around -1.55.
         assertEquals("Player min-X should be blocked by the wall at its final position",
-                -0.95, result.bounds.getMinX(), 1e-4);
+                -0.95, result.state.bounds.getMinX(), 1e-4);
     }
 
     @Test
@@ -156,11 +156,11 @@ public class PlayerCollisionSolverTest {
                 Collections.singletonList(transition),
                 playerTransition);
 
-        assertFalse(surface.isClippingThrough(new PlayerBoundsState(result.bounds)));
+        assertFalse(surface.isClippingThrough(result.state));
 
         System.out.println(result);
 
-        assertFalse(transition.hasCornerPassedThrough(new PlayerBoundsTransition(playerTransition.from, new PlayerBoundsState(result.bounds))));
+        assertFalse(transition.hasCornerPassedThrough(new PlayerBoundsTransition(playerTransition.from, result.state)));
     }
 
     /**
@@ -285,7 +285,7 @@ public class PlayerCollisionSolverTest {
         assertEquals("Detailed result should report a feet collision", PlayerCollisionSolver.CollisionMode.FEET, result.lastCollisionMode);
         assertNotNull("Detailed result should include the surface from state", result.lastSurfaceFromState);
         assertNotNull("Detailed result should include the surface to state", result.lastSurfaceToState);
-        assertFeetNotBelowSurface("Detailed result bounds should still resolve the collision", surface.from, result.bounds);
+        assertFeetNotBelowSurface("Detailed result bounds should still resolve the collision", surface.from, result.state.bounds);
     }
 
     @Test
@@ -665,12 +665,12 @@ public class PlayerCollisionSolverTest {
         );
 
         assertSame("Vertical wall collision should be reported as WALL", PlayerCollisionSolver.CollisionMode.WALL, result.lastCollisionMode);
-        assertWallNotPassedThrough("Player moving horizontally into a vertical surface should be blocked", surface.to, from, result.bounds);
-        assertEquals("Player approaching the wall from negative X should end with the leading maxX flush to the wall", surface.to.center.getX(), result.bounds.getMaxX(), 1e-9);
-        assertEquals("Wall collision should preserve player height", to.getMinY(), result.bounds.getMinY(), 1e-9);
-        assertEquals("Wall collision should preserve player height", to.getMaxY(), result.bounds.getMaxY(), 1e-9);
-        assertEquals("Wall collision should preserve Z min", to.getMinZ(), result.bounds.getMinZ(), 1e-9);
-        assertEquals("Wall collision should preserve Z max", to.getMaxZ(), result.bounds.getMaxZ(), 1e-9);
+        assertWallNotPassedThrough("Player moving horizontally into a vertical surface should be blocked", surface.to, from, result.state.bounds);
+        assertEquals("Player approaching the wall from negative X should end with the leading maxX flush to the wall", surface.to.center.getX(), result.state.bounds.getMaxX(), 1e-9);
+        assertEquals("Wall collision should preserve player height", to.getMinY(), result.state.bounds.getMinY(), 1e-9);
+        assertEquals("Wall collision should preserve player height", to.getMaxY(), result.state.bounds.getMaxY(), 1e-9);
+        assertEquals("Wall collision should preserve Z min", to.getMinZ(), result.state.bounds.getMinZ(), 1e-9);
+        assertEquals("Wall collision should preserve Z max", to.getMaxZ(), result.state.bounds.getMaxZ(), 1e-9);
     }
 
     @Test
@@ -689,13 +689,13 @@ public class PlayerCollisionSolverTest {
 
         assertTrue("Vertical wall collision should be reported as WALL (or bounds flush to wall)",
                 result.lastCollisionMode == PlayerCollisionSolver.CollisionMode.WALL ||
-                        Math.abs(result.bounds.getMinX() - surface.to.center.getX()) <= 1e-9);
-        assertWallNotPassedThrough("Player moving horizontally into a vertical surface from positive X should be blocked", surface.to, from, result.bounds);
-        assertEquals("Player approaching the wall from positive X should end with the leading minX flush to the wall", surface.to.center.getX(), result.bounds.getMinX(), 1e-9);
-        assertEquals("Wall collision should preserve player height", to.getMinY(), result.bounds.getMinY(), 1e-9);
-        assertEquals("Wall collision should preserve player height", to.getMaxY(), result.bounds.getMaxY(), 1e-9);
-        assertEquals("Wall collision should preserve Z min", to.getMinZ(), result.bounds.getMinZ(), 1e-9);
-        assertEquals("Wall collision should preserve Z max", to.getMaxZ(), result.bounds.getMaxZ(), 1e-9);
+                        Math.abs(result.state.bounds.getMinX() - surface.to.center.getX()) <= 1e-9);
+        assertWallNotPassedThrough("Player moving horizontally into a vertical surface from positive X should be blocked", surface.to, from, result.state.bounds);
+        assertEquals("Player approaching the wall from positive X should end with the leading minX flush to the wall", surface.to.center.getX(), result.state.bounds.getMinX(), 1e-9);
+        assertEquals("Wall collision should preserve player height", to.getMinY(), result.state.bounds.getMinY(), 1e-9);
+        assertEquals("Wall collision should preserve player height", to.getMaxY(), result.state.bounds.getMaxY(), 1e-9);
+        assertEquals("Wall collision should preserve Z min", to.getMinZ(), result.state.bounds.getMinZ(), 1e-9);
+        assertEquals("Wall collision should preserve Z max", to.getMaxZ(), result.state.bounds.getMaxZ(), 1e-9);
     }
 
     @Test
@@ -716,16 +716,16 @@ public class PlayerCollisionSolverTest {
         Vector[] tcs = allCorners(to);
         System.out.println("--- flush-negative debug ---");
         for (int i = 0; i < fcs.length; i++) {
-            double sf = PlayerCollisionSolver.signedDistanceToPlane(surface.from, fcs[i]);
-            double st = PlayerCollisionSolver.signedDistanceToPlane(surface.to, tcs[i]);
+            double sf = surface.from.signedDistanceToPlane(fcs[i]);
+            double st = surface.to.signedDistanceToPlane(tcs[i]);
             System.out.println("corner=" + i + " sf=" + sf + " st=" + st);
         }
 
         assertSame("Flush movement along the wall should still resolve as a wall collision", PlayerCollisionSolver.CollisionMode.WALL, result.lastCollisionMode);
-        assertEquals("Player flush against the wall on the negative side should keep maxX on the wall plane", surface.to.center.getX(), result.bounds.getMaxX(), 1e-9);
-        assertTrue("Player flush against the wall on the negative side should not be moved through to positive X", result.bounds.getMinX() <= surface.to.center.getX() + 1e-9);
-        assertEquals("Tangential movement along Z should be preserved while flush against the wall", to.getMinZ(), result.bounds.getMinZ(), 1e-9);
-        assertEquals("Tangential movement along Z should be preserved while flush against the wall", to.getMaxZ(), result.bounds.getMaxZ(), 1e-9);
+        assertEquals("Player flush against the wall on the negative side should keep maxX on the wall plane", surface.to.center.getX(), result.state.bounds.getMaxX(), 1e-9);
+        assertTrue("Player flush against the wall on the negative side should not be moved through to positive X", result.state.bounds.getMinX() <= surface.to.center.getX() + 1e-9);
+        assertEquals("Tangential movement along Z should be preserved while flush against the wall", to.getMinZ(), result.state.bounds.getMinZ(), 1e-9);
+        assertEquals("Tangential movement along Z should be preserved while flush against the wall", to.getMaxZ(), result.state.bounds.getMaxZ(), 1e-9);
     }
 
     @Test
@@ -742,24 +742,24 @@ public class PlayerCollisionSolverTest {
                 new PlayerBoundsTransition(from, to)
         );
 
-        System.out.println(result.bounds);
+        System.out.println(result.state);
         // Debug: print signed distances for corners to inspect flush behavior
         Vector[] fcs2 = allCorners(from);
         Vector[] tcs2 = allCorners(to);
         System.out.println("--- flush-positive debug ---");
         for (int i = 0; i < fcs2.length; i++) {
-            double sf = PlayerCollisionSolver.signedDistanceToPlane(surface.from, fcs2[i]);
-            double st = PlayerCollisionSolver.signedDistanceToPlane(surface.to, tcs2[i]);
+            double sf = surface.from.signedDistanceToPlane(fcs2[i]);
+            double st = surface.to.signedDistanceToPlane(tcs2[i]);
             System.out.println("corner=" + i + " sf=" + sf + " st=" + st);
         }
 
         assertTrue("Flush movement along the wall should still resolve as a wall collision (or bounds flush)",
                 result.lastCollisionMode == PlayerCollisionSolver.CollisionMode.WALL ||
-                        Math.abs(result.bounds.getMinX() - surface.to.center.getX()) <= 1e-9);
-        assertEquals("Player flush against the wall on the positive side should keep minX on the wall plane", surface.to.center.getX(), result.bounds.getMinX(), 1e-9);
-        assertTrue("Player flush against the wall on the positive side should not be moved through to negative X", result.bounds.getMaxX() >= surface.to.center.getX() - 1e-9);
-        assertEquals("Tangential movement along Z should be preserved while flush against the wall", to.getMinZ(), result.bounds.getMinZ(), 1e-9);
-        assertEquals("Tangential movement along Z should be preserved while flush against the wall", to.getMaxZ(), result.bounds.getMaxZ(), 1e-9);
+                        Math.abs(result.state.bounds.getMinX() - surface.to.center.getX()) <= 1e-9);
+        assertEquals("Player flush against the wall on the positive side should keep minX on the wall plane", surface.to.center.getX(), result.state.bounds.getMinX(), 1e-9);
+        assertTrue("Player flush against the wall on the positive side should not be moved through to negative X", result.state.bounds.getMaxX() >= surface.to.center.getX() - 1e-9);
+        assertEquals("Tangential movement along Z should be preserved while flush against the wall", to.getMinZ(), result.state.bounds.getMinZ(), 1e-9);
+        assertEquals("Tangential movement along Z should be preserved while flush against the wall", to.getMaxZ(), result.state.bounds.getMaxZ(), 1e-9);
     }
 
 
@@ -814,12 +814,12 @@ public class PlayerCollisionSolverTest {
 
         // Check Y is at the pinch point
         final double pinchY = 11.78; // Roughly where the bounding box Y should be when pinched between the two surfaces (vertical of V)
-        assertEquals(pinchY, result.bounds.getMinY(), 0.5);
+        assertEquals(pinchY, result.state.bounds.getMinY(), 0.5);
 
         // Z should be exactly in the middle where the two surfaces meet
         // Because the wall is steeper, the player collides with it more, so the player will be away from that wall more
         final double pinchZ = 303.6; // Rougly where the pinch Z is (width-wise of V)
-        assertEquals(pinchZ, 0.5 * (result.bounds.getMinZ() + result.bounds.getMaxZ()), 0.3);
+        assertEquals(pinchZ, 0.5 * (result.state.bounds.getMinZ() + result.state.bounds.getMaxZ()), 0.3);
 
         // We expect collision mode FEET, as the most downwards surface at the pinch point is the ground
         assertEquals(PlayerCollisionSolver.CollisionMode.FEET, result.lastCollisionMode);
@@ -844,13 +844,13 @@ public class PlayerCollisionSolverTest {
         Vector[] tcs3 = allCorners(to);
         System.out.println("--- move-away debug ---");
         for (int i = 0; i < fcs3.length; i++) {
-            double sf = PlayerCollisionSolver.signedDistanceToPlane(surface.from, fcs3[i]);
-            double st = PlayerCollisionSolver.signedDistanceToPlane(surface.to, tcs3[i]);
+            double sf = surface.from.signedDistanceToPlane(fcs3[i]);
+            double st = surface.to.signedDistanceToPlane(tcs3[i]);
             System.out.println("corner=" + i + " sf=" + sf + " st=" + st);
         }
 
         assertEquals("Moving away from a vertical wall while flush against it should not trigger a collision", PlayerCollisionSolver.CollisionMode.NONE, result.lastCollisionMode);
-        assertEquals("Moving away from a vertical wall while flush against it should not alter the destination bounds", to, result.bounds);
+        assertEquals("Moving away from a vertical wall while flush against it should not alter the destination bounds", to, result.state.bounds);
     }
 
     @Test
@@ -963,18 +963,18 @@ public class PlayerCollisionSolverTest {
         Vector[] toCorners = allCorners(to);
         System.out.println("--- Debug single small wall test ---");
         for (int i = 0; i < fromCorners.length; i++) {
-            double sf = PlayerCollisionSolver.signedDistanceToPlane(surface.from, fromCorners[i]);
-            double stt = PlayerCollisionSolver.signedDistanceToPlane(surface.to, toCorners[i]);
+            double sf = surface.from.signedDistanceToPlane(fromCorners[i]);
+            double stt = surface.to.signedDistanceToPlane(toCorners[i]);
             Double t = PlayerCollisionSolver.crossingTheta(sf, stt);
             boolean crosses = false;
             if (t != null) crosses = PlayerCollisionSolver.crossesWithinSurface(surface, fromCorners[i], toCorners[i], t);
             System.out.println("corner=" + i + " from=" + fromCorners[i] + " to=" + toCorners[i] + " signedFrom=" + sf + " signedTo=" + stt + " theta=" + t + " crossesWithin=" + crosses);
         }
 
-        System.out.println("Result mode=" + result.lastCollisionMode + " bounds=" + result.bounds);
+        System.out.println("Result mode=" + result.lastCollisionMode + " bounds=" + result.state);
 
         assertEquals("Single small wall outside its extents should not block horizontal crossing", PlayerCollisionSolver.CollisionMode.NONE, result.lastCollisionMode);
-        assertEquals("Destination bounds should be preserved when crossing outside the wall extents", to, result.bounds);
+        assertEquals("Destination bounds should be preserved when crossing outside the wall extents", to, result.state.bounds);
     }
 
     @Test
@@ -996,7 +996,7 @@ public class PlayerCollisionSolverTest {
         );
 
         assertEquals("A small vertical wall should not drag the player when crossing outside its extents, even in the multi-surface path", PlayerCollisionSolver.CollisionMode.NONE, result.lastCollisionMode);
-        assertEquals("Destination bounds should be preserved when crossing outside the wall extents", to, result.bounds);
+        assertEquals("Destination bounds should be preserved when crossing outside the wall extents", to, result.state.bounds);
     }
 
     @Test
@@ -1018,7 +1018,7 @@ public class PlayerCollisionSolverTest {
         );
 
         assertEquals("A small slope should not block vertical movement outside its extents even when multiple surfaces are present", PlayerCollisionSolver.CollisionMode.NONE, result.lastCollisionMode);
-        assertEquals("Destination bounds should be preserved when moving outside the slope extents", to, result.bounds);
+        assertEquals("Destination bounds should be preserved when moving outside the slope extents", to, result.state.bounds);
     }
 
     @Test
@@ -1038,7 +1038,7 @@ public class PlayerCollisionSolverTest {
         );
 
         assertEquals("Moving upward away from a steep sloped surface should not collide with that same surface", PlayerCollisionSolver.CollisionMode.NONE, result.lastCollisionMode);
-        assertEquals("Moving upward away from a steep sloped surface should preserve the intended destination bounds", to, result.bounds);
+        assertEquals("Moving upward away from a steep sloped surface should preserve the intended destination bounds", to, result.state.bounds);
     }
 
     @Test
@@ -1233,7 +1233,8 @@ public class PlayerCollisionSolverTest {
     }
 
     private static boolean passesThroughSurface(OBBSurfaceState surface, AABBHandle from, AABBHandle to) {
-        return PlayerCollisionSolver.passesThroughSurface(new OBBSurfaceTransition<>(surface, surface), from, to);
+        return PlayerCollisionSolver.passesThroughSurface(new OBBSurfaceTransition<>(surface, surface),
+                new PlayerBoundsState(from), new PlayerBoundsState(to));
     }
 
     private static Vector aabbCenter(AABBHandle aabb) {
@@ -1298,21 +1299,21 @@ public class PlayerCollisionSolverTest {
         {
             PlayerCollisionSolver.Result<String> result = moveUntilBlocked(prev, desiredTo, Arrays.asList(ground, wallX));
             assertTrue("With only wallX present the player should be able to move past where wallZ would be (penetrate missing wallZ). If this fails, the solver is incorrectly blocking when wallZ is absent.",
-                    result.bounds.getMaxZ() >= desiredTo.getMaxZ() - 1e-6);
+                    result.state.bounds.getMaxZ() >= desiredTo.getMaxZ() - 1e-6);
         }
 
         // Only ground and Z-aligned wall
         {
             PlayerCollisionSolver.Result<String> result = moveUntilBlocked(prev, desiredTo, Arrays.asList(ground, wallZ));
             assertTrue("With only wallZ present the player should be able to move past where wallX would be (penetrate missing wallX). If this fails, the solver is incorrectly blocking when wallX is absent.",
-                    result.bounds.getMaxX() >= desiredTo.getMaxX() - 1e-6 || result.bounds.getMinX() <= desiredTo.getMinX() + 1e-6);
+                    result.state.bounds.getMaxX() >= desiredTo.getMaxX() - 1e-6 || result.state.bounds.getMinX() <= desiredTo.getMinX() + 1e-6);
         }
 
         // Ground and both X/Z aligned walls. Should block the player from moving near desiredTo
         {
             PlayerCollisionSolver.Result<String> result = moveUntilBlocked(prev, desiredTo, Arrays.asList(ground, wallX, wallZ));
-            assertEquals("Should be positioned against wall X", 0.4, result.bounds.getMinX(), 1e-4);
-            assertEquals("Should be positioned against wall Z", 0.4, result.bounds.getMinZ(), 1e-4);
+            assertEquals("Should be positioned against wall X", 0.4, result.state.bounds.getMinX(), 1e-4);
+            assertEquals("Should be positioned against wall Z", 0.4, result.state.bounds.getMinZ(), 1e-4);
         }
     }
 
@@ -1405,7 +1406,7 @@ public class PlayerCollisionSolverTest {
 
             PlayerCollisionSolver.Result<String> result = moveUntilBlocked(prev, desiredTo, Arrays.asList(green, yellow));
             assertTrue("Player did not pass through the two surfaces",
-                    result.bounds.getMinY() >= 10.0);
+                    result.state.bounds.getMinY() >= 10.0);
         }
 
         // Above pinch point between green and yellow surface
@@ -1416,9 +1417,9 @@ public class PlayerCollisionSolverTest {
             PlayerCollisionSolver.Result<String> result = moveUntilBlocked(prev, desiredTo, Arrays.asList(yellow, green));
             assertSame("Passing between the two pitched surfaces should resolve as feet support", PlayerCollisionSolver.CollisionMode.FEET, result.lastCollisionMode);
             assertTrue("Player did not pass through the two surfaces",
-                    result.bounds.getMinY() >= 10.0);
+                    result.state.bounds.getMinY() >= 10.0);
             assertEquals("Should be positioned in the middle of the pinch point Z",
-                    304.5, 0.5 * (result.bounds.getMinZ() + result.bounds.getMaxZ()), 1e-4);
+                    304.5, 0.5 * (result.state.bounds.getMinZ() + result.state.bounds.getMaxZ()), 1e-4);
         }
 
         OBBSurfaceTransition<String> black = new OBBSurfaceTransition<>(
@@ -1462,20 +1463,20 @@ public class PlayerCollisionSolverTest {
             PlayerCollisionSolver.Result<String> result = TEST_SOLVER.solveDetailed(walls, new PlayerBoundsTransition(curr, target));
 
             System.out.println("bothWalls tick=" + tick + " collisionMode=" + result.lastCollisionMode +
-                    " minX=" + result.bounds.getMinX() + " minY=" + result.bounds.getMinY() + " maxX=" + result.bounds.getMaxX() +
-                    " minZ=" + result.bounds.getMinZ() + " maxY=" + result.bounds.getMaxY() + " maxZ=" + result.bounds.getMaxZ());
+                    " minX=" + result.state.bounds.getMinX() + " minY=" + result.state.bounds.getMinY() + " maxX=" + result.state.bounds.getMaxX() +
+                    " minZ=" + result.state.bounds.getMinZ() + " maxY=" + result.state.bounds.getMaxY() + " maxZ=" + result.state.bounds.getMaxZ());
 
             // The solver should not allow the player to penetrate either wall at any tick
             int idx = 0;
             for (OBBSurfaceTransition<String> wall : walls) {
-                assertWallNotPassedThrough("Tick " + tick + " penetrated wall[" + (idx++) + "] " + wall.source, wall.to, curr, result.bounds);
+                assertWallNotPassedThrough("Tick " + tick + " penetrated wall[" + (idx++) + "] " + wall.source, wall.to, curr, result.state.bounds);
             }
 
             // Ensure some collision is reported when attempting to move into the corner
             assertNotSame("Tick " + tick + " should report collision mode != NONE", PlayerCollisionSolver.CollisionMode.NONE, result.lastCollisionMode);
 
             // Use the resolved bounds for the next tick (player is blocked and tries again)
-            curr = result.bounds;
+            curr = result.state.bounds;
 
             if (++tick == 20) {
                 return result;
@@ -1506,18 +1507,18 @@ public class PlayerCollisionSolverTest {
     public void testHasSurfaceSupportUsesPlayerBoundingBoxNearEdge() {
         OBBSurfaceTransition<String> surface = createFlatSurfaceTransition(2.0, 2.0);
         Vector playerPosition = new Vector(1.2, 0.0, 0.0);
-        AABBHandle playerBounds = createPlayerBounds(playerPosition);
+        PlayerBoundsState playerBounds = new PlayerBoundsState(createPlayerBounds(playerPosition));
 
-        assertTrue(surface.hasSurfaceSupport(playerBounds, playerPosition, 0.1, TEST_SOLVER));
+        assertTrue(TEST_SOLVER.hasSurfaceSupport(surface, playerBounds, playerPosition, 0.1));
     }
 
     @Test
     public void testHasSurfaceSupportDetectsWhenPlayerFullyLeavesSurface() {
         OBBSurfaceTransition<String> surface = createFlatSurfaceTransition(2.0, 2.0);
         Vector playerPosition = new Vector(1.31, 0.0, 0.0);
-        AABBHandle playerBounds = createPlayerBounds(playerPosition);
+        PlayerBoundsState playerBounds = new PlayerBoundsState(createPlayerBounds(playerPosition));
 
-        assertFalse(surface.hasSurfaceSupport(playerBounds, playerPosition, 0.1, TEST_SOLVER));
+        assertFalse(TEST_SOLVER.hasSurfaceSupport(surface, playerBounds, playerPosition, 0.1));
     }
 
     @Test
@@ -1529,9 +1530,9 @@ public class PlayerCollisionSolverTest {
                 20.0
         );
         Vector playerPosition = surface.to.localToWorld(new Vector(-0.1, 0.0, 0.0), new Vector());
-        AABBHandle playerBounds = createPlayerBounds(playerPosition);
+        PlayerBoundsState playerBounds = new PlayerBoundsState(createPlayerBounds(playerPosition));
 
-        assertTrue(surface.to.bottomFaceIntersectsSurfacePlane(playerBounds));
-        assertTrue(surface.hasSurfaceSupport(playerBounds, playerPosition, 0.1, TEST_SOLVER));
+        assertTrue(surface.to.bottomFaceIntersectsSurfacePlane(playerBounds.bounds));
+        assertTrue(TEST_SOLVER.hasSurfaceSupport(surface, playerBounds, playerPosition, 0.1));
     }
 }
