@@ -6,6 +6,7 @@ import com.bergerkiller.bukkit.common.map.MapFont;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetTabView;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetText;
 import com.bergerkiller.bukkit.common.math.Vector3;
+import com.bergerkiller.bukkit.common.resources.SoundEffect;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetAttachmentNode;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetSelectionBox;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetSizeBox;
@@ -72,6 +73,9 @@ public abstract class CartAttachmentPlatform extends CartAttachment {
                         nextIndex = 0;
                     }
                     this.setSelectedIndex(nextIndex);
+                    if (this.display != null) {
+                        this.display.playSound(SoundEffect.CLICK);
+                    }
                 }
 
                 @Override
