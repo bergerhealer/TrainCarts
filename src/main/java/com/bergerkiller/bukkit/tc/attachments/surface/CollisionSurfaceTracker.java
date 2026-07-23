@@ -38,6 +38,8 @@ public class CollisionSurfaceTracker {
     private static final double GRAVITY_START_ANGLE = 50.0;
     /** When true, pressing sneak forces surface collisions off. Useful for testing. */
     private static final boolean SNEAKING_DISABLES_SURFACE_COLLISIONS = false;
+    /** Whether to log when the player bounds penetrate surfaces unexpectedly (solver bugs) */
+    private static final boolean VERIFY_LOG_PENETRATIONS = false;
     private final AttachmentViewer viewer;
     private final int shulkerViewDistance;
     private final PlayerPusher playerPusher;
@@ -132,7 +134,7 @@ public class CollisionSurfaceTracker {
                 stopSimulatedPlayer(viewer.getPlayer().getLocation().toVector());
                 return;
             }
-            updateSimulatedPlayer(transitions, bboxTo);
+            updateSimulatedPlayer(transitions, new PlayerBoundsState(bboxTo));
             return;
         }
 
@@ -165,11 +167,11 @@ public class CollisionSurfaceTracker {
                 playerTransition
         );
 
-        if (!solution.bounds.equals(playerTransition.to.bounds)) {
+        if (!solution.state.equals(playerTransition.to)) {
             Vector solPos = new Vector(
-                    (solution.bounds.getMinX() + solution.bounds.getMaxX()) / 2.0,
-                    solution.bounds.getMinY(),
-                    (solution.bounds.getMinZ() + solution.bounds.getMaxZ()) / 2.0);
+                    (solution.state.bounds.getMinX() + solution.state.bounds.getMaxX()) / 2.0,
+                    solution.state.bounds.getMinY(),
+                    (solution.state.bounds.getMinZ() + solution.state.bounds.getMaxZ()) / 2.0);
 
             if (solution.lastCollisionMode == PlayerCollisionSolver.CollisionMode.FEET
                     && solution.lastSurface != null
@@ -239,7 +241,7 @@ public class CollisionSurfaceTracker {
         }
     }
 
-    private void updateSimulatedPlayer(List<OBBSurfaceTransition<CollisionSurfaceImpl>> transitions, AABBHandle actualBounds) {
+    private void updateSimulatedPlayer(List<OBBSurfaceTransition<CollisionSurfaceImpl>> transitions, final PlayerBoundsState actualBounds) {
         SimulatedPlayer simulatedPlayer = this.simulatedPlayer;
         if (simulatedPlayer == null) {
             return;
@@ -323,7 +325,7 @@ public class CollisionSurfaceTracker {
                 } else {
                     // Apply sliding downward along the surface plane proportional to steepness.
                     // Compute downhill direction by projecting world-down onto the surface plane.
-                    Vector downhillDir = projectOntoPlane(new Vector(0.0, -1.0, 0.0), transition.to.groundNormal);
+                    Vector downhillDir = transition.to.projectOntoGroundPlane(new Vector(0.0, -1.0, 0.0));
                     if (downhillDir.lengthSquared() < 1e-12) {
                         // Fallback: if projection is nearly zero (surface almost vertical), slide along -zAxis
                         downhillDir = transition.to.zAxis.clone().multiply(-1.0);
@@ -341,7 +343,11 @@ public class CollisionSurfaceTracker {
                 nextPosition.add(simulatedPlayer.velocity);
 
                 // Detect when the player walks/falls off the surface, and toggle flying on right away
-                if (!simulatedPlayer.flying && !transition.hasSurfaceSupport(actualBounds, nextPosition, SimulatedPlayer.SIMULATED_GRAVITY, PLAYER_COLLISION_SOLVER)) {
+                if (!simulatedPlayer.flying &&
+                        !PLAYER_COLLISION_SOLVER.hasSurfaceSupport(
+                                transition, actualBounds, nextPosition, SimulatedPlayer.SIMULATED_GRAVITY
+                        )
+                ) {
                     simulatedPlayer.flying = true;
                     // Transfer carry into the flying velocity so the player inherits the surface's momentum
                     simulatedPlayer.velocity.add(surfaceCarryVelocity);
@@ -363,12 +369,12 @@ public class CollisionSurfaceTracker {
             }
         }
 
-        Vector actualFeetPosition = PlayerBoundsState.feetPosition(actualBounds);
-        AABBHandle bboxFrom = actualBounds.translate(
+        Vector actualFeetPosition = actualBounds.feetPosition();
+        PlayerBoundsState bboxFrom = actualBounds.translate(
                 currentPosition.getX() - actualFeetPosition.getX(),
                 currentPosition.getY() - actualFeetPosition.getY(),
                 currentPosition.getZ() - actualFeetPosition.getZ());
-        AABBHandle bboxTo = bboxFrom.translate(
+        PlayerBoundsState bboxTo = bboxFrom.translate(
                 nextPosition.getX() - currentPosition.getX(),
                 nextPosition.getY() - currentPosition.getY(),
                 nextPosition.getZ() - currentPosition.getZ());
@@ -377,10 +383,10 @@ public class CollisionSurfaceTracker {
         // This eliminates AABB-corner vs. sloped-surface penetration before the solver runs,
         // so the solver no longer sees a false FEET collision from the walking surface itself.
         if (!simulatedPlayer.flying && activeTransition != null) {
-            AABBHandle bboxToSnapped = activeTransition.to.placeBoundsOnSurface(bboxTo);
+            PlayerBoundsState bboxToSnapped = activeTransition.to.placeBoundsOnSurface(bboxTo);
             if (!bboxToSnapped.equals(bboxTo)) {
                 bboxTo = bboxToSnapped;
-                nextPosition = PlayerBoundsState.feetPosition(bboxTo);
+                nextPosition = bboxTo.feetPosition();
             }
         }
 
@@ -389,40 +395,42 @@ public class CollisionSurfaceTracker {
                 new PlayerBoundsTransition(bboxFrom, bboxTo)
         );
 
-        boolean hasCornerPassedThrough = false;
-        for (OBBSurfaceTransition<CollisionSurfaceImpl> surface : transitions) {
-            if (surface.hasCornerPassedThrough(new PlayerBoundsTransition(bboxFrom, solution.bounds))) {
-                if (!solution.involvedTransitions.contains(surface)) {
-                    solution.involvedTransitions.add(surface);
+        if (VERIFY_LOG_PENETRATIONS) {
+            boolean hasCornerPassedThrough = false;
+            for (OBBSurfaceTransition<CollisionSurfaceImpl> surface : transitions) {
+                if (surface.hasCornerPassedThrough(new PlayerBoundsTransition(bboxFrom, solution.state))) {
+                    if (!solution.involvedTransitions.contains(surface)) {
+                        solution.involvedTransitions.add(surface);
+                    }
+                    TrainCarts.plugin.getLogger().info("CORNER PASSED THROUGH [" + CommonUtil.getServerTicks() + "] surface=" + surface.source);
+                    TrainCarts.plugin.getLogger().info("SOLUTION BOUNDS: " + solution.state.bounds);
+                    hasCornerPassedThrough = true;
+                } else if ( surface.to.isClippingThrough(new PlayerBoundsState(solution.state.bounds))) {
+                    if (!solution.involvedTransitions.contains(surface)) {
+                        solution.involvedTransitions.add(surface);
+                    }
+                    TrainCarts.plugin.getLogger().info("SURFACE CLIPPING [" + CommonUtil.getServerTicks() + "] surface=" + surface.source);
+                    hasCornerPassedThrough = true;
                 }
-                TrainCarts.plugin.getLogger().info("CORNER PASSED THROUGH [" + CommonUtil.getServerTicks() + "] surface=" + surface.source);
-                TrainCarts.plugin.getLogger().info("SOLUTION BOUNDS: " + solution.bounds);
-                hasCornerPassedThrough = true;
-            } else if ( surface.to.isClippingThrough(new PlayerBoundsState(solution.bounds))) {
-                if (!solution.involvedTransitions.contains(surface)) {
-                    solution.involvedTransitions.add(surface);
+            }
+            if (hasCornerPassedThrough) {
+                TrainCarts.plugin.getLogger().info("DEBUG OUTPUT:\n" + solution.printDebugTest());
+
+                if (simulatedPlayer.lastDebugState != null) {
+                    StringBuilder str = new StringBuilder();
+                    simulatedPlayer.lastDebugState.printDebugCreate(str, "");
+                    TrainCarts.plugin.getLogger().info("PREV STATE:\n" + str.toString());
                 }
-                TrainCarts.plugin.getLogger().info("SURFACE CLIPPING [" + CommonUtil.getServerTicks() + "] surface=" + surface.source);
-                hasCornerPassedThrough = true;
             }
         }
-        if (hasCornerPassedThrough) {
-            TrainCarts.plugin.getLogger().info("DEBUG OUTPUT:\n" + solution.printDebugTest());
 
-            if (simulatedPlayer.lastDebugState != null) {
-                StringBuilder str = new StringBuilder();
-                simulatedPlayer.lastDebugState.printDebugCreate(str, "");
-                TrainCarts.plugin.getLogger().info("PREV STATE:\n" + str.toString());
-            }
-        }
-
-        boolean hasSurfaceCollision = !solution.bounds.equals(bboxTo);
+        boolean hasSurfaceCollision = !solution.state.equals(bboxTo);
         if (!hasSurfaceCollision && justWalkedOffSurface) {
             solution = PLAYER_COLLISION_SOLVER.solveBelowFeetDetailed(transitions, bboxTo);
             hasSurfaceCollision = solution.hasCollision();
         }
         if (hasSurfaceCollision) {
-            nextPosition = PlayerBoundsState.feetPosition(solution.bounds);
+            nextPosition = solution.state.feetPosition();
             if (solution.lastSurface != null && isFloorLikeLanding(solution)) {
                 simulatedPlayer.lastSurface = solution.lastSurface;
                 simulatedPlayer.flying = false;
@@ -460,7 +468,7 @@ public class CollisionSurfaceTracker {
         }
 
         simulatedPlayer.lastPosition = currentPosition;
-        simulatedPlayer.lastDebugState = new PlayerBoundsState(solution.bounds);
+        simulatedPlayer.lastDebugState = solution.state;
         simulatedPlayer.position = nextPosition;
         simulatedPlayer.lastJumpInput = input.jumping();
     }
@@ -484,7 +492,7 @@ public class CollisionSurfaceTracker {
                 forward.normalize();
             }
 
-            left = cross(surface.groundNormal, forward);
+            left = surface.groundNormal.getCrossProduct(forward);
             if (left.lengthSquared() < 1e-20) {
                 left = surface.xAxis.clone().multiply(-1.0);
             } else {
@@ -493,7 +501,8 @@ public class CollisionSurfaceTracker {
         } else {
             // Air movement always points where the player is looking
             forward = simulatedPlayer.getPlayerForward();
-            left = cross(new Vector(0.0, 1.0, 0.0), forward);
+            // Note: crossProduct mutates the input vector, getCrossProduct produces a new vector
+            left = new Vector(0.0, 1.0, 0.0).crossProduct(forward);
         }
 
         Vector acceleration = new Vector();
@@ -608,21 +617,6 @@ public class CollisionSurfaceTracker {
         return result;
     }
 
-    private static Vector projectOntoPlane(Vector vector, Vector normal) {
-        Vector result = vector.clone();
-        double dot = result.dot(normal);
-        result.subtract(normal.clone().multiply(dot));
-        return result;
-    }
-
-    private static Vector cross(Vector a, Vector b) {
-        return new Vector(
-                a.getY() * b.getZ() - a.getZ() * b.getY(),
-                a.getZ() * b.getX() - a.getX() * b.getZ(),
-                a.getX() * b.getY() - a.getY() * b.getX()
-        );
-    }
-
     private static final class WalkInput {
         static final WalkInput NONE = new WalkInput(new Vector(), false, 0.0);
 
@@ -682,39 +676,35 @@ public class CollisionSurfaceTracker {
     // All lines are combined into a single log entry separated by newlines to make
     // copy/pasting into a unit test easier.
     private static <T> void logReproSnippet(List<OBBSurfaceTransition<T>> transitions, AABBHandle playerFrom, AABBHandle playerTo) {
-        try {
-            StringBuilder sb = new StringBuilder();
-            sb.append("--- Collision solver repro snippet ---\n");
+        StringBuilder sb = new StringBuilder();
+        sb.append("--- Collision solver repro snippet ---\n");
 
-            if (transitions.size() == 1) {
-                sb.append("OBBSurfaceTransition<String> transition = ");
-                transitions.get(0).printDebugCreate(sb, "");
-                sb.append(";\n");
-            } else {
-                sb.append("List<OBBSurfaceTransition<String>> transitions = Arrays.asList(\n");
-                boolean first = true;
-                for (OBBSurfaceTransition<T> t : transitions) {
-                    if (first) {
-                        first = false;
-                    } else {
-                        sb.append(",\n");
-                    }
-                    t.printDebugCreate(sb, "    ");
+        if (transitions.size() == 1) {
+            sb.append("OBBSurfaceTransition<String> transition = ");
+            transitions.get(0).printDebugCreate(sb, "");
+            sb.append(";\n");
+        } else {
+            sb.append("List<OBBSurfaceTransition<String>> transitions = Arrays.asList(\n");
+            boolean first = true;
+            for (OBBSurfaceTransition<T> t : transitions) {
+                if (first) {
+                    first = false;
+                } else {
+                    sb.append(",\n");
                 }
-                sb.append("\n);\n");
+                t.printDebugCreate(sb, "    ");
             }
-
-            sb.append("AABBHandle playerFrom = makeAABB(")
-                    .append(playerFrom.getMinX()).append(", ").append(playerFrom.getMinY()).append(", ").append(playerFrom.getMinZ()).append(", ")
-                    .append(playerFrom.getMaxX()).append(", ").append(playerFrom.getMaxY()).append(", ").append(playerFrom.getMaxZ()).append(");\n");
-            sb.append("AABBHandle playerTo   = makeAABB(")
-                    .append(playerTo.getMinX()).append(", ").append(playerTo.getMinY()).append(", ").append(playerTo.getMinZ()).append(", ")
-                    .append(playerTo.getMaxX()).append(", ").append(playerTo.getMaxY()).append(", ").append(playerTo.getMaxZ()).append(");\n");
-
-            TrainCarts.plugin.getLogger().info(sb.toString());
-        } catch (Throwable ignored) {
-            // Don't let logging break anything
+            sb.append("\n);\n");
         }
+
+        sb.append("AABBHandle playerFrom = makeAABB(")
+                .append(playerFrom.getMinX()).append(", ").append(playerFrom.getMinY()).append(", ").append(playerFrom.getMinZ()).append(", ")
+                .append(playerFrom.getMaxX()).append(", ").append(playerFrom.getMaxY()).append(", ").append(playerFrom.getMaxZ()).append(");\n");
+        sb.append("AABBHandle playerTo   = makeAABB(")
+                .append(playerTo.getMinX()).append(", ").append(playerTo.getMinY()).append(", ").append(playerTo.getMinZ()).append(", ")
+                .append(playerTo.getMaxX()).append(", ").append(playerTo.getMaxY()).append(", ").append(playerTo.getMaxZ()).append(");\n");
+
+        TrainCarts.plugin.getLogger().info(sb.toString());
     }
 
     /**
@@ -749,8 +739,6 @@ public class CollisionSurfaceTracker {
     private CollisionWallTileGrid getWallTiles(BlockFace face) {
         return wallTiles.computeIfAbsent(face, f -> new CollisionWallTileGrid(shulkerCache, f));
     }
-
-    // Legacy active-surface helpers removed: simulated-player logic supersedes these.
 
     /**
      * A single collision surface spawned in using the API for this viewer

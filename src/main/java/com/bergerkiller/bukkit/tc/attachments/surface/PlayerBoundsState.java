@@ -9,22 +9,13 @@ import org.bukkit.util.Vector;
  */
 public class PlayerBoundsState {
     public final AABBHandle bounds;
-    public final Vector[] corners = new Vector[8];
+    private final Vector[] corners;
+    private final Vector center;
 
     public PlayerBoundsState(AABBHandle bounds) {
         this.bounds = bounds;
-
-        int i = 0;
-        for (int y = 0; y <= 1; y++) {
-            double py = (y == 0) ? bounds.getMinY() : bounds.getMaxY();
-            for (int z = 0; z <= 1; z++) {
-                double pz = (z == 0) ? bounds.getMinZ() : bounds.getMaxZ();
-                for (int x = 0; x <= 1; x++) {
-                    double px = (x == 0) ? bounds.getMinX() : bounds.getMaxX();
-                    corners[i++] = new Vector(px, py, pz);
-                }
-            }
-        }
+        this.corners = corners(bounds);
+        this.center = center(bounds);
     }
 
     public PlayerBoundsState interpolate(PlayerBoundsState other, double theta) {
@@ -37,6 +28,14 @@ public class PlayerBoundsState {
         return new PlayerBoundsState(AABBHandle.createNew(minX, minY, minZ, maxX, maxY, maxZ));
     }
 
+    public PlayerBoundsState translate(double dx, double dy, double dz) {
+        return new PlayerBoundsState(bounds.translate(dx, dy, dz));
+    }
+
+    public Vector center() {
+        return center;
+    }
+
     public Vector[] bottomFaceCorners() {
         return new Vector[] { corners[0], corners[1], corners[2], corners[3] };
     }
@@ -45,7 +44,7 @@ public class PlayerBoundsState {
         return new Vector[] { corners[4], corners[5], corners[6], corners[7] };
     }
 
-    public Vector[] allCorners() {
+    public Vector[] corners() {
         return corners;
     }
 
@@ -62,11 +61,60 @@ public class PlayerBoundsState {
         return feetPosition(bounds);
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (o == this) {
+            return true;
+        } else if (o instanceof PlayerBoundsState) {
+            return areAABBsEqual(((PlayerBoundsState) o).bounds, this.bounds);
+        } else {
+            return false;
+        }
+    }
+
+    @Override
+    public String toString() {
+        return "PlayerBounds{minX=" + bounds.getMinX() + ", minY=" + bounds.getMinY() + ", minZ=" + bounds.getMinZ() +
+                ", maxX=" + bounds.getMaxX() + ", maxY=" + bounds.getMaxY() + ", maxZ=" + bounds.getMaxZ() + "}";
+    }
+
     public static Vector feetPosition(AABBHandle aabb) {
         return new Vector(
                 (aabb.getMinX() + aabb.getMaxX()) * 0.5,
                 aabb.getMinY(),
                 (aabb.getMinZ() + aabb.getMaxZ()) * 0.5
         );
+    }
+
+    public static Vector[] corners(AABBHandle aabb) {
+        return new Vector[] {
+                new Vector(aabb.getMinX(), aabb.getMinY(), aabb.getMinZ()),
+                new Vector(aabb.getMinX(), aabb.getMinY(), aabb.getMaxZ()),
+                new Vector(aabb.getMaxX(), aabb.getMinY(), aabb.getMinZ()),
+                new Vector(aabb.getMaxX(), aabb.getMinY(), aabb.getMaxZ()),
+                new Vector(aabb.getMinX(), aabb.getMaxY(), aabb.getMinZ()),
+                new Vector(aabb.getMinX(), aabb.getMaxY(), aabb.getMaxZ()),
+                new Vector(aabb.getMaxX(), aabb.getMaxY(), aabb.getMinZ()),
+                new Vector(aabb.getMaxX(), aabb.getMaxY(), aabb.getMaxZ())
+        };
+    }
+
+    public static Vector center(AABBHandle aabb) {
+        return new Vector(
+                0.5 * (aabb.getMinX() + aabb.getMaxX()),
+                0.5 * (aabb.getMinY() + aabb.getMaxY()),
+                0.5 * (aabb.getMinZ() + aabb.getMaxZ())
+        );
+    }
+
+    public static boolean areAABBsEqual(AABBHandle a, AABBHandle b) {
+        if (a == b) return true;
+        if (a == null || b == null) return false;
+        return a.getMinX() == b.getMinX() &&
+                a.getMinY() == b.getMinY() &&
+                a.getMinZ() == b.getMinZ() &&
+                a.getMaxX() == b.getMaxX() &&
+                a.getMaxY() == b.getMaxY() &&
+                a.getMaxZ() == b.getMaxZ();
     }
 }
