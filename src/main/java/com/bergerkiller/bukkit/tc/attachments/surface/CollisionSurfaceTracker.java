@@ -44,7 +44,7 @@ public class CollisionSurfaceTracker {
     private final ShulkerTracker shulkerCache;
     private final CollisionFloorTileGrid floorTiles;
     private final EnumMap<BlockFace, CollisionWallTileGrid> wallTiles;
-    private final List<CollisionSurfaceTrackerImpl> surfaces = new ArrayList<>();
+    private final List<CollisionSurfaceImpl> surfaces = new ArrayList<>();
     private SimulatedPlayer simulatedPlayer = null;
     private AttachmentViewer.MovementController pmc = null;
     private Vector previousPlayerPosition = null;
@@ -77,11 +77,11 @@ public class CollisionSurfaceTracker {
                 .grow(0.1, 0.1, 0.1);
 
         // Compute all of the surface transitions (no movement)
-        List<OBBSurfaceTransition<CollisionSurfaceTrackerImpl>> transitions = this.surfaces.stream()
+        List<OBBSurfaceTransition<CollisionSurfaceImpl>> transitions = this.surfaces.stream()
                 .map(s -> new OBBSurfaceTransition<>(s.shape, s.shape, s))
                 .collect(Collectors.toList());
 
-        PlayerCollisionSolver.Result<CollisionSurfaceTrackerImpl> solution = PLAYER_COLLISION_SOLVER.solveDetailed(transitions, new PlayerBoundsTransition(from, to));
+        PlayerCollisionSolver.Result<CollisionSurfaceImpl> solution = PLAYER_COLLISION_SOLVER.solveDetailed(transitions, new PlayerBoundsTransition(from, to));
         if (!solution.hasCollision()) {
             return CollisionSurface.DISABLED;
         }
@@ -96,7 +96,7 @@ public class CollisionSurfaceTracker {
      */
     public void update() {
         // Update all surfaces, and if they are not moving, spawn in shulkers for them
-        for (CollisionSurfaceTrackerImpl surface : surfaces) {
+        for (CollisionSurfaceImpl surface : surfaces) {
             surface.nextUpdate();
 
             if (surface.isShulkerGrid()) {
@@ -118,12 +118,12 @@ public class CollisionSurfaceTracker {
         }
 
         // Compute all of the surface transitions
-        List<OBBSurfaceTransition<CollisionSurfaceTrackerImpl>> transitions = this.surfaces.stream()
-                .filter(CollisionSurfaceTrackerImpl::isSimulated)
+        List<OBBSurfaceTransition<CollisionSurfaceImpl>> transitions = this.surfaces.stream()
+                .filter(CollisionSurfaceImpl::isSimulated)
                 .map(s -> new OBBSurfaceTransition<>(s.prevShape, s.shape, s))
                 .collect(Collectors.toList());
 
-        surfaces.forEach(CollisionSurfaceTrackerImpl::savePrevShape);
+        surfaces.forEach(CollisionSurfaceImpl::savePrevShape);
 
         ServerPlayerHandle playerHandle = ServerPlayerHandle.fromBukkit(viewer.getPlayer());
         AABBHandle bboxTo = playerHandle.getBoundingBox();
@@ -160,7 +160,7 @@ public class CollisionSurfaceTracker {
             return;
         }
 
-        PlayerCollisionSolver.Result<CollisionSurfaceTrackerImpl> solution = PLAYER_COLLISION_SOLVER.solveDetailed(
+        PlayerCollisionSolver.Result<CollisionSurfaceImpl> solution = PLAYER_COLLISION_SOLVER.solveDetailed(
                 transitions,
                 playerTransition
         );
@@ -200,7 +200,7 @@ public class CollisionSurfaceTracker {
         // actual position for purposes such as shulker spawning.
     }
 
-    private boolean startSimulatedPlayer(CollisionSurfaceTrackerImpl surface, Vector lastPosition, Vector position, Vector velocity) {
+    private boolean startSimulatedPlayer(CollisionSurfaceImpl surface, Vector lastPosition, Vector position, Vector velocity) {
         AttachmentViewer.MovementController controller = viewer.controlMovement();
         SimulatedPlayer simulatedPlayer = new SimulatedPlayer(
                 viewer,
@@ -239,7 +239,7 @@ public class CollisionSurfaceTracker {
         }
     }
 
-    private void updateSimulatedPlayer(List<OBBSurfaceTransition<CollisionSurfaceTrackerImpl>> transitions, AABBHandle actualBounds) {
+    private void updateSimulatedPlayer(List<OBBSurfaceTransition<CollisionSurfaceImpl>> transitions, AABBHandle actualBounds) {
         SimulatedPlayer simulatedPlayer = this.simulatedPlayer;
         if (simulatedPlayer == null) {
             return;
@@ -252,8 +252,8 @@ public class CollisionSurfaceTracker {
         Vector currentPosition = simulatedPlayer.position.clone();
         Vector nextPosition = currentPosition.clone();
         Vector surfaceCarryVelocity = new Vector(); // carry velocity of the surface the player is on; zero when not on a surface
-        CollisionSurfaceTrackerImpl currentSurface = toSurfaceImpl(simulatedPlayer.lastSurface);
-        OBBSurfaceTransition<CollisionSurfaceTrackerImpl> activeTransition = null; // transition for the surface the player is standing on (null if flying/no surface)
+        CollisionSurfaceImpl currentSurface = toSurfaceImpl(simulatedPlayer.lastSurface);
+        OBBSurfaceTransition<CollisionSurfaceImpl> activeTransition = null; // transition for the surface the player is standing on (null if flying/no surface)
         AttachmentViewer.Input input = simulatedPlayer.pmc.getInput();
 
         boolean justWalkedOffSurface = false;
@@ -264,7 +264,7 @@ public class CollisionSurfaceTracker {
             simulatedPlayer.applyWalkingVelocity(walkInput.acceleration);
             nextPosition.add(simulatedPlayer.velocity);
         } else if (currentSurface != null) {
-            OBBSurfaceTransition<CollisionSurfaceTrackerImpl> transition = findTransition(transitions, currentSurface);
+            OBBSurfaceTransition<CollisionSurfaceImpl> transition = findTransition(transitions, currentSurface);
             if (transition != null) {
                 activeTransition = transition;
                 // Move the simulated player state along with the surface the player is standing on.
@@ -384,13 +384,13 @@ public class CollisionSurfaceTracker {
             }
         }
 
-        PlayerCollisionSolver.Result<CollisionSurfaceTrackerImpl> solution = PLAYER_COLLISION_SOLVER.solveDetailed(
+        PlayerCollisionSolver.Result<CollisionSurfaceImpl> solution = PLAYER_COLLISION_SOLVER.solveDetailed(
                 transitions,
                 new PlayerBoundsTransition(bboxFrom, bboxTo)
         );
 
         boolean hasCornerPassedThrough = false;
-        for (OBBSurfaceTransition<CollisionSurfaceTrackerImpl> surface : transitions) {
+        for (OBBSurfaceTransition<CollisionSurfaceImpl> surface : transitions) {
             if (surface.hasCornerPassedThrough(new PlayerBoundsTransition(bboxFrom, solution.bounds))) {
                 if (!solution.involvedTransitions.contains(surface)) {
                     solution.involvedTransitions.add(surface);
@@ -637,8 +637,8 @@ public class CollisionSurfaceTracker {
         }
     }
 
-    private static CollisionSurfaceTrackerImpl toSurfaceImpl(CollisionSurface surface) {
-        return (surface instanceof CollisionSurfaceTrackerImpl) ? (CollisionSurfaceTrackerImpl) surface : null;
+    private static CollisionSurfaceImpl toSurfaceImpl(CollisionSurface surface) {
+        return (surface instanceof CollisionSurfaceImpl) ? (CollisionSurfaceImpl) surface : null;
     }
 
     /**
@@ -669,8 +669,8 @@ public class CollisionSurfaceTracker {
         }
     }
 
-    private static OBBSurfaceTransition<CollisionSurfaceTrackerImpl> findTransition(List<OBBSurfaceTransition<CollisionSurfaceTrackerImpl>> transitions, CollisionSurfaceTrackerImpl surface) {
-        for (OBBSurfaceTransition<CollisionSurfaceTrackerImpl> transition : transitions) {
+    private static OBBSurfaceTransition<CollisionSurfaceImpl> findTransition(List<OBBSurfaceTransition<CollisionSurfaceImpl>> transitions, CollisionSurfaceImpl surface) {
+        for (OBBSurfaceTransition<CollisionSurfaceImpl> transition : transitions) {
             if (transition.source == surface) {
                 return transition;
             }
@@ -724,7 +724,7 @@ public class CollisionSurfaceTracker {
      * @return CollisionSurface
      */
     public CollisionSurface createSurface() {
-        return new CollisionSurfaceTrackerImpl();
+        return new CollisionSurfaceImpl();
     }
 
     /**
@@ -755,7 +755,7 @@ public class CollisionSurfaceTracker {
     /**
      * A single collision surface spawned in using the API for this viewer
      */
-    private class CollisionSurfaceTrackerImpl implements CollisionSurface {
+    private class CollisionSurfaceImpl implements CollisionSurface {
         private int updateCounter = 0;
         private String debugName = null;
         private OrientedBoundingBox shape;
@@ -787,7 +787,7 @@ public class CollisionSurfaceTracker {
 
         @Override
         public String toString() {
-            return "CollisionSurfaceTrackerImpl{moving=" + isMoving
+            return "CollisionSurfaceImpl{moving=" + isMoving
                     + ", pos=" + ((shape == null) ? "null" : shape.getPosition())
                     + ", prevPos=" + ((prevShape == null) ? "null" : prevShape.getPosition())
                     + '}';
