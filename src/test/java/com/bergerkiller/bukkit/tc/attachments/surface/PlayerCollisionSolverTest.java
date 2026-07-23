@@ -31,14 +31,14 @@ public class PlayerCollisionSolverTest {
         // Player is moving into the wall along the X-axis. The Y/Z axis are not too important.
         // The minimum X of the player is against the wall X at the start
         // The maximum X of the player is away from the wall
-        PlayerTransition playerTransition = new PlayerTransition(
-                new PlayerState(
+        PlayerBoundsTransition playerTransition = new PlayerBoundsTransition(
+                new PlayerBoundsState(
                         AABBHandle.createNew(
                                 -335.6803333333333, 12.3625, 306.5248941984462,
                                 -335.08033330949144, 14.162499952316285, 307.12489422228805
                         )
                 ),
-                new PlayerState(
+                new PlayerBoundsState(
                         AABBHandle.createNew(
                                 -335.63276189745926, 12.3625, 306.4249236924142,
                                 -335.0327618736174, 14.162499952316285, 307.02492371625607
@@ -113,7 +113,7 @@ public class PlayerCollisionSolverTest {
         // Two identical surface transitions to force the multi-surface stabilisation pass.
         PlayerCollisionSolver.Result<String> result = TEST_SOLVER.solveDetailed(
                 Arrays.asList(movingWall, movingWall),
-                new PlayerTransition(playerFrom, playerTo)
+                new PlayerBoundsTransition(playerFrom, playerTo)
         );
 
         System.out.println(result);
@@ -127,14 +127,14 @@ public class PlayerCollisionSolverTest {
 
     @Test
     public void testLandingOnSlopedSurface() {
-        PlayerTransition playerTransition = new PlayerTransition(
-                new PlayerState(
+        PlayerBoundsTransition playerTransition = new PlayerBoundsTransition(
+                new PlayerBoundsState(
                         AABBHandle.createNew(
                                 -320.3654565854123, 7.353226808645175, 303.6580557077583,
                                 -319.76545656157043, 9.15322676096146, 304.25805573160017
                         )
                 ),
-                new PlayerState(
+                new PlayerBoundsState(
                         AABBHandle.createNew(
                                 -320.2072035024243, 7.087586780819734, 303.6580557077583,
                                 -319.60720347858245, 8.887586733136018, 304.25805573160017
@@ -156,11 +156,11 @@ public class PlayerCollisionSolverTest {
                 Collections.singletonList(transition),
                 playerTransition);
 
-        assertFalse(surface.isClippingThrough(new PlayerState(result.bounds)));
+        assertFalse(surface.isClippingThrough(new PlayerBoundsState(result.bounds)));
 
         System.out.println(result);
 
-        assertFalse(transition.hasCornerPassedThrough(new PlayerTransition(playerTransition.from, new PlayerState(result.bounds))));
+        assertFalse(transition.hasCornerPassedThrough(new PlayerBoundsTransition(playerTransition.from, new PlayerBoundsState(result.bounds))));
     }
 
     /**
@@ -174,7 +174,7 @@ public class PlayerCollisionSolverTest {
                 new Vector(8.0, 0.0, 8.0)
         );
 
-        PlayerState playerState = new PlayerState(
+        PlayerBoundsState playerState = new PlayerBoundsState(
                 AABBHandle.createNew(
                         -313.0458744414228, -0.4874999999999987, 315.9890660663131,
                         -312.44587441758097, 1.3124999523162855, 316.589066090155
@@ -213,7 +213,7 @@ public class PlayerCollisionSolverTest {
                 position.getX() + halfWidth, position.getY() + toFeetY + height, position.getZ() + halfWidth
         );
 
-        PlayerTransition player = new PlayerTransition(from, to);
+        PlayerBoundsTransition player = new PlayerBoundsTransition(from, to);
 
         AABBHandle result = TEST_SOLVER.solve(java.util.Collections.singletonList(surface), player);
 
@@ -249,7 +249,7 @@ public class PlayerCollisionSolverTest {
                 position.getX() + halfWidth, position.getY() + toFeetY + height, position.getZ() + halfWidth
         );
 
-        PlayerTransition player = new PlayerTransition(from, to);
+        PlayerBoundsTransition player = new PlayerBoundsTransition(from, to);
 
         AABBHandle result = TEST_SOLVER.solve(java.util.Collections.singletonList(surface), player);
 
@@ -278,7 +278,7 @@ public class PlayerCollisionSolverTest {
 
         PlayerCollisionSolver.Result<String> result = TEST_SOLVER.solveDetailed(
                 java.util.Collections.singletonList(surface),
-                new PlayerTransition(from, to)
+                new PlayerBoundsTransition(from, to)
         );
 
         assertEquals("Detailed result should report the last colliding surface source", source, result.lastSurface);
@@ -336,7 +336,7 @@ public class PlayerCollisionSolverTest {
                 halfWidth, toFeetY + height, halfWidth
         );
 
-        PlayerTransition player = new PlayerTransition(from, to);
+        PlayerBoundsTransition player = new PlayerBoundsTransition(from, to);
 
         AABBHandle result = TEST_SOLVER.solve(java.util.Collections.singletonList(surface), player);
 
@@ -358,7 +358,7 @@ public class PlayerCollisionSolverTest {
         AABBHandle from = createAabb(new Vector(0.0, 3.0, 0.0), halfWidth, height); // start below the plane
         AABBHandle to = createAabb(new Vector(0.0, 6.0, 0.0), halfWidth, height); // end above the plane
 
-        PlayerTransition player = new PlayerTransition(from, to);
+        PlayerBoundsTransition player = new PlayerBoundsTransition(from, to);
 
         AABBHandle result = TEST_SOLVER.solve(java.util.Collections.singletonList(surface), player);
 
@@ -380,9 +380,9 @@ public class PlayerCollisionSolverTest {
         AABBHandle from = createAabb(new Vector(0.0, 6.0, 0.0), halfWidth, height);
         AABBHandle to = createAabb(new Vector(0.0, 4.0, 0.0), halfWidth, height);
 
-        AABBHandle resolved = TEST_SOLVER.solve(java.util.Collections.singletonList(surface), new PlayerTransition(from, to));
+        AABBHandle resolved = TEST_SOLVER.solve(java.util.Collections.singletonList(surface), new PlayerBoundsTransition(from, to));
         AABBHandle nextTickAttempt = translateAabb(resolved, 0.0, -0.2, 0.0);
-        AABBHandle nextTickResolved = TEST_SOLVER.solve(java.util.Collections.singletonList(surface), new PlayerTransition(resolved, nextTickAttempt));
+        AABBHandle nextTickResolved = TEST_SOLVER.solve(java.util.Collections.singletonList(surface), new PlayerBoundsTransition(resolved, nextTickAttempt));
 
         assertFeetNotBelowSurface("Player should remain above the flat surface on the next tick after being corrected", surface.from, nextTickResolved);
     }
@@ -402,9 +402,9 @@ public class PlayerCollisionSolverTest {
         AABBHandle from = createAabb(new Vector(0.0, 3.0, 0.0), halfWidth, height);
         AABBHandle to = createAabb(new Vector(0.0, 6.0, 0.0), halfWidth, height);
 
-        AABBHandle resolved = TEST_SOLVER.solve(java.util.Collections.singletonList(surface), new PlayerTransition(from, to));
+        AABBHandle resolved = TEST_SOLVER.solve(java.util.Collections.singletonList(surface), new PlayerBoundsTransition(from, to));
         AABBHandle nextTickAttempt = translateAabb(resolved, 0.0, 0.2, 0.0);
-        AABBHandle nextTickResolved = TEST_SOLVER.solve(java.util.Collections.singletonList(surface), new PlayerTransition(resolved, nextTickAttempt));
+        AABBHandle nextTickResolved = TEST_SOLVER.solve(java.util.Collections.singletonList(surface), new PlayerBoundsTransition(resolved, nextTickAttempt));
 
         assertHeadNotAboveSurface("Player should remain below the flat surface on the next tick after being corrected", surface.from, nextTickResolved);
     }
@@ -419,7 +419,7 @@ public class PlayerCollisionSolverTest {
 
         AABBHandle result = TEST_SOLVER.solve(
                 java.util.Collections.singletonList(surface),
-                new PlayerTransition(playerBounds, playerBounds)
+                new PlayerBoundsTransition(playerBounds, playerBounds)
         );
 
         assertFeetNotBelowSurface("Rising platform should carry the stationary player upward", surface.to, result);
@@ -443,13 +443,13 @@ public class PlayerCollisionSolverTest {
         OBBSurfaceTransition<String> first = createFlatSurfaceTransition(new Vector(0.0, 0.0, 0.0), 4.0, 6.0, 10.0);
         AABBHandle firstResult = TEST_SOLVER.solve(
                 java.util.Collections.singletonList(first),
-                new PlayerTransition(playerBounds, playerBounds)
+                new PlayerBoundsTransition(playerBounds, playerBounds)
         );
 
         OBBSurfaceTransition<String> second = createFlatSurfaceTransition(new Vector(0.0, 0.0, 0.0), 6.0, 8.0, 10.0);
         AABBHandle secondResult = TEST_SOLVER.solve(
                 java.util.Collections.singletonList(second),
-                new PlayerTransition(firstResult, firstResult)
+                new PlayerBoundsTransition(firstResult, firstResult)
         );
 
         assertFeetNotBelowSurface("Rising platform should continue pushing the stationary player on the next tick", second.to, secondResult);
@@ -466,7 +466,7 @@ public class PlayerCollisionSolverTest {
 
         AABBHandle result = TEST_SOLVER.solve(
                 java.util.Collections.singletonList(surface),
-                new PlayerTransition(playerBounds, playerBounds)
+                new PlayerBoundsTransition(playerBounds, playerBounds)
         );
 
         assertHeadNotAboveSurface("Descending platform should push the stationary player down when it hits their head", surface.to, result);
@@ -490,13 +490,13 @@ public class PlayerCollisionSolverTest {
         OBBSurfaceTransition<String> first = createFlatSurfaceTransition(new Vector(0.0, 0.0, 0.0), 7.0, 4.0, 10.0);
         AABBHandle firstResult = TEST_SOLVER.solve(
                 java.util.Collections.singletonList(first),
-                new PlayerTransition(playerBounds, playerBounds)
+                new PlayerBoundsTransition(playerBounds, playerBounds)
         );
 
         OBBSurfaceTransition<String> second = createFlatSurfaceTransition(new Vector(0.0, 0.0, 0.0), 4.0, 2.0, 10.0);
         AABBHandle secondResult = TEST_SOLVER.solve(
                 java.util.Collections.singletonList(second),
-                new PlayerTransition(firstResult, firstResult)
+                new PlayerBoundsTransition(firstResult, firstResult)
         );
 
         assertHeadNotAboveSurface("Descending platform should continue pushing the stationary player down on the next tick", second.to, secondResult);
@@ -514,7 +514,7 @@ public class PlayerCollisionSolverTest {
 
         AABBHandle result = TEST_SOLVER.solve(
                 java.util.Collections.singletonList(surface),
-                new PlayerTransition(playerBounds, playerBounds)
+                new PlayerBoundsTransition(playerBounds, playerBounds)
         );
 
         assertFeetNotBelowSurface("Rising 45 degree platform should carry the stationary player upward", surface.to, result);
@@ -541,7 +541,7 @@ public class PlayerCollisionSolverTest {
 
         AABBHandle result = TEST_SOLVER.solve(
                 java.util.Collections.singletonList(surface),
-                new PlayerTransition(playerBounds, playerBounds)
+                new PlayerBoundsTransition(playerBounds, playerBounds)
         );
 
         assertHeadNotAboveSurface("Descending 45 degree platform should push the stationary player down", surface.to, result);
@@ -584,7 +584,7 @@ public class PlayerCollisionSolverTest {
                 position.getX() + halfWidth, position.getY() + toFeetY + height, position.getZ() + halfWidth
         );
 
-        PlayerTransition player = new PlayerTransition(from, to);
+        PlayerBoundsTransition player = new PlayerBoundsTransition(from, to);
 
         AABBHandle result = TEST_SOLVER.solve(java.util.Collections.singletonList(surface), player);
 
@@ -603,7 +603,7 @@ public class PlayerCollisionSolverTest {
         AABBHandle from = createAabb(edgePoint.clone().add(new Vector(0.0, 5.0, 0.0)), halfWidth, height);
         AABBHandle to = createAabb(edgePoint.clone().add(new Vector(0.0, -5.0, 0.0)), halfWidth, height);
 
-        AABBHandle result = TEST_SOLVER.solve(java.util.Collections.singletonList(surface), new PlayerTransition(from, to));
+        AABBHandle result = TEST_SOLVER.solve(java.util.Collections.singletonList(surface), new PlayerBoundsTransition(from, to));
 
         assertFeetNotBelowSurface("Player fell through the high edge of a 45 degree surface", surface.from, result);
     }
@@ -620,7 +620,7 @@ public class PlayerCollisionSolverTest {
         AABBHandle from = createAabb(edgePoint.clone().add(new Vector(0.0, -(height + 5.0), 0.0)), halfWidth, height);
         AABBHandle to = createAabb(edgePoint.clone().add(new Vector(0.0, 5.0, 0.0)), halfWidth, height);
 
-        AABBHandle result = TEST_SOLVER.solve(java.util.Collections.singletonList(surface), new PlayerTransition(from, to));
+        AABBHandle result = TEST_SOLVER.solve(java.util.Collections.singletonList(surface), new PlayerBoundsTransition(from, to));
 
         assertHeadNotAboveSurface("Player rose through the low edge of a 45 degree surface", surface.from, result);
     }
@@ -640,7 +640,7 @@ public class PlayerCollisionSolverTest {
         AABBHandle from = createAabb(new Vector(highEdge.getX(), feetY, highEdge.getZ()), halfWidth, height);
         AABBHandle to = createAabb(new Vector(lowEdge.getX(), feetY, lowEdge.getZ()), halfWidth, height);
 
-        AABBHandle result = TEST_SOLVER.solve(java.util.Collections.singletonList(surface), new PlayerTransition(from, to));
+        AABBHandle result = TEST_SOLVER.solve(java.util.Collections.singletonList(surface), new PlayerBoundsTransition(from, to));
 
         assertHeadNotAboveSurface("Player moving horizontally into the underside of a 45 degree surface should be pushed down", surface.from, result);
         assertEquals("Horizontal head collision should preserve X movement", to.getMinX(), result.getMinX(), 1e-9);
@@ -661,7 +661,7 @@ public class PlayerCollisionSolverTest {
 
         PlayerCollisionSolver.Result<String> result = TEST_SOLVER.solveDetailed(
                 java.util.Collections.singletonList(surface),
-                new PlayerTransition(from, to)
+                new PlayerBoundsTransition(from, to)
         );
 
         assertSame("Vertical wall collision should be reported as WALL", PlayerCollisionSolver.CollisionMode.WALL, result.lastCollisionMode);
@@ -684,7 +684,7 @@ public class PlayerCollisionSolverTest {
 
         PlayerCollisionSolver.Result<String> result = TEST_SOLVER.solveDetailed(
                 java.util.Collections.singletonList(surface),
-                new PlayerTransition(from, to)
+                new PlayerBoundsTransition(from, to)
         );
 
         assertTrue("Vertical wall collision should be reported as WALL (or bounds flush to wall)",
@@ -709,7 +709,7 @@ public class PlayerCollisionSolverTest {
 
         PlayerCollisionSolver.Result<String> result = TEST_SOLVER.solveDetailed(
                 java.util.Collections.singletonList(surface),
-                new PlayerTransition(from, to)
+                new PlayerBoundsTransition(from, to)
         );
         // Debug: print signed distances for corners to inspect flush behavior
         Vector[] fcs = allCorners(from);
@@ -739,7 +739,7 @@ public class PlayerCollisionSolverTest {
 
         PlayerCollisionSolver.Result<String> result = TEST_SOLVER.solveDetailed(
                 java.util.Collections.singletonList(surface),
-                new PlayerTransition(from, to)
+                new PlayerBoundsTransition(from, to)
         );
 
         System.out.println(result.bounds);
@@ -809,7 +809,7 @@ public class PlayerCollisionSolverTest {
 
         PlayerCollisionSolver.Result<String> result = TEST_SOLVER.solveDetailed(
                 Arrays.asList(wall, ground),
-                new PlayerTransition(from, to)
+                new PlayerBoundsTransition(from, to)
         );
 
         // Check Y is at the pinch point
@@ -836,7 +836,7 @@ public class PlayerCollisionSolverTest {
 
         PlayerCollisionSolver.Result<String> result = TEST_SOLVER.solveDetailed(
                 java.util.Collections.singletonList(surface),
-                new PlayerTransition(from, to)
+                new PlayerBoundsTransition(from, to)
         );
 
         // Debug: print per-corner signed distances to inspect why a WALL might be reported
@@ -868,11 +868,11 @@ public class PlayerCollisionSolverTest {
         // Player standing on the surface (feet exactly at plane Y)
         AABBHandle standing = createAabb(new Vector(0.0, 5.0, 0.0), halfWidth, height);
         // Resolve standing (no movement)
-        AABBHandle resolved = TEST_SOLVER.solve(java.util.Collections.singletonList(surface), new PlayerTransition(standing, standing));
+        AABBHandle resolved = TEST_SOLVER.solve(java.util.Collections.singletonList(surface), new PlayerBoundsTransition(standing, standing));
 
         // Now attempt to jump: destination has feet higher
         AABBHandle jumpTo = createAabb(new Vector(0.0, 6.0, 0.0), halfWidth, height);
-        AABBHandle afterJump = TEST_SOLVER.solve(java.util.Collections.singletonList(surface), new PlayerTransition(resolved, jumpTo));
+        AABBHandle afterJump = TEST_SOLVER.solve(java.util.Collections.singletonList(surface), new PlayerBoundsTransition(resolved, jumpTo));
 
         // The player's feet must not end up below the surface plane after the jump
         assertFeetNotBelowSurface("Resolved standing then jumping should not pass through the same surface", surface.from, afterJump);
@@ -902,7 +902,7 @@ public class PlayerCollisionSolverTest {
                 position.getX() + halfWidth + toPos.getX(), position.getY() + toPos.getY() + height, position.getZ() + halfWidth + toPos.getZ()
         );
 
-        PlayerTransition player = new PlayerTransition(from, to);
+        PlayerBoundsTransition player = new PlayerBoundsTransition(from, to);
 
         AABBHandle result = TEST_SOLVER.solve(java.util.Collections.singletonList(surface), player);
 
@@ -933,7 +933,7 @@ public class PlayerCollisionSolverTest {
                 position.getX() + halfWidth + toPos.getX(), position.getY() + toPos.getY() + height, position.getZ() + halfWidth + toPos.getZ()
         );
 
-        PlayerTransition player = new PlayerTransition(from, to);
+        PlayerBoundsTransition player = new PlayerBoundsTransition(from, to);
 
         AABBHandle result = TEST_SOLVER.solve(java.util.Collections.singletonList(surface), player);
 
@@ -955,7 +955,7 @@ public class PlayerCollisionSolverTest {
 
         PlayerCollisionSolver.Result<String> result = TEST_SOLVER.solveDetailed(
                 java.util.Collections.singletonList(surface),
-                new PlayerTransition(from, to)
+                new PlayerBoundsTransition(from, to)
         );
 
         // Debug output: print per-corner signed distances and crossing tests to help diagnose false positives
@@ -992,7 +992,7 @@ public class PlayerCollisionSolverTest {
 
         PlayerCollisionSolver.Result<String> result = TEST_SOLVER.solveDetailed(
                 Arrays.asList(wall, dummy),
-                new PlayerTransition(from, to)
+                new PlayerBoundsTransition(from, to)
         );
 
         assertEquals("A small vertical wall should not drag the player when crossing outside its extents, even in the multi-surface path", PlayerCollisionSolver.CollisionMode.NONE, result.lastCollisionMode);
@@ -1014,7 +1014,7 @@ public class PlayerCollisionSolverTest {
 
         PlayerCollisionSolver.Result<String> result = TEST_SOLVER.solveDetailed(
                 Arrays.asList(slope, dummy),
-                new PlayerTransition(from, to)
+                new PlayerBoundsTransition(from, to)
         );
 
         assertEquals("A small slope should not block vertical movement outside its extents even when multiple surfaces are present", PlayerCollisionSolver.CollisionMode.NONE, result.lastCollisionMode);
@@ -1034,7 +1034,7 @@ public class PlayerCollisionSolverTest {
 
         PlayerCollisionSolver.Result<String> result = TEST_SOLVER.solveDetailed(
                 java.util.Collections.singletonList(surface),
-                new PlayerTransition(from, to)
+                new PlayerBoundsTransition(from, to)
         );
 
         assertEquals("Moving upward away from a steep sloped surface should not collide with that same surface", PlayerCollisionSolver.CollisionMode.NONE, result.lastCollisionMode);
@@ -1046,7 +1046,7 @@ public class PlayerCollisionSolverTest {
         // In this test case, there are a couple walls surrounding the player that move with the player
         // It should not detect any collisions with these walls.
 
-        PlayerTransition playerTransition = new PlayerTransition(
+        PlayerBoundsTransition playerTransition = new PlayerBoundsTransition(
                 AABBHandle.createNew(
                         -333.74510530044364, 7.4625, 283.3845511231143,
                         -333.1451052766018, 9.262499952316285, 283.98455114695616
@@ -1459,7 +1459,7 @@ public class PlayerCollisionSolverTest {
         AABBHandle curr = start;
         int tick = 0;
         while (true) {
-            PlayerCollisionSolver.Result<String> result = TEST_SOLVER.solveDetailed(walls, new PlayerTransition(curr, target));
+            PlayerCollisionSolver.Result<String> result = TEST_SOLVER.solveDetailed(walls, new PlayerBoundsTransition(curr, target));
 
             System.out.println("bothWalls tick=" + tick + " collisionMode=" + result.lastCollisionMode +
                     " minX=" + result.bounds.getMinX() + " minY=" + result.bounds.getMinY() + " maxX=" + result.bounds.getMaxX() +

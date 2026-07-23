@@ -7,11 +7,11 @@ import org.bukkit.util.Vector;
  * Snapshot of a player bounding box. Keeps the bounds and commonly used corner
  * points together so collision code can reason about a player state directly.
  */
-public class PlayerState {
+public class PlayerBoundsState {
     public final AABBHandle bounds;
     public final Vector[] corners = new Vector[8];
 
-    public PlayerState(AABBHandle bounds) {
+    public PlayerBoundsState(AABBHandle bounds) {
         this.bounds = bounds;
 
         int i = 0;
@@ -27,14 +27,14 @@ public class PlayerState {
         }
     }
 
-    public PlayerState interpolate(PlayerState other, double theta) {
+    public PlayerBoundsState interpolate(PlayerBoundsState other, double theta) {
         double minX = this.bounds.getMinX() + (other.bounds.getMinX() - this.bounds.getMinX()) * theta;
         double minY = this.bounds.getMinY() + (other.bounds.getMinY() - this.bounds.getMinY()) * theta;
         double minZ = this.bounds.getMinZ() + (other.bounds.getMinZ() - this.bounds.getMinZ()) * theta;
         double maxX = this.bounds.getMaxX() + (other.bounds.getMaxX() - this.bounds.getMaxX()) * theta;
         double maxY = this.bounds.getMaxY() + (other.bounds.getMaxY() - this.bounds.getMaxY()) * theta;
         double maxZ = this.bounds.getMaxZ() + (other.bounds.getMaxZ() - this.bounds.getMaxZ()) * theta;
-        return new PlayerState(AABBHandle.createNew(minX, minY, minZ, maxX, maxY, maxZ));
+        return new PlayerBoundsState(AABBHandle.createNew(minX, minY, minZ, maxX, maxY, maxZ));
     }
 
     public Vector[] bottomFaceCorners() {
@@ -50,7 +50,7 @@ public class PlayerState {
     }
 
     public void printDebugCreate(StringBuilder str, String indentStr) {
-        str.append("new PlayerState(\n");
+        str.append("new PlayerBoundsState(\n");
         str.append(indentStr).append("    AABBHandle.createNew(\n");
         str.append(indentStr).append("        ").append(bounds.getMinX()).append(", ").append(bounds.getMinY()).append(", ").append(bounds.getMinZ()).append(",\n");
         str.append(indentStr).append("        ").append(bounds.getMaxX()).append(", ").append(bounds.getMaxY()).append(", ").append(bounds.getMaxZ()).append("\n");
