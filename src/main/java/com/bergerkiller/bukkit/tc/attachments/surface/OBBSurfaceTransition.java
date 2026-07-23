@@ -65,7 +65,7 @@ public class OBBSurfaceTransition<T> {
      * the player body is actually on. This prevents false positives when the solver
      * correctly places a corner exactly on the surface (signedDist ≈ 0).</p>
      */
-    public boolean hasCornerPassedThrough(PlayerTransition transition) {
+    public boolean hasCornerPassedThrough(PlayerBoundsTransition transition) {
         for (int i = 0; i < 8; i++) {
             Vector fromPos = transition.from.corners[i];
             Vector toPos   = transition.to.corners[i];
@@ -74,7 +74,7 @@ public class OBBSurfaceTransition<T> {
             double signedTo   = to  .signedDistanceToPlane(toPos);
 
             // Corner indices are laid out as y-outer, z-middle, x-inner
-            // (see PlayerState constructor), so index j = 7 - i is always
+            // (see PlayerBoundsState constructor), so index j = 7 - i is always
             // the diagonally opposite corner.
             int j = 7 - i;
 
@@ -141,7 +141,7 @@ public class OBBSurfaceTransition<T> {
     }
 
     public boolean hasSurfaceSupport(AABBHandle actualBounds, Vector worldPosition, double gravity, PlayerCollisionSolver collisionSolver) {
-        Vector actualFeetPosition = PlayerState.feetPosition(actualBounds);
+        Vector actualFeetPosition = PlayerBoundsState.feetPosition(actualBounds);
         AABBHandle bboxAtPosition = actualBounds.translate(
                 worldPosition.getX() - actualFeetPosition.getX(),
                 worldPosition.getY() - actualFeetPosition.getY(),
@@ -152,7 +152,7 @@ public class OBBSurfaceTransition<T> {
         AABBHandle bboxBelow = bboxAtPosition.translate(0.0, -gravity, 0.0);
         PlayerCollisionSolver.Result<T> result = collisionSolver.solveDetailed(
                 Collections.singletonList(this),
-                new PlayerTransition(bboxAtPosition, bboxBelow)
+                new PlayerBoundsTransition(bboxAtPosition, bboxBelow)
         );
         return result.lastCollisionMode == PlayerCollisionSolver.CollisionMode.FEET;
     }

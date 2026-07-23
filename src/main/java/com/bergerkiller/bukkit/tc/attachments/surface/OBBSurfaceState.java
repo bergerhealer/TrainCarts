@@ -261,11 +261,11 @@ public class OBBSurfaceState {
      * the surface footprint are ignored, since the (infinite) plane they're being compared against
      * doesn't actually exist there.
      *
-     * @param playerState PlayerState
+     * @param playerState PlayerBoundsState
      * @return True if the player is clipping through this surface (straddling both sides of its plane
      *         within its bounds)
      */
-    public boolean isClippingThrough(PlayerState playerState) {
+    public boolean isClippingThrough(PlayerBoundsState playerState) {
         // Small tolerance to avoid flagging corners that are merely touching the plane
         // (within floating point rounding error) as a "clip" on the wrong side.
         final double EPS = 1e-6;

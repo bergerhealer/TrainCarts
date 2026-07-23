@@ -12,7 +12,7 @@ package com.bergerkiller.bukkit.tc.attachments.surface;
  * Implements {@link Comparable} in a way that it sorts by the maximum-y coordinate.
  * The highest tiles are put at the beginning of a list sorted this way.
  */
-public interface CollisionFloorTileShape extends Comparable<CollisionFloorTileShape> {
+interface CollisionFloorTileShape extends Comparable<CollisionFloorTileShape> {
     double DIFF_THRESHOLD = 0.05;
 
     /**

@@ -6,20 +6,20 @@ import com.bergerkiller.generated.net.minecraft.world.phys.AABBHandle;
  * A player being moved from one position/state to another. Its bounds should not clip through
  * any surfaces during the transition.
  */
-public class PlayerTransition {
-    public final PlayerState from;
-    public final PlayerState to;
+public class PlayerBoundsTransition {
+    public final PlayerBoundsState from;
+    public final PlayerBoundsState to;
 
-    public PlayerTransition(AABBHandle from, AABBHandle to) {
-        this(new PlayerState(from), new PlayerState(to));
+    public PlayerBoundsTransition(AABBHandle from, AABBHandle to) {
+        this(new PlayerBoundsState(from), new PlayerBoundsState(to));
     }
 
-    public PlayerTransition(PlayerState from, PlayerState to) {
+    public PlayerBoundsTransition(PlayerBoundsState from, PlayerBoundsState to) {
         this.from = from;
         this.to = to;
     }
 
-    public PlayerState interpolate(double theta) {
+    public PlayerBoundsState interpolate(double theta) {
         return from.interpolate(to, theta);
     }
 
@@ -31,7 +31,7 @@ public class PlayerTransition {
      * @param indentStr Indent string to prefix each line by
      */
     public void printDebugCreate(StringBuilder str, String indentStr) {
-        str.append("new PlayerTransition(\n");
+        str.append("new PlayerBoundsTransition(\n");
         str.append(indentStr).append("    ");
         from.printDebugCreate(str, indentStr + "    ");
         str.append(",\n").append(indentStr).append("    ");
