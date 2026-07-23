@@ -11,7 +11,17 @@ import org.bukkit.util.Vector;
  * world AABB and provides fast world&lt;&gt;local helpers and plane projection.
  */
 public class OBBSurfaceState {
-    private static final double SUPPORT_CONTACT_MARGIN = 1e-6;
+    public static final double SUPPORT_CONTACT_MARGIN = 1e-6;
+    /** Threshold used to treat a surface as near-vertical for stability in various calculations */
+    public static final double VERTICAL_NORMAL_EPS = 1e-2;
+    /** If algebraic plane Y and projection-based plane Y differ by more than this, prefer projection. */
+    public static final double ALGEBRAIC_PROJECTION_DIFF_EPS = 15.0;
+    /** If the worst-case algebraic Y deviation across the surface exceeds this, reject algebraic. */
+    public static final double ALGEBRAIC_WORST_DELTA_LIMIT = 20.0;
+    /** Epsilon for clamping player bounds against surfaces */
+    public static final double CLAMP_EPS = 1e-9;
+    /** Distance that counts as definitely penetrating the plane */
+    public static final double CROSSING_MARGIN = 1e-3;
 
     public final Vector center;
     public final Quaternion orientation;
@@ -110,6 +120,202 @@ public class OBBSurfaceState {
                 + (p.getZ() - proj.getZ()) * normal.getZ();
     }
 
+    public double minSignedDistanceToPlane(PlayerBoundsState state) {
+        double min = Double.POSITIVE_INFINITY;
+        for (Vector corner : state.corners()) {
+            min = Math.min(min, signedDistanceToPlane(corner));
+        }
+        return min;
+    }
+
+    public double maxSignedDistanceToPlane(PlayerBoundsState state) {
+        double max = Double.NEGATIVE_INFINITY;
+        for (Vector corner : state.corners()) {
+            max = Math.max(max, signedDistanceToPlane(corner));
+        }
+        return max;
+    }
+
+    public double planeYAtXZ(double x, double z) {
+        double ny = normal.getY();
+        // If the normal Y is very small (plane almost vertical), the direct algebraic
+        // computation below becomes numerically unstable due to division by ny. In
+        // that case, fall back to projecting the point onto the plane and returning
+        // the projected Y coordinate. This avoids huge values when dealing with
+        // near-vertical surfaces.
+        // We also guard against cases where the algebraic result is finite but
+        // wildly far from the surface center Y (likely caused by division by a
+        // small ny). In such a case, prefer the projection-based result.
+        double yAlgebraic = Double.NaN;
+        if (Math.abs(ny) >= VERTICAL_NORMAL_EPS) {
+            yAlgebraic = center.getY() - (((x - center.getX()) * normal.getX())
+                    + ((z - center.getZ()) * normal.getZ())) / ny;
+        }
+
+        // Also compute the projection-based Y so we can compare both results. If they
+        // disagree significantly, prefer the projection because it is numerically more
+        // stable for near-vertical or skewed planes.
+        Vector proj = projectPointOntoPlane(new Vector(x, center.getY(), z), new Vector());
+        double yProj = proj.getY();
+
+        // Consider algebraic invalid when the horizontal normal components dominate the
+        // vertical component by a large factor: that makes division by ny unstable.
+        double nx = normal.getX();
+        double nz = normal.getZ();
+        boolean algebraicValid = Double.isFinite(yAlgebraic) && Math.abs(yAlgebraic - center.getY()) < 200.0;
+        // Reject algebraic if worst-case vertical deviation across the surface
+        // (based on half extents and horizontal normal components) is excessively large.
+        if (algebraicValid && Math.abs(ny) > 0.0) {
+            double worstDelta = (Math.abs(halfSize.getX() * nx) + Math.abs(halfSize.getZ() * nz)) / Math.abs(ny);
+            // Determine a dynamic threshold based on surface size: larger surfaces
+            // can tolerate larger algebraic deviations. Use max of a base limit and
+            // a multiple of the largest half-size dimension.
+            double dynamicLimit = Math.max(ALGEBRAIC_WORST_DELTA_LIMIT,
+                    5.0 * Math.max(halfSize.getX(), halfSize.getZ()));
+            if (worstDelta > dynamicLimit) {
+                algebraicValid = false;
+            }
+        }
+        // No separate horizontal/vertical ratio test: prefer projection when
+        // algebraic appears extreme relative to center or differs strongly from
+        // the projection result. The existing checks below handle selection.
+        boolean projValid = Double.isFinite(yProj) && Math.abs(yProj - center.getY()) < 200.0;
+
+        if (algebraicValid && projValid) {
+            // If both are valid but disagree significantly, prefer the projection
+            // result because projecting is numerically stable for skewed/near-
+            // vertical planes. Only use algebraic when both agree closely.
+            if (Math.abs(yAlgebraic - yProj) > ALGEBRAIC_PROJECTION_DIFF_EPS) {
+                return yProj;
+            }
+            return yAlgebraic;
+        }
+
+        if (algebraicValid) {
+            return yAlgebraic;
+        }
+
+        if (projValid) {
+            return yProj;
+        }
+
+        // Fallback: use the surface center Y when nothing reasonable can be derived.
+        return center.getY();
+    }
+
+    private java.util.List<Double> gatherFacePlaneYs(Vector[] faceCorners) {
+        java.util.ArrayList<Double> list = new java.util.ArrayList<>();
+        for (Vector corner :  faceCorners) {
+            Vector proj = projectPointOntoPlane(corner, new Vector());
+            if (containsPointOnPlane(proj)) {
+                list.add(planeYAtXZ(corner.getX(), corner.getZ()));
+            }
+        }
+        return list;
+    }
+
+    private static double representativePlaneY(java.util.List<Double> list, boolean wantMax) {
+        int count = list.size();
+        if (count == 0) return Double.NaN;
+        if (count == 1) return list.get(0);
+
+        double[] vals = new double[count];
+        for (int i = 0; i < count; i++) vals[i] = list.get(i);
+        java.util.Arrays.sort(vals);
+        if (count > 2) {
+            if (wantMax) {
+                double maxY = Double.NEGATIVE_INFINITY;
+                for (int i = 1; i < count-1; i++) maxY = Math.max(maxY, vals[i]);
+                return maxY;
+            } else {
+                double minY = Double.POSITIVE_INFINITY;
+                for (int i = 1; i < count-1; i++) minY = Math.min(minY, vals[i]);
+                return minY;
+            }
+        } else {
+            if (wantMax) {
+                double maxY = Double.NEGATIVE_INFINITY;
+                for (double v : vals) maxY = Math.max(maxY, v);
+                return maxY;
+            } else {
+                double minY = Double.POSITIVE_INFINITY;
+                for (double v : vals) minY = Math.min(minY, v);
+                return minY;
+            }
+        }
+    }
+
+    public double maxPlaneYAtFace(PlayerBoundsState state) {
+        java.util.List<Double> list = gatherFacePlaneYs(state.bottomFaceCorners());
+        return representativePlaneY(list, true);
+    }
+
+    public double minPlaneYAtFace(PlayerBoundsState state) {
+        java.util.List<Double> list = gatherFacePlaneYs(state.topFaceCorners());
+        return representativePlaneY(list, false);
+    }
+
+    public PlayerBoundsState clampToPositiveSideOfPlane(PlayerBoundsState state) {
+        double minSigned = minSignedDistanceToPlane(state);
+        if (minSigned + CLAMP_EPS >= 0.0) {
+            return state;
+        }
+        double distance = -minSigned;
+        return state.translate(
+                normal.getX() * distance,
+                normal.getY() * distance,
+                normal.getZ() * distance);
+    }
+
+    public PlayerBoundsState clampToNegativeSideOfPlane(PlayerBoundsState state) {
+        double maxSigned = maxSignedDistanceToPlane(state);
+        if (maxSigned - CLAMP_EPS <= 0.0) {
+            return state;
+        }
+        double distance = -maxSigned;
+        return state.translate(
+                normal.getX() * distance,
+                normal.getY() * distance,
+                normal.getZ() * distance);
+    }
+
+    public boolean boxTouchesVerticalSurface(PlayerBoundsState state) {
+        boolean overlapsSurface = false;
+        boolean hasPositive = false;
+        boolean hasNegative = false;
+        for (Vector corner : state.corners()) {
+            double signed = signedDistanceToPlane(corner);
+            if (signed >= -CROSSING_MARGIN) hasPositive = true;
+            if (signed <= CROSSING_MARGIN) hasNegative = true;
+            Vector proj = projectPointOntoPlane(corner, new Vector());
+            if (containsPointOnPlane(proj)) {
+                overlapsSurface = true;
+                if (Math.abs(signed) <= CROSSING_MARGIN) {
+                    return true;
+                }
+            }
+        }
+        return overlapsSurface && hasPositive && hasNegative;
+    }
+
+    public boolean boxTouchesSurfaceFootprint(PlayerBoundsState state) {
+        double minX = Double.POSITIVE_INFINITY;
+        double maxX = Double.NEGATIVE_INFINITY;
+        double minZ = Double.POSITIVE_INFINITY;
+        double maxZ = Double.NEGATIVE_INFINITY;
+        for (Vector corner : state.corners()) {
+            Vector local = worldToLocal(corner, new Vector());
+            minX = Math.min(minX, local.getX());
+            maxX = Math.max(maxX, local.getX());
+            minZ = Math.min(minZ, local.getZ());
+            maxZ = Math.max(maxZ, local.getZ());
+        }
+        return maxX >= -halfSize.getX() - 1e-6
+                && minX <= halfSize.getX() + 1e-6
+                && maxZ >= -halfSize.getZ() - 1e-6
+                && minZ <= halfSize.getZ() + 1e-6;
+    }
+
     /**
      * Projects a world-space point onto the OBB plane (local Y = 0).
      * The returned Vector (reuse) is the world-space point on the plane.
@@ -143,23 +349,23 @@ public class OBBSurfaceState {
      * If the surface is nearly vertical ({@code |normal.Y| < 1e-6}) or the AABB is already
      * sitting on or above the surface, the original bounds are returned unchanged.
      *
-     * @param bounds AABB to place on the surface
-     * @return New AABB translated vertically to sit on this surface, or the original if no
+     * @param state Player state to place on the surface
+     * @return New player state translated vertically to sit on this surface, or the original if no
      *         upward shift is needed / applicable
      */
-    public AABBHandle placeBoundsOnSurface(AABBHandle bounds) {
+    public PlayerBoundsState placeBoundsOnSurface(PlayerBoundsState state) {
         double ny = this.normal.getY();
         if (Math.abs(ny) < 1e-6) {
             // Nearly vertical surface - a pure Y translation cannot place the AABB onto it
-            return bounds;
+            return state;
         }
 
         double maxShift = Double.NEGATIVE_INFINITY;
         double surfaceTopY = this.aabb.getMaxY();
-        double minY = bounds.getMinY();
+        double minY = state.bounds.getMinY();
 
-        double[] xs = { bounds.getMinX(), bounds.getMaxX() };
-        double[] zs = { bounds.getMinZ(), bounds.getMaxZ() };
+        double[] xs = { state.bounds.getMinX(), state.bounds.getMaxX() };
+        double[] zs = { state.bounds.getMinZ(), state.bounds.getMaxZ() };
 
         for (double x : xs) {
             for (double z : zs) {
@@ -182,14 +388,12 @@ public class OBBSurfaceState {
             }
         }
 
-        if (maxShift <= 0.0 || maxShift == Double.NEGATIVE_INFINITY) {
+        if (maxShift <= 0.0) {
             // AABB is already at or above the surface - no adjustment needed.
-            return bounds;
+            return state;
         }
 
-        return AABBHandle.createNew(
-                bounds.getMinX(), minY + maxShift, bounds.getMinZ(),
-                bounds.getMaxX(), bounds.getMaxY() + maxShift, bounds.getMaxZ());
+        return state.translate(0.0, maxShift, 0.0);
     }
 
    public Vector projectOntoNormalPlane(Vector vector) {
@@ -204,13 +408,6 @@ public class OBBSurfaceState {
         double dot = result.dot(groundNormal);
         result.subtract(groundNormal.clone().multiply(dot));
         return result;
-    }
-
-    /**
-     * Returns a new half-size vector expanded by radius on X/Z (Y retained).
-     */
-    public Vector expandedHalfSize(double radius) {
-        return new Vector(halfSize.getX() + radius, halfSize.getY(), halfSize.getZ() + radius);
     }
 
     public boolean bottomFaceIntersectsSurfacePlane(AABBHandle aabb) {
@@ -272,7 +469,7 @@ public class OBBSurfaceState {
         boolean hasPositive = false;
         boolean hasNegative = false;
         Vector reuse = new Vector();
-        for (Vector corner : playerState.allCorners()) {
+        for (Vector corner : playerState.corners()) {
             Vector projected = projectPointOntoPlane(corner, reuse);
             if (!containsPointOnPlane(projected)) {
                 continue;
