@@ -3,6 +3,8 @@ package com.bergerkiller.bukkit.tc.attachments.surface;
 import com.bergerkiller.generated.net.minecraft.world.phys.AABBHandle;
 import org.bukkit.util.Vector;
 
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
@@ -29,19 +31,11 @@ class PlayerCollisionSolver {
     /** Small downward sweep used when checking what surface the player is standing on */
     private static final double SUPPORT_SEARCH_DISTANCE = 0.15;
     /** Threshold used to treat a surface as near-vertical for stability in various calculations */
-    private static final double VERTICAL_NORMAL_EPS = 1e-2;
-    /** If algebraic plane Y and projection-based plane Y differ by more than this, prefer projection. */
-    private static final double ALGEBRAIC_PROJECTION_DIFF_EPS = 15.0;
-    /** If the worst-case algebraic Y deviation across the surface exceeds this, reject algebraic. */
-    private static final double ALGEBRAIC_WORST_DELTA_LIMIT = 20.0;
+    private static final double VERTICAL_NORMAL_EPS = OBBSurfaceState.VERTICAL_NORMAL_EPS;
     /** Distance that counts as definitely penetrating the plane */
-    private static final double CROSSING_MARGIN = 1e-3;
+    private static final double CROSSING_MARGIN = OBBSurfaceState.CROSSING_MARGIN;
     /** Tiny comparison tolerance for floating-point rounding around the crossing margin */
     private static final double COMPARE_EPS = 1e-6;
-    /** Extra distance to separate the player from the plane after resolution */
-    private static final double RESOLVE_OFFSET = 0.0;
-    /** Maximum allowed Y delta when multiple surfaces are involved before trying a safer single-surface result */
-    private static final double MULTI_SURFACE_SAFE_DELTA = 20.0;
     /** Safety limit for the solver's stabilization loop */
     private static final int LOOP_GUARD_LIMIT = 10000;
 
@@ -89,26 +83,15 @@ class PlayerCollisionSolver {
         }
     }
 
-    private static boolean areAABBsEqual(AABBHandle a, AABBHandle b) {
+    private static boolean areAABBsSimilar(AABBHandle a, AABBHandle b) {
         if (a == b) return true;
         if (a == null || b == null) return false;
-        final double TOL = 1e-6;
-        return Math.abs(a.getMinX() - b.getMinX()) <= TOL
-                && Math.abs(a.getMinY() - b.getMinY()) <= TOL
-                && Math.abs(a.getMinZ() - b.getMinZ()) <= TOL
-                && Math.abs(a.getMaxX() - b.getMaxX()) <= TOL
-                && Math.abs(a.getMaxY() - b.getMaxY()) <= TOL
-                && Math.abs(a.getMaxZ() - b.getMaxZ()) <= TOL;
-    }
-
-    private static AABBHandle interpolateAABB(AABBHandle from, AABBHandle to, double t) {
-        double minX = from.getMinX() + (to.getMinX() - from.getMinX()) * t;
-        double minY = from.getMinY() + (to.getMinY() - from.getMinY()) * t;
-        double minZ = from.getMinZ() + (to.getMinZ() - from.getMinZ()) * t;
-        double maxX = from.getMaxX() + (to.getMaxX() - from.getMaxX()) * t;
-        double maxY = from.getMaxY() + (to.getMaxY() - from.getMaxY()) * t;
-        double maxZ = from.getMaxZ() + (to.getMaxZ() - from.getMaxZ()) * t;
-        return AABBHandle.createNew(minX, minY, minZ, maxX, maxY, maxZ);
+        return Math.abs(a.getMinX() - b.getMinX()) <= COMPARE_EPS
+                && Math.abs(a.getMinY() - b.getMinY()) <= COMPARE_EPS
+                && Math.abs(a.getMinZ() - b.getMinZ()) <= COMPARE_EPS
+                && Math.abs(a.getMaxX() - b.getMaxX()) <= COMPARE_EPS
+                && Math.abs(a.getMaxY() - b.getMaxY()) <= COMPARE_EPS
+                && Math.abs(a.getMaxZ() - b.getMaxZ()) <= COMPARE_EPS;
     }
 
     private <T> Optional<InteractionCandidate<T>> computeInteractionCandidate(OBBSurfaceTransition<T> st,
@@ -134,7 +117,7 @@ class PlayerCollisionSolver {
             if (cand.isPresent()) {
                 InteractionCandidate<T> best = cand.get();
                 this.logger.debugCandidate(st, best.theta, best.isVertical, best.feetCrossed, best.headCrossed,
-                        player.from.allCorners(), best.playerAtTheta.allCorners());
+                        player.from.corners(), best.playerAtTheta.corners());
                 return Optional.of(best);
             }
 
@@ -160,13 +143,13 @@ class PlayerCollisionSolver {
         Vector[] toBottom = toPlayer.bottomFaceCorners();
         Vector[] fromTop = fromPlayer.topFaceCorners();
         Vector[] toTop = toPlayer.topFaceCorners();
-        Vector[] fromCorners = fromPlayer.allCorners();
-        Vector[] toCorners = toPlayer.allCorners();
+        Vector[] fromCorners = fromPlayer.corners();
+        Vector[] toCorners = toPlayer.corners();
 
         if (isVertical) {
             for (int i = 0; i < fromCorners.length; i++) {
-                double signedFrom = signedDistanceToPlane(fromSurface, fromCorners[i]);
-                double signedTo = signedDistanceToPlane(toSurface, toCorners[i]);
+                double signedFrom = fromSurface.signedDistanceToPlane(fromCorners[i]);
+                double signedTo = toSurface.signedDistanceToPlane(toCorners[i]);
                 Double t = crossingTheta(signedFrom, signedTo);
                 if (t != null && crossesWithinEitherSurface(fromSurface, toSurface, fromCorners[i], toCorners[i], t)) {
                     double theta = fromTheta + (toTheta - fromTheta) * t;
@@ -202,8 +185,8 @@ class PlayerCollisionSolver {
                 }
             } else {
                 for (int i = 0; i < fromCorners.length; i++) {
-                    double signedFrom = signedDistanceToPlane(fromSurface, fromCorners[i]);
-                    double signedTo = signedDistanceToPlane(toSurface, toCorners[i]);
+                    double signedFrom = fromSurface.signedDistanceToPlane(fromCorners[i]);
+                    double signedTo = toSurface.signedDistanceToPlane(toCorners[i]);
                     Double t = crossingTheta(signedFrom, signedTo);
                     if (t != null && crossesWithinEitherSurface(fromSurface, toSurface, fromCorners[i], toCorners[i], t)) {
                         double theta = fromTheta + (toTheta - fromTheta) * t;
@@ -233,49 +216,9 @@ class PlayerCollisionSolver {
         return Math.abs(surface.normal.getY()) < VERTICAL_NORMAL_EPS;
     }
 
-    private static boolean boxTouchesVerticalSurface(OBBSurfaceState surface, PlayerBoundsState player) {
-        return boxTouchesVerticalSurface(surface, player.bounds);
-    }
-
-    private static boolean boxTouchesVerticalSurface(OBBSurfaceState surface, AABBHandle aabb) {
-        boolean overlapsSurface = false;
-        boolean hasPositive = false;
-        boolean hasNegative = false;
-        for (Vector corner : allCorners(aabb)) {
-            double signed = signedDistanceToPlane(surface, corner);
-            if (signed >= -CROSSING_MARGIN) hasPositive = true;
-            if (signed <= CROSSING_MARGIN) hasNegative = true;
-            Vector proj = surface.projectPointOntoPlane(corner, new Vector());
-            if (surface.containsPointOnPlane(proj)) {
-                overlapsSurface = true;
-                if (Math.abs(signed) <= CROSSING_MARGIN) {
-                    return true;
-                }
-            }
-        }
-        return overlapsSurface && hasPositive && hasNegative;
-    }
-
-    private static boolean boxTouchesSurfaceFootprint(AABBHandle aabb, OBBSurfaceState surface) {
-        double minX = Double.POSITIVE_INFINITY;
-        double maxX = Double.NEGATIVE_INFINITY;
-        double minZ = Double.POSITIVE_INFINITY;
-        double maxZ = Double.NEGATIVE_INFINITY;
-        for (Vector corner : allCorners(aabb)) {
-            Vector local = surface.worldToLocal(corner, new Vector());
-            minX = Math.min(minX, local.getX());
-            maxX = Math.max(maxX, local.getX());
-            minZ = Math.min(minZ, local.getZ());
-            maxZ = Math.max(maxZ, local.getZ());
-        }
-        return maxX >= -surface.halfSize.getX() - 1e-6
-                && minX <= surface.halfSize.getX() + 1e-6
-                && maxZ >= -surface.halfSize.getZ() - 1e-6
-                && minZ <= surface.halfSize.getZ() + 1e-6;
-    }
-
     public static final class Result<T> {
-        public final AABBHandle bounds;
+        /** The player state after all surface interactions have been processed */
+        public final PlayerBoundsState state;
         public final T lastSurface;
         public final CollisionMode lastCollisionMode;
         public final OBBSurfaceState lastSurfaceFromState;
@@ -292,7 +235,7 @@ class PlayerCollisionSolver {
         }
 
         public Result(
-                AABBHandle bounds,
+                PlayerBoundsState bounds,
                 T lastSurface,
                 CollisionMode lastCollisionMode,
                 OBBSurfaceState lastSurfaceFromState,
@@ -300,7 +243,7 @@ class PlayerCollisionSolver {
                 PlayerBoundsTransition playerTransition,
                 java.util.List<OBBSurfaceTransition<T>> involvedTransitions
         ) {
-            this.bounds = bounds;
+            this.state = bounds;
             this.lastSurface = lastSurface;
             this.lastCollisionMode = lastCollisionMode;
             this.lastSurfaceFromState = lastSurfaceFromState;
@@ -356,7 +299,7 @@ class PlayerCollisionSolver {
 
         @Override
         public String toString() {
-            return "Result{mode=" + lastCollisionMode + ", bounds=" + bounds + "}";
+            return "Result{mode=" + lastCollisionMode + ", bounds=" + state + "}";
         }
     }
 
@@ -366,7 +309,7 @@ class PlayerCollisionSolver {
      * raw lists do not require explicit generic type hints.
      */
     public <T> AABBHandle solve(List<? extends OBBSurfaceTransition<T>> surfaces, PlayerBoundsTransition player) {
-        return this.solveDetailed(surfaces, player).bounds;
+        return this.solveDetailed(surfaces, player).state.bounds;
     }
 
     /**
@@ -375,7 +318,7 @@ class PlayerCollisionSolver {
      */
     public <T> Result<T> solveDetailed(List<? extends OBBSurfaceTransition<T>> surfaces, PlayerBoundsTransition player) {
         if (surfaces == null || surfaces.isEmpty()) {
-            return new Result<>(player.to.bounds, null, CollisionMode.NONE, null, null, player, java.util.Collections.emptyList());
+            return new Result<>(player.to, null, CollisionMode.NONE, null, null, player, java.util.Collections.emptyList());
         }
 
         CollisionContext<T> ctx = new CollisionContext<>(player);
@@ -387,13 +330,13 @@ class PlayerCollisionSolver {
         int loopGuard = 0;
         double thetaLower = 0.0;
         for (int iter = 0; iter < MAX_ITERS; iter++) {
-            AABBHandle prev = ctx.result;
+            AABBHandle prev = ctx.result.bounds;
 
-            double bestTheta = Double.POSITIVE_INFINITY;
+            double bestTheta;
             boolean changedAtTheta;
             java.util.Set<OBBSurfaceTransition<T>> processedAtTheta = new java.util.HashSet<>();
             do {
-                AABBHandle beforeBatch = ctx.result;
+                AABBHandle beforeBatch = ctx.result.bounds;
 
                 // Find the earliest interaction candidates among surfaces. If multiple
                 // surfaces are hit at essentially the same theta, process all of them
@@ -430,10 +373,7 @@ class PlayerCollisionSolver {
 
                 // Process less level surfaces first so the most level surface wins when
                 // multiple surfaces block at the same theta.
-                bestCands.sort((a, b) -> Double.compare(
-                        surfaceLevelScore(a.surfaceAtTheta),
-                        surfaceLevelScore(b.surfaceAtTheta)
-                ));
+                bestCands.sort(Comparator.comparingDouble(a -> surfaceLevelScore(a.surfaceAtTheta)));
 
                 // Process all candidates that occur at the same earliest theta.
                 for (InteractionCandidate<T> bestCand : bestCands) {
@@ -444,7 +384,7 @@ class PlayerCollisionSolver {
                 // If processing the current theta changed the result, search the
                 // same theta again so another wall revealed by the clamp can be
                 // found before we advance further along the motion.
-                changedAtTheta = !areAABBsEqual(beforeBatch, ctx.result);
+                changedAtTheta = !areAABBsSimilar(beforeBatch, ctx.result.bounds);
                 if (++loopGuard > LOOP_GUARD_LIMIT) {
                     throw new IllegalStateException("PlayerCollisionSolver exceeded " + LOOP_GUARD_LIMIT
                             + " stabilization iterations; possible infinite loop. player=" + player
@@ -459,7 +399,7 @@ class PlayerCollisionSolver {
             thetaLower = Math.min(1.0, bestTheta + COMPARE_EPS);
 
             // If none of the same-theta candidates changed the AABB, we reached stability.
-            if (areAABBsEqual(prev, ctx.result)) break;
+            if (areAABBsSimilar(prev, ctx.result.bounds)) break;
         }
 
         // If multiple surfaces were involved, do one deterministic stabilization pass using
@@ -476,8 +416,8 @@ class PlayerCollisionSolver {
         // footprint are considered, so walking off an edge is never incorrectly clamped.
         for (OBBSurfaceTransition<T> st : surfaces) {
             if (st == null || st.from == null || st.to == null || !st.isFloor) continue;
-            AABBHandle clamped = clampFeetAbovePlane(ctx.result, st.to);
-            double dy = clamped.getMinY() - ctx.result.getMinY();
+            PlayerBoundsState clamped = clampFeetAbovePlane(st.to, ctx.result);
+            double dy = clamped.bounds.getMinY() - ctx.result.bounds.getMinY();
             if (Math.abs(dy) > EPS) {
                 ctx.result = clamped;
                 ctx.lastSurface = st.source;
@@ -508,7 +448,7 @@ class PlayerCollisionSolver {
      * @return Solver result describing the supporting surface, or {@link CollisionMode#NONE}
      *         when no surface is directly below the player's feet
      */
-    public <T> Result<T> solveBelowFeetDetailed(List<? extends OBBSurfaceTransition<T>> surfaces, AABBHandle playerBounds) {
+    public <T> Result<T> solveBelowFeetDetailed(List<? extends OBBSurfaceTransition<T>> surfaces, PlayerBoundsState playerBounds) {
         if (surfaces == null || surfaces.isEmpty() || playerBounds == null) {
             return new Result<>(playerBounds, null, CollisionMode.NONE, null, null,
                     new PlayerBoundsTransition(playerBounds, playerBounds), java.util.Collections.emptyList());
@@ -516,7 +456,7 @@ class PlayerCollisionSolver {
 
         PlayerBoundsTransition supportCheck = new PlayerBoundsTransition(
                 playerBounds,
-                translate(playerBounds, 0.0, -SUPPORT_SEARCH_DISTANCE, 0.0)
+                playerBounds.translate( 0.0, -SUPPORT_SEARCH_DISTANCE, 0.0)
         );
         Result<T> result = this.solveDetailed(surfaces, supportCheck);
         if (result.lastCollisionMode != CollisionMode.FEET || result.lastSurface == null) {
@@ -526,10 +466,27 @@ class PlayerCollisionSolver {
         return result;
     }
 
+    public boolean hasSurfaceSupport(OBBSurfaceTransition<?> transition, PlayerBoundsState actualBounds, Vector worldPosition, double gravity) {
+        Vector actualFeetPosition = actualBounds.feetPosition();
+        PlayerBoundsState bboxAtPosition = actualBounds.translate(
+                worldPosition.getX() - actualFeetPosition.getX(),
+                worldPosition.getY() - actualFeetPosition.getY(),
+                worldPosition.getZ() - actualFeetPosition.getZ());
+        if (transition.to.bottomFaceIntersectsSurfacePlane(bboxAtPosition.bounds)) {
+            return true;
+        }
+        PlayerBoundsState bboxBelow = bboxAtPosition.translate(0.0, -gravity, 0.0);
+        PlayerCollisionSolver.Result<?> result = solveDetailed(
+                Collections.singletonList(transition),
+                new PlayerBoundsTransition(bboxAtPosition, bboxBelow)
+        );
+        return result.lastCollisionMode == PlayerCollisionSolver.CollisionMode.FEET;
+    }
+
     // Helper mutable context to collect result state while iterating surfaces
     private static final class CollisionContext<T> {
         PlayerBoundsTransition playerTransition;
-        AABBHandle result;
+        PlayerBoundsState result;
         T lastSurface = null;
         CollisionMode lastCollisionMode = CollisionMode.NONE;
         OBBSurfaceState lastSurfaceFromState = null;
@@ -538,7 +495,7 @@ class PlayerCollisionSolver {
 
         CollisionContext(PlayerBoundsTransition playerTransition) {
             this.playerTransition = playerTransition;
-            this.result = playerTransition.to.bounds;
+            this.result = playerTransition.to;
         }
     }
 
@@ -552,8 +509,8 @@ class PlayerCollisionSolver {
         boolean changed = false;
         if (cand.feetCrossed) {
             // Clamp the final result so the player's feet do not end below the surface
-            AABBHandle clampedFinal = clampFeetAbovePlane(ctx.result, cand.st.to);
-            double dy = clampedFinal.getMinY() - ctx.result.getMinY();
+            PlayerBoundsState clampedFinal = clampFeetAbovePlane(cand.st.to, ctx.result);
+            double dy = clampedFinal.bounds.getMinY() - ctx.result.bounds.getMinY();
             this.logger.debugFeetClamp(cand.st, dy, cand.theta);
             if (Math.abs(dy) > EPS) {
                 ctx.result = clampedFinal;
@@ -567,8 +524,8 @@ class PlayerCollisionSolver {
         }
         if (cand.headCrossed) {
             // Clamp the final result so the player's head does not end above the surface
-            AABBHandle clampedFinal = clampHeadBelowPlane(ctx.result, cand.st.to);
-            double dy = clampedFinal.getMaxY() - ctx.result.getMaxY();
+            PlayerBoundsState clampedFinal = clampHeadBelowPlane(cand.st.to, ctx.result);
+            double dy = clampedFinal.bounds.getMaxY() - ctx.result.bounds.getMaxY();
             this.logger.debugHeadClamp(cand.st, dy, cand.theta);
             if (Math.abs(dy) > EPS) {
                 ctx.result = clampedFinal;
@@ -582,27 +539,27 @@ class PlayerCollisionSolver {
         }
 
         if (!cand.feetCrossed && !cand.headCrossed) {
-            if (boxTouchesSurfaceFootprint(ctx.result, cand.surfaceAtTheta)) {
-                changed |= this.clampResolvedToOneSide(cand, ctx);
+            if (cand.surfaceAtTheta.boxTouchesSurfaceFootprint(ctx.result)) {
+                this.clampResolvedToOneSide(cand, ctx);
             }
         } else if (changed) {
             Boolean preservePositiveSide = preferredWallClampPositiveSide(player.from, player.to, cand.surfaceAtTheta);
             if (preservePositiveSide == null) {
-                double centerSigned = signedDistanceToPlane(cand.surfaceAtTheta, center(cand.playerAtTheta.bounds));
+                double centerSigned = cand.surfaceAtTheta.signedDistanceToPlane(cand.playerAtTheta.center());
                 preservePositiveSide = (centerSigned >= 0.0) ? Boolean.TRUE : Boolean.FALSE;
             }
 
             boolean violatesPreferredSide = preservePositiveSide
-                    ? (minSignedDistanceToPlane(ctx.result, cand.surfaceAtTheta) < -COMPARE_EPS)
-                    : (maxSignedDistanceToPlane(ctx.result, cand.surfaceAtTheta) > COMPARE_EPS);
+                    ? (cand.surfaceAtTheta.minSignedDistanceToPlane(ctx.result) < -COMPARE_EPS)
+                    : (cand.surfaceAtTheta.maxSignedDistanceToPlane(ctx.result) > COMPARE_EPS);
             if (violatesPreferredSide) {
-                changed |= this.clampResolvedToOneSide(cand, ctx);
+                this.clampResolvedToOneSide(cand, ctx);
             }
         }
     }
 
-    private <T> boolean clampResolvedToOneSide(InteractionCandidate<T> cand, CollisionContext<T> ctx) {
-        double centerSigned = signedDistanceToPlane(cand.surfaceAtTheta, center(cand.playerAtTheta.bounds));
+    private <T> void clampResolvedToOneSide(InteractionCandidate<T> cand, CollisionContext<T> ctx) {
+        double centerSigned = cand.surfaceAtTheta.signedDistanceToPlane(cand.playerAtTheta.center());
         Boolean preservePositiveSide;
         if (Math.abs(centerSigned) > COMPARE_EPS) {
             preservePositiveSide = (centerSigned >= 0.0) ? Boolean.TRUE : Boolean.FALSE;
@@ -613,13 +570,13 @@ class PlayerCollisionSolver {
             }
         }
 
-        AABBHandle clampedFinal = preservePositiveSide
-                ? clampToPositiveSideOfPlane(ctx.result, cand.surfaceAtTheta)
-                : clampToNegativeSideOfPlane(ctx.result, cand.surfaceAtTheta);
+        PlayerBoundsState clampedFinal = preservePositiveSide
+                ? cand.surfaceAtTheta.clampToPositiveSideOfPlane(ctx.result)
+                : cand.surfaceAtTheta.clampToNegativeSideOfPlane(ctx.result);
 
-        double dx = clampedFinal.getMinX() - ctx.result.getMinX();
-        double dy = clampedFinal.getMinY() - ctx.result.getMinY();
-        double dz = clampedFinal.getMinZ() - ctx.result.getMinZ();
+        double dx = clampedFinal.bounds.getMinX() - ctx.result.bounds.getMinX();
+        double dy = clampedFinal.bounds.getMinY() - ctx.result.bounds.getMinY();
+        double dz = clampedFinal.bounds.getMinZ() - ctx.result.bounds.getMinZ();
         if (Math.abs(dx) > EPS || Math.abs(dy) > EPS || Math.abs(dz) > EPS) {
             this.logger.debugWallClamp(cand.st, dx, dy, dz);
             ctx.result = clampedFinal;
@@ -635,34 +592,32 @@ class PlayerCollisionSolver {
             ctx.lastSurfaceFromState = cand.st.from;
             ctx.lastSurfaceToState = cand.st.to;
             ctx.involved.add(cand.st);
-            return true;
         }
-        return false;
     }
 
     private <T> void processVerticalWallSurfaceAtInterp(InteractionCandidate<T> cand, PlayerBoundsTransition player,
                                                         CollisionContext<T> ctx, List<? extends OBBSurfaceTransition<T>> surfaces) {
         OBBSurfaceState surface = cand.surfaceAtTheta;
 
-        if (!boxTouchesVerticalSurface(surface, cand.playerAtTheta.bounds)) {
+        if (!surface.boxTouchesVerticalSurface(cand.playerAtTheta)) {
             return;
         }
 
         Boolean preservePositiveSide = preferredWallClampPositiveSide(player.from, player.to, surface);
         if (preservePositiveSide == null) {
-            double centerSigned = signedDistanceToPlane(surface, center(cand.playerAtTheta.bounds));
+            double centerSigned = surface.signedDistanceToPlane(cand.playerAtTheta.center());
             preservePositiveSide = (centerSigned >= 0.0) ? Boolean.TRUE : Boolean.FALSE;
         }
-        AABBHandle clampedFinal;
+        PlayerBoundsState clampedFinal;
         if (preservePositiveSide) {
-            clampedFinal = clampToPositiveSideOfPlane(ctx.result, cand.st.to);
+            clampedFinal =  cand.st.to.clampToPositiveSideOfPlane(ctx.result);
         } else {
-            clampedFinal = clampToNegativeSideOfPlane(ctx.result, cand.st.to);
+            clampedFinal =  cand.st.to.clampToNegativeSideOfPlane(ctx.result);
         }
 
-        double dx = clampedFinal.getMinX() - ctx.result.getMinX();
-        double dy = clampedFinal.getMinY() - ctx.result.getMinY();
-        double dz = clampedFinal.getMinZ() - ctx.result.getMinZ();
+        double dx = clampedFinal.bounds.getMinX() - ctx.result.bounds.getMinX();
+        double dy = clampedFinal.bounds.getMinY() - ctx.result.bounds.getMinY();
+        double dz = clampedFinal.bounds.getMinZ() - ctx.result.bounds.getMinZ();
         if (Math.abs(dx) > EPS || Math.abs(dy) > EPS || Math.abs(dz) > EPS) {
             this.logger.debugWallClamp(cand.st, dx, dy, dz);
             ctx.result = clampedFinal;
@@ -694,8 +649,8 @@ class PlayerCollisionSolver {
     private static FaceCross checkFaceCrossing(OBBSurfaceState fromSurface, OBBSurfaceState toSurface, Vector[] fromFace, Vector[] toFace, double minTheta, boolean isCrossingDown) {
         FaceCross res = new FaceCross();
         for (int i = 0; i < 4; i++) {
-            double planeFromY = planeYAtXZ(fromSurface, fromFace[i].getX(), fromFace[i].getZ());
-            double planeToY = planeYAtXZ(toSurface, toFace[i].getX(), toFace[i].getZ());
+            double planeFromY = fromSurface.planeYAtXZ(fromFace[i].getX(), fromFace[i].getZ());
+            double planeToY = toSurface.planeYAtXZ(toFace[i].getX(), toFace[i].getZ());
             double fromDiff = fromFace[i].getY() - planeFromY;
             double toDiff = toFace[i].getY() - planeToY;
             if (!res.crossed) {
@@ -708,8 +663,8 @@ class PlayerCollisionSolver {
                     isCrossed = (fromDiff < COMPARE_EPS && toDiff > -COMPARE_EPS);
                 }
                 if (isCrossed) {
-                    double signedFrom = signedDistanceToPlane(fromSurface, fromFace[i]);
-                    double signedTo = signedDistanceToPlane(toSurface, toFace[i]);
+                    double signedFrom = fromSurface.signedDistanceToPlane(fromFace[i]);
+                    double signedTo = toSurface.signedDistanceToPlane(toFace[i]);
                     Double t = crossingTheta(signedFrom, signedTo);
                     if (t != null && t + COMPARE_EPS >= minTheta && crossesWithinSurface(fromSurface, fromFace[i], toFace[i], t)) {
                         res.crossed = true;
@@ -737,13 +692,10 @@ class PlayerCollisionSolver {
                 orderedSurfaces.add(st);
             }
         }
-        orderedSurfaces.sort((a, b) -> Double.compare(
-                surfaceLevelScore(a.to),
-                surfaceLevelScore(b.to)
-        ));
+        orderedSurfaces.sort(Comparator.comparingDouble(a -> surfaceLevelScore(a.to)));
 
         for (int iter = 0; iter < 4; iter++) {
-            AABBHandle before = ctx.result;
+            AABBHandle before = ctx.result.bounds;
             for (OBBSurfaceTransition<T> st : orderedSurfaces) {
                 OBBSurfaceState surface = st.to;
 
@@ -754,20 +706,20 @@ class PlayerCollisionSolver {
                 OBBSurfaceState initialSurface = (st.from != null) ? st.from : surface;
 
                 if (isVerticalSurface(surface)) {
-                    if (!boxTouchesVerticalSurface(surface, ctx.result)) {
+                    if (!surface.boxTouchesVerticalSurface(ctx.result)) {
                         continue;
                     }
 
                     Boolean preservePositiveSide = preferredWallClampPositiveSide(player.from, player.to, initialSurface, surface);
                     if (preservePositiveSide == null) {
-                        double centerSigned = signedDistanceToPlane(initialSurface, center(player.from.bounds));
+                        double centerSigned = initialSurface.signedDistanceToPlane(player.from.center());
                         preservePositiveSide = (centerSigned >= 0.0) ? Boolean.TRUE : Boolean.FALSE;
                     }
 
-                    AABBHandle clamped = preservePositiveSide
-                            ? clampToPositiveSideOfPlane(ctx.result, surface)
-                            : clampToNegativeSideOfPlane(ctx.result, surface);
-                    if (!areAABBsEqual(clamped, ctx.result)) {
+                    PlayerBoundsState clamped = preservePositiveSide
+                            ? surface.clampToPositiveSideOfPlane(ctx.result)
+                            : surface.clampToNegativeSideOfPlane(ctx.result);
+                    if (!areAABBsSimilar(clamped.bounds, ctx.result.bounds)) {
                         ctx.result = clamped;
                         ctx.lastSurface = st.source;
                         ctx.lastCollisionMode = CollisionMode.WALL;
@@ -776,16 +728,16 @@ class PlayerCollisionSolver {
                         ctx.involved.add(st);
                     }
                 } else {
-                    double startCenterSigned = signedDistanceToPlane(initialSurface, center(player.from.bounds));
-                    if (!boxTouchesSurfaceFootprint(player.from.bounds, surface)
-                            && !boxTouchesSurfaceFootprint(player.to.bounds, surface)
-                            && !boxTouchesSurfaceFootprint(ctx.result, surface)) {
+                    double startCenterSigned = initialSurface.signedDistanceToPlane(player.from.center());
+                    if (!surface.boxTouchesSurfaceFootprint(player.from)
+                            && !surface.boxTouchesSurfaceFootprint(player.to)
+                            && !surface.boxTouchesSurfaceFootprint(ctx.result)) {
                         continue;
                     }
-                    AABBHandle clamped = (startCenterSigned >= 0.0)
-                            ? clampToPositiveSideOfPlane(ctx.result, surface)
-                            : clampToNegativeSideOfPlane(ctx.result, surface);
-                    if (!areAABBsEqual(clamped, ctx.result)) {
+                    PlayerBoundsState clamped = (startCenterSigned >= 0.0)
+                            ? surface.clampToPositiveSideOfPlane(ctx.result)
+                            : surface.clampToNegativeSideOfPlane(ctx.result);
+                    if (!areAABBsSimilar(clamped.bounds, ctx.result.bounds)) {
                         ctx.result = clamped;
                         ctx.lastSurface = st.source;
                         // For inverted-normal surfaces (normal.Y < 0) the "positive side" is physically
@@ -803,7 +755,7 @@ class PlayerCollisionSolver {
                 }
             }
 
-            if (areAABBsEqual(before, ctx.result)) {
+            if (areAABBsSimilar(before, ctx.result.bounds)) {
                 break;
             }
         }
@@ -811,12 +763,12 @@ class PlayerCollisionSolver {
 
     private <T> void validateResultBounds(CollisionContext<T> ctx, PlayerBoundsTransition player) {
         try {
-            double deltaMinY = Math.abs(ctx.result.getMinY() - player.to.bounds.getMinY());
-            double deltaMaxY = Math.abs(ctx.result.getMaxY() - player.to.bounds.getMaxY());
-            boolean finite = Double.isFinite(ctx.result.getMinY()) && Double.isFinite(ctx.result.getMaxY());
+            double deltaMinY = Math.abs(ctx.result.bounds.getMinY() - player.to.bounds.getMinY());
+            double deltaMaxY = Math.abs(ctx.result.bounds.getMaxY() - player.to.bounds.getMaxY());
+            boolean finite = Double.isFinite(ctx.result.bounds.getMinY()) && Double.isFinite(ctx.result.bounds.getMaxY());
             if (!finite || deltaMinY > 100.0 || deltaMaxY > 100.0) {
                 this.logger.warn("PlayerCollisionSolver produced extreme result bounds; reverting to requested bounds. deltaMinY=" + deltaMinY + " deltaMaxY=" + deltaMaxY + " result=" + ctx.result + " requested=" + player.to.bounds);
-                ctx.result = player.to.bounds;
+                ctx.result = player.to;
                 ctx.lastSurface = null;
                 ctx.lastCollisionMode = CollisionMode.NONE;
                 ctx.lastSurfaceFromState = null;
@@ -826,66 +778,36 @@ class PlayerCollisionSolver {
         } catch (Throwable ignored) {}
     }
 
-    private AABBHandle clampFeetAbovePlane(AABBHandle aabb, OBBSurfaceState surf) {
-        double y = maxPlaneYAtFace(aabb, surf, false);
+    private PlayerBoundsState clampFeetAbovePlane(OBBSurfaceState surface, PlayerBoundsState state) {
+        double y = surface.maxPlaneYAtFace(state);
         if (!Double.isFinite(y)) {
-            return aabb;
+            return state;
         }
-        double minY = aabb.getMinY();
-        this.logger.debugFeetLog(aabb, surf, y, minY);
-        if (minY + EPS >= y + RESOLVE_OFFSET) {
-            return aabb;
+        double minY = state.bounds.getMinY();
+        logger.debugFeetLog(state.bounds, surface, y, minY);
+        if (minY + OBBSurfaceState.CLAMP_EPS >= y) {
+            return state;
         }
-        double dy = (y + RESOLVE_OFFSET) - minY;
-        return translate(aabb, 0.0, dy, 0.0);
+        double dy = y - minY;
+        return state.translate(0.0, dy, 0.0);
     }
 
-    private AABBHandle clampHeadBelowPlane(AABBHandle aabb, OBBSurfaceState surf) {
-        double y = minPlaneYAtFace(aabb, surf, true);
+    private PlayerBoundsState clampHeadBelowPlane(OBBSurfaceState surface, PlayerBoundsState state) {
+        double y = surface.minPlaneYAtFace(state);
         if (!Double.isFinite(y)) {
-            return aabb;
+            return state;
         }
-        double maxY = aabb.getMaxY();
-        this.logger.debugHeadLog(aabb, surf, y, maxY);
-        if (maxY - EPS <= y - RESOLVE_OFFSET) {
-            return aabb;
+        double maxY = state.bounds.getMaxY();
+        logger.debugHeadLog(state.bounds, surface, y, maxY);
+        if (maxY - OBBSurfaceState.CLAMP_EPS <= y) {
+            return state;
         }
-        double dy = (y - RESOLVE_OFFSET) - maxY;
-        return translate(aabb, 0.0, dy, 0.0);
-    }
-
-    private static AABBHandle translate(AABBHandle aabb, double dx, double dy, double dz) {
-        return AABBHandle.createNew(
-                aabb.getMinX() + dx, aabb.getMinY() + dy, aabb.getMinZ() + dz,
-                aabb.getMaxX() + dx, aabb.getMaxY() + dy, aabb.getMaxZ() + dz);
-    }
-
-    private static AABBHandle clampToPositiveSideOfPlane(AABBHandle aabb, OBBSurfaceState surf) {
-        double minSigned = minSignedDistanceToPlane(aabb, surf);
-        if (minSigned + EPS >= RESOLVE_OFFSET) {
-            return aabb;
-        }
-        double distance = RESOLVE_OFFSET - minSigned;
-        return translate(aabb,
-                surf.normal.getX() * distance,
-                surf.normal.getY() * distance,
-                surf.normal.getZ() * distance);
-    }
-
-    private static AABBHandle clampToNegativeSideOfPlane(AABBHandle aabb, OBBSurfaceState surf) {
-        double maxSigned = maxSignedDistanceToPlane(aabb, surf);
-        if (maxSigned - EPS <= -RESOLVE_OFFSET) {
-            return aabb;
-        }
-        double distance = -RESOLVE_OFFSET - maxSigned;
-        return translate(aabb,
-                surf.normal.getX() * distance,
-                surf.normal.getY() * distance,
-                surf.normal.getZ() * distance);
+        double dy = y - maxY;
+        return state.translate(0.0, dy, 0.0);
     }
 
     private static boolean isWrongDirectionWallClamp(PlayerBoundsState from, PlayerBoundsState to, OBBSurfaceState surface) {
-        Vector movement = center(to.bounds).subtract(center(from.bounds));
+        Vector movement = to.center().clone().subtract(from.center());
         if (movement.lengthSquared() < 1e-20) {
             return false;
         }
@@ -924,8 +846,8 @@ class PlayerCollisionSolver {
      */
     private static Boolean preferredWallClampPositiveSide(PlayerBoundsState from, PlayerBoundsState to,
                                                           OBBSurfaceState fromSurface, OBBSurfaceState toSurface) {
-        double fromMinSigned = minSignedDistanceToPlane(from.bounds, fromSurface);
-        double fromMaxSigned = maxSignedDistanceToPlane(from.bounds, fromSurface);
+        double fromMinSigned = fromSurface.minSignedDistanceToPlane(from);
+        double fromMaxSigned = fromSurface.maxSignedDistanceToPlane(from);
         if (fromMinSigned >= -COMPARE_EPS) {
             return Boolean.TRUE;
         }
@@ -933,8 +855,8 @@ class PlayerCollisionSolver {
             return Boolean.FALSE;
         }
 
-        double toMinSigned = minSignedDistanceToPlane(to.bounds, toSurface);
-        double toMaxSigned = maxSignedDistanceToPlane(to.bounds, toSurface);
+        double toMinSigned = toSurface. minSignedDistanceToPlane(to);
+        double toMaxSigned = toSurface.maxSignedDistanceToPlane(to);
         if (toMinSigned >= -COMPARE_EPS) {
             return Boolean.TRUE;
         }
@@ -942,8 +864,8 @@ class PlayerCollisionSolver {
             return Boolean.FALSE;
         }
 
-        double fromCenterSigned = signedDistanceToPlane(fromSurface, center(from.bounds));
-        double toCenterSigned = signedDistanceToPlane(toSurface, center(to.bounds));
+        double fromCenterSigned = fromSurface.signedDistanceToPlane(from.center());
+        double toCenterSigned = toSurface.signedDistanceToPlane(to.center());
         double deltaSigned = toCenterSigned - fromCenterSigned;
         if (deltaSigned < -COMPARE_EPS) {
             return Boolean.TRUE;
@@ -978,8 +900,8 @@ class PlayerCollisionSolver {
     }
 
     protected static boolean crossesPlaneDownwardWithinSurface(OBBSurfaceState surface, Vector from, Vector to) {
-        double signedFrom = signedDistanceToPlane(surface, from);
-        double signedTo = signedDistanceToPlane(surface, to);
+        double signedFrom = surface.signedDistanceToPlane(from);
+        double signedTo = surface.signedDistanceToPlane(to);
         // Interpret distances relative to an upward-facing normal so that upside-down
         // surfaces (with inverted normals) are treated consistently as walkable.
         if (surface.normal.getY() < 0.0) signedFrom = -signedFrom;
@@ -993,8 +915,8 @@ class PlayerCollisionSolver {
     }
 
     private static boolean crossesPlaneUpwardWithinSurface(OBBSurfaceState surface, Vector from, Vector to) {
-        double signedFrom = signedDistanceToPlane(surface, from);
-        double signedTo = signedDistanceToPlane(surface, to);
+        double signedFrom = surface.signedDistanceToPlane(from);
+        double signedTo = surface.signedDistanceToPlane(to);
         // Interpret distances relative to an upward-facing normal so that upside-down
         // surfaces (with inverted normals) are treated consistently as walkable.
         if (surface.normal.getY() < 0.0) signedFrom = -signedFrom;
@@ -1007,112 +929,29 @@ class PlayerCollisionSolver {
         return theta != null && crossesWithinSurface(surface, from, to, theta);
     }
 
-    private static Vector[] faceCorners(AABBHandle aabb, boolean top) {
-        double y = top ? aabb.getMaxY() : aabb.getMinY();
-        return new Vector[] {
-                new Vector(aabb.getMinX(), y, aabb.getMinZ()),
-                new Vector(aabb.getMinX(), y, aabb.getMaxZ()),
-                new Vector(aabb.getMaxX(), y, aabb.getMinZ()),
-                new Vector(aabb.getMaxX(), y, aabb.getMaxZ())
-        };
-    }
-
-    private static Vector[] allCorners(AABBHandle aabb) {
-        return new Vector[] {
-                new Vector(aabb.getMinX(), aabb.getMinY(), aabb.getMinZ()),
-                new Vector(aabb.getMinX(), aabb.getMinY(), aabb.getMaxZ()),
-                new Vector(aabb.getMaxX(), aabb.getMinY(), aabb.getMinZ()),
-                new Vector(aabb.getMaxX(), aabb.getMinY(), aabb.getMaxZ()),
-                new Vector(aabb.getMinX(), aabb.getMaxY(), aabb.getMinZ()),
-                new Vector(aabb.getMinX(), aabb.getMaxY(), aabb.getMaxZ()),
-                new Vector(aabb.getMaxX(), aabb.getMaxY(), aabb.getMinZ()),
-                new Vector(aabb.getMaxX(), aabb.getMaxY(), aabb.getMaxZ())
-        };
-    }
-
-    private static Vector center(AABBHandle aabb) {
-        return new Vector(
-                0.5 * (aabb.getMinX() + aabb.getMaxX()),
-                0.5 * (aabb.getMinY() + aabb.getMaxY()),
-                0.5 * (aabb.getMinZ() + aabb.getMaxZ())
-        );
-    }
-
-    private static double maxPlaneYAtFace(AABBHandle aabb, OBBSurfaceState surf, boolean top) {
-        java.util.List<Double> list = gatherFacePlaneYs(aabb, surf, top);
-        return representativePlaneY(list, true);
-    }
-
-    private static double minPlaneYAtFace(AABBHandle aabb, OBBSurfaceState surf, boolean top) {
-        java.util.List<Double> list = gatherFacePlaneYs(aabb, surf, top);
-        return representativePlaneY(list, false);
-    }
-
-    private static java.util.List<Double> gatherFacePlaneYs(AABBHandle aabb, OBBSurfaceState surf, boolean top) {
-        java.util.ArrayList<Double> list = new java.util.ArrayList<>();
-        for (Vector corner : faceCorners(aabb, top)) {
-            Vector proj = surf.projectPointOntoPlane(corner, new Vector());
-            if (surf.containsPointOnPlane(proj)) {
-                list.add(planeYAtXZ(surf, corner.getX(), corner.getZ()));
-            }
-        }
-        return list;
-    }
-
-    private static double representativePlaneY(java.util.List<Double> list, boolean wantMax) {
-        int count = list.size();
-        if (count == 0) return Double.NaN;
-        if (count == 1) return list.get(0);
-
-        double[] vals = new double[count];
-        for (int i = 0; i < count; i++) vals[i] = list.get(i);
-        java.util.Arrays.sort(vals);
-        if (count > 2) {
-            if (wantMax) {
-                double maxY = Double.NEGATIVE_INFINITY;
-                for (int i = 1; i < count-1; i++) maxY = Math.max(maxY, vals[i]);
-                return maxY;
-            } else {
-                double minY = Double.POSITIVE_INFINITY;
-                for (int i = 1; i < count-1; i++) minY = Math.min(minY, vals[i]);
-                return minY;
-            }
-        } else {
-            if (wantMax) {
-                double maxY = Double.NEGATIVE_INFINITY;
-                for (double v : vals) maxY = Math.max(maxY, v);
-                return maxY;
-            } else {
-                double minY = Double.POSITIVE_INFINITY;
-                for (double v : vals) minY = Math.min(minY, v);
-                return minY;
-            }
-        }
-    }
-
     /**
      * Tests whether a player AABB moved through the footprint of a surface transition.
      * This checks the surface extents and interpolates the moving surface while testing
      * each player corner path, which makes it suitable for debug logging.
      */
-    public static boolean passesThroughSurface(OBBSurfaceTransition<?> surface, AABBHandle from, AABBHandle to) {
+    public static boolean passesThroughSurface(OBBSurfaceTransition<?> surface, PlayerBoundsState from, PlayerBoundsState to) {
         if (surface == null || surface.from == null || surface.to == null || from == null || to == null) {
             return false;
         }
 
-        boolean fromPositive = minSignedDistanceToPlane(from, surface.from) > CROSSING_MARGIN;
-        boolean fromNegative = maxSignedDistanceToPlane(from, surface.from) < -CROSSING_MARGIN;
-        boolean toPositive = minSignedDistanceToPlane(to, surface.to) > CROSSING_MARGIN;
-        boolean toNegative = maxSignedDistanceToPlane(to, surface.to) < -CROSSING_MARGIN;
+        boolean fromPositive = surface.from.minSignedDistanceToPlane(from) > CROSSING_MARGIN;
+        boolean fromNegative = surface.from.maxSignedDistanceToPlane(from) < -CROSSING_MARGIN;
+        boolean toPositive = surface.to.minSignedDistanceToPlane(to) > CROSSING_MARGIN;
+        boolean toNegative = surface.to.maxSignedDistanceToPlane(to) < -CROSSING_MARGIN;
         if (!((fromPositive && toNegative) || (fromNegative && toPositive))) {
             return false;
         }
 
-        Vector[] fromCorners = allCorners(from);
-        Vector[] toCorners = allCorners(to);
+        Vector[] fromCorners = from.corners();
+        Vector[] toCorners = to.corners();
         for (int i = 0; i < fromCorners.length; i++) {
-            double signedFrom = signedDistanceToPlane(surface.from, fromCorners[i]);
-            double signedTo = signedDistanceToPlane(surface.to, toCorners[i]);
+            double signedFrom = surface.from.signedDistanceToPlane(fromCorners[i]);
+            double signedTo = surface.to.signedDistanceToPlane(toCorners[i]);
             Double t = crossingTheta(signedFrom, signedTo);
             if (t != null && crossesWithinSurface(surface, fromCorners[i], toCorners[i], t)) {
                 return true;
@@ -1143,101 +982,11 @@ class PlayerCollisionSolver {
         return crossesWithinSurface(surface.interpolate(theta), from, to, theta);
     }
 
-    protected static double signedDistanceToPlane(OBBSurfaceState surf, Vector p) {
-        Vector proj = surf.projectPointOntoPlane(p, new Vector());
-        return (p.getX() - proj.getX()) * surf.normal.getX()
-                + (p.getY() - proj.getY()) * surf.normal.getY()
-                + (p.getZ() - proj.getZ()) * surf.normal.getZ();
-    }
-
     private static Vector projectOntoPlane(Vector vector, Vector normal) {
         double dot = vector.getX() * normal.getX() + vector.getY() * normal.getY() + vector.getZ() * normal.getZ();
         return new Vector(
                 vector.getX() - normal.getX() * dot,
                 vector.getY() - normal.getY() * dot,
                 vector.getZ() - normal.getZ() * dot);
-    }
-
-    private static double minSignedDistanceToPlane(AABBHandle aabb, OBBSurfaceState surf) {
-        double min = Double.POSITIVE_INFINITY;
-        for (Vector corner : allCorners(aabb)) {
-            min = Math.min(min, signedDistanceToPlane(surf, corner));
-        }
-        return min;
-    }
-
-    private static double maxSignedDistanceToPlane(AABBHandle aabb, OBBSurfaceState surf) {
-        double max = Double.NEGATIVE_INFINITY;
-        for (Vector corner : allCorners(aabb)) {
-            max = Math.max(max, signedDistanceToPlane(surf, corner));
-        }
-        return max;
-    }
-
-    private static double planeYAtXZ(OBBSurfaceState surf, double x, double z) {
-        double ny = surf.normal.getY();
-        // If the normal Y is very small (plane almost vertical), the direct algebraic
-        // computation below becomes numerically unstable due to division by ny. In
-        // that case, fall back to projecting the point onto the plane and returning
-        // the projected Y coordinate. This avoids huge values when dealing with
-        // near-vertical surfaces.
-        // We also guard against cases where the algebraic result is finite but
-        // wildly far from the surface center Y (likely caused by division by a
-        // small ny). In such a case, prefer the projection-based result.
-        double yAlgebraic = Double.NaN;
-        if (Math.abs(ny) >= VERTICAL_NORMAL_EPS) {
-            yAlgebraic = surf.center.getY() - (((x - surf.center.getX()) * surf.normal.getX())
-                    + ((z - surf.center.getZ()) * surf.normal.getZ())) / ny;
-        }
-
-        // Also compute the projection-based Y so we can compare both results. If they
-        // disagree significantly, prefer the projection because it is numerically more
-        // stable for near-vertical or skewed planes.
-        Vector proj = surf.projectPointOntoPlane(new Vector(x, surf.center.getY(), z), new Vector());
-        double yProj = proj.getY();
-
-        // Consider algebraic invalid when the horizontal normal components dominate the
-        // vertical component by a large factor: that makes division by ny unstable.
-        double nx = surf.normal.getX();
-        double nz = surf.normal.getZ();
-        boolean algebraicValid = Double.isFinite(yAlgebraic) && Math.abs(yAlgebraic - surf.center.getY()) < 200.0;
-        // Reject algebraic if worst-case vertical deviation across the surface
-        // (based on half extents and horizontal normal components) is excessively large.
-        if (algebraicValid && Math.abs(ny) > 0.0) {
-            double worstDelta = (Math.abs(surf.halfSize.getX() * nx) + Math.abs(surf.halfSize.getZ() * nz)) / Math.abs(ny);
-            // Determine a dynamic threshold based on surface size: larger surfaces
-            // can tolerate larger algebraic deviations. Use max of a base limit and
-            // a multiple of the largest half-size dimension.
-            double dynamicLimit = Math.max(ALGEBRAIC_WORST_DELTA_LIMIT,
-                    5.0 * Math.max(surf.halfSize.getX(), surf.halfSize.getZ()));
-            if (worstDelta > dynamicLimit) {
-                algebraicValid = false;
-            }
-        }
-        // No separate horizontal/vertical ratio test: prefer projection when
-        // algebraic appears extreme relative to center or differs strongly from
-        // the projection result. The existing checks below handle selection.
-        boolean projValid = Double.isFinite(yProj) && Math.abs(yProj - surf.center.getY()) < 200.0;
-
-        if (algebraicValid && projValid) {
-            // If both are valid but disagree significantly, prefer the projection
-            // result because projecting is numerically stable for skewed/near-
-            // vertical planes. Only use algebraic when both agree closely.
-            if (Math.abs(yAlgebraic - yProj) > ALGEBRAIC_PROJECTION_DIFF_EPS) {
-                return yProj;
-            }
-            return yAlgebraic;
-        }
-
-        if (algebraicValid) {
-            return yAlgebraic;
-        }
-
-        if (projValid) {
-            return yProj;
-        }
-
-        // Fallback: use the surface center Y when nothing reasonable can be derived.
-        return surf.center.getY();
     }
 }
