@@ -926,6 +926,13 @@ public class TrainProperties extends TrainPropertiesStore implements IProperties
     }
 
     @Override
+    public void addDestinationToRoute(int atIndex, String destination) {
+        for (CartProperties prop : this) {
+            prop.addDestinationToRoute(atIndex, destination);
+        }
+    }
+
+    @Override
     public void removeDestinationFromRoute(String destination) {
         for (CartProperties prop : this) {
             prop.removeDestinationFromRoute(destination);

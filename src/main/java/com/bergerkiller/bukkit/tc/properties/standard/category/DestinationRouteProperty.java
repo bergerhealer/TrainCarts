@@ -33,6 +33,7 @@ import org.incendo.cloud.annotation.specifier.Greedy;
 import org.incendo.cloud.annotations.Argument;
 import org.incendo.cloud.annotations.Command;
 import org.incendo.cloud.annotations.CommandDescription;
+import org.incendo.cloud.annotations.Flag;
 import org.incendo.cloud.annotations.suggestion.Suggestions;
 import org.incendo.cloud.context.CommandContext;
 
@@ -127,9 +128,10 @@ public final class DestinationRouteProperty implements ICartProperty<List<String
     private void setPropertyAdd(
             final CommandSender sender,
             final CartProperties properties,
-            final @FlagYielding @Argument(value="destinations", suggestions="destinations") String[] destinations
+            final @FlagYielding @Argument(value="destinations", suggestions="destinations") String[] destinations,
+            final @Flag("index") Integer atIndex
     ) {
-        setPropertyAddGeneric(sender, properties, destinations);
+        setPropertyAddGeneric(sender, properties, destinations, atIndex);
     }
 
     @CommandTargetTrain
@@ -210,9 +212,10 @@ public final class DestinationRouteProperty implements ICartProperty<List<String
     private void setPropertyAdd(
             final CommandSender sender,
             final TrainProperties properties,
-            final @FlagYielding @Argument(value="destinations", suggestions="destinations") String[] destinations
+            final @FlagYielding @Argument(value="destinations", suggestions="destinations") String[] destinations,
+            final @Flag("index") Integer atIndex
     ) {
-        setPropertyAddGeneric(sender, properties, destinations);
+        setPropertyAddGeneric(sender, properties, destinations, atIndex);
     }
 
     @CommandTargetTrain
@@ -295,14 +298,22 @@ public final class DestinationRouteProperty implements ICartProperty<List<String
         builder.send(sender);
     }
 
-    private void setPropertyAddGeneric(CommandSender sender, IProperties properties, String[] destinations) {
+    private void setPropertyAddGeneric(CommandSender sender, IProperties properties, String[] destinations, Integer atIndex) {
         MessageBuilder builder = new MessageBuilder();
         builder.yellow("Added the destinations to the end of the route:").newLine();
         builder.setSeparator(ChatColor.WHITE, ROUTE_SEP);
         builder.green("");
-        for (String destination : destinations) {
-            builder.green(destination);
-            properties.addDestinationToRoute(destination);
+        if (atIndex != null) {
+            int atIndexCursor = atIndex;
+            for (String destination : destinations) {
+                builder.green(destination);
+                properties.addDestinationToRoute(atIndexCursor++, destination);
+            }
+        } else {
+            for (String destination : destinations) {
+                builder.green(destination);
+                properties.addDestinationToRoute(destination);
+            }
         }
         builder.clearSeparator().newLine();
 

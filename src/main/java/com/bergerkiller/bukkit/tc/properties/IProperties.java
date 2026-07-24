@@ -421,6 +421,15 @@ public interface IProperties extends IParsable, TrainCarts.Provider {
     void addDestinationToRoute(String destination);
 
     /**
+     * Adds a destination to {@link #getDestinationRoute()}.
+     * Duplicate destinations are allowed!
+     *
+     * @param atIndex Index to add or insert the destination
+     * @param destination to add
+     */
+    void addDestinationToRoute(int atIndex, String destination);
+
+    /**
      * Removes a destination from {@link #getDestinationRoute()}
      * 
      * @param destination to remove

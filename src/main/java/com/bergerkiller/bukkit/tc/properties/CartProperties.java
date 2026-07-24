@@ -4,6 +4,7 @@ import com.bergerkiller.bukkit.common.BlockLocation;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
+import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.Permission;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
@@ -551,6 +552,18 @@ public class CartProperties extends CartPropertiesStore implements IProperties {
             update(StandardProperties.DESTINATION_ROUTE, curr_route -> {
                 ArrayList<String> new_route = new ArrayList<String>(curr_route);
                 new_route.add(destination);
+                return new_route;
+            });
+        }
+    }
+
+    @Override
+    public void addDestinationToRoute(int atIndex, String destination) {
+        if (destination != null && !destination.isEmpty()) {
+            update(StandardProperties.DESTINATION_ROUTE, curr_route -> {
+                ArrayList<String> new_route = new ArrayList<String>(curr_route);
+                int fixedIndex = MathUtil.clamp(atIndex, 0, new_route.size());
+                new_route.add(fixedIndex, destination);
                 return new_route;
             });
         }
