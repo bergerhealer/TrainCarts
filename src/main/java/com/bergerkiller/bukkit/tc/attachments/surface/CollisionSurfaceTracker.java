@@ -765,12 +765,12 @@ public class CollisionSurfaceTracker {
 
         @Override
         public boolean isSimulated() {
-            return simulationEnabled && (isMoving || !useShulkersWhenNotMoving);
+            return shape != null && simulationEnabled && (isMoving || !useShulkersWhenNotMoving);
         }
 
         @Override
         public boolean isShulkerGrid() {
-            return useShulkersWhenNotMoving && !isMoving;
+            return shape != null && useShulkersWhenNotMoving && !isMoving;
         }
 
         @Override
