@@ -32,7 +32,7 @@ public abstract class PlayerMovementController implements AttachmentViewer.Movem
      * Enable to diagnose desynchronization issues ingame.
      * Use /debugvar testcase true to generate test cases on first player input.
      */
-    protected static final boolean DEBUG_MODE = true;
+    protected static final boolean DEBUG_MODE = false;
 
     private final ControllerType type;
     protected final AttachmentViewer viewer;
