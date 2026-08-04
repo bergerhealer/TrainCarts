@@ -2069,6 +2069,32 @@ public class Util {
     }
 
     /**
+     * Compares chunk coordinates relative to a center. Sorts 0,0 to the start and further chunks to the back.
+     * This is used to pre-sort the chunks to load of a chunk area, as used by the train spawn sign.
+     *
+     * @param c1_dx Chunk 1 X-coordinate relative to center
+     * @param c1_dz Chunk 1 Z-coordinate relative to center
+     * @param c2_dx Chunk 2 X-coordinate relative to center
+     * @param c2_dz Chunk 2 Z-coordinate relative to center
+     * @return -1, 0 or 1
+     */
+    public static int compareChunkRelativePositions(int c1_dx, int c1_dz, int c2_dx, int c2_dz) {
+        // Compare squared distance first
+        int distSqComp = Integer.compare(c1_dx * c1_dx + c1_dz * c1_dz, c2_dx * c2_dx + c2_dz * c2_dz);
+        if (distSqComp != 0) {
+            return distSqComp;
+        }
+
+        // Same distance. Compare the X coordinate first, then Z coordinate
+        int xComp = Integer.compare(c1_dx, c2_dx);
+        if (xComp != 0) {
+            return xComp;
+        } else {
+            return Integer.compare(c1_dz, c2_dz);
+        }
+    }
+
+    /**
      * Un-escapes a previously escaped String
      *
      * @param str Input String

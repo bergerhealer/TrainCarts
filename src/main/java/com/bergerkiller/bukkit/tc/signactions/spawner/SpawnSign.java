@@ -1,5 +1,8 @@
 package com.bergerkiller.bukkit.tc.signactions.spawner;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
 
@@ -44,7 +47,7 @@ public class SpawnSign {
     private int ticksUntilFreeing = 0;
     private double spawnForce = 0.0;
     private String spawnFormat;
-    private LongHashMap<SignSpawnChunk> chunks = new LongHashMap<SignSpawnChunk>();
+    private SignSpawnArea chunks;
     private int num_chunks_loaded = 0;
 
     SpawnSign(TrainCarts plugin, OfflineSignStore store, OfflineSign sign, SpawnSignManager.SpawnSignMetadata metadata) {
@@ -55,13 +58,10 @@ public class SpawnSign {
         this.updateState(sign, metadata);
 
         // Add the 5x5 area of chunks around the sign as the initial chunks to load
-        int center_cx = MathUtil.toChunk(location.getX());
-        int center_cz = MathUtil.toChunk(location.getZ());
+        this.chunks = new SignSpawnArea(MathUtil.toChunk(location.getX()), MathUtil.toChunk(location.getZ()), 25);
         for (int dx = -2; dx <= 2; dx++) {
             for (int dz = -2; dz <= 2; dz++) {
-                int cx = center_cx + dx;
-                int cz = center_cz + dz;
-                this.chunks.put(cx, cz, createSpawnChunk(cx, cz));
+                this.chunks.storeNewChunk(createSpawnChunk(this.chunks.cx + dx, this.chunks.cz + dz));
             }
         }
     }
@@ -215,16 +215,16 @@ public class SpawnSign {
      */
     public void loadChunksAsync(double percent) {
         if (getWorld() == null) {
-            this.num_chunks_loaded = this.chunks.size();
+            this.num_chunks_loaded = this.chunks.getChunkCount();
             return;
         }
 
         percent = MathUtil.clamp(percent, 0.0, 1.0);
-        int num_chunks_loaded_goal = ((int) ((double) this.chunks.size() * percent));
-        for (SignSpawnChunk chunk : this.chunks.getValues()) {
+        int num_chunks_loaded_goal = ((int) ((double) this.chunks.getChunkCount() * percent));
+        for (SignSpawnChunk chunk : this.chunks.getSortedChunks()) {
             if (this.num_chunks_loaded >= num_chunks_loaded_goal) {
                 break;
-            } else if (!chunk.chunk.isNone()) {
+            } else if (chunk.isUnloaded()) {
                 chunk.loadAsync();
                 this.num_chunks_loaded++;
             }
@@ -235,9 +235,7 @@ public class SpawnSign {
      * Called after the spawn sign goes back to a longer-term slumber
      */
     public void loadChunksAsyncReset() {
-        for (SignSpawnChunk chunk : this.chunks.getValues()) {
-            chunk.close();
-        }
+        this.chunks.close();
         this.num_chunks_loaded = 0;
     }
 
@@ -307,17 +305,15 @@ public class SpawnSign {
             // Keep the area loaded for 2 more ticks, allowing the train to activate signs
             this.ticksUntilFreeing = 2;
 
-            // Ensure all chunks we may need are loaded (getChunk())
-            for (SignSpawnChunk chunk : this.chunks.getValues()) {
-                chunk.loadSync();
-            }
+            // Ensure all chunks we may need are loaded in an optimal order (getChunk())
+            this.chunks.getSortedChunks().forEach(SignSpawnChunk::loadSync);
 
             // Perform the spawn
             SpawnableGroup.SpawnLocationList locs = SignActionSpawn.spawn(this, sign);
             if (locs != null && !locs.locations.isEmpty()) {
                 // Compute a new mapping of all the chunks that must be loaded at these positions
                 // The coordinates might change as a result of switchers / change on the sign
-                LongHashMap<SignSpawnChunk> new_chunks = new LongHashMap<SignSpawnChunk>(this.chunks.size());
+                SignSpawnArea newChunks = new SignSpawnArea(this.chunks.cx, this.chunks.cz, this.chunks.getChunkCount());
                 for (SpawnableMember.SpawnLocation loc : locs.locations) {
                     int x = MathUtil.toChunk(loc.location.getX());
                     int z = MathUtil.toChunk(loc.location.getZ());
@@ -325,27 +321,24 @@ public class SpawnSign {
                         for (int dz = -2; dz <= 2; dz++) {
                             int cx = x + dx;
                             int cz = z + dz;
-                            long key = MathUtil.longHashToLong(cx, cz);
-                            if (!new_chunks.contains(key)) {
-                                SignSpawnChunk chunk = this.chunks.remove(key);
+                            if (!newChunks.containsChunk(cx, cz)) {
+                                SignSpawnChunk chunk = this.chunks.removeChunk(cx, cz);
                                 if (chunk == null) {
                                     chunk = createSpawnChunk(cx, cz);
                                     chunk.loadSync();
                                 }
-                                new_chunks.put(key, chunk);
+                                newChunks.storeNewChunk(chunk);
                             }
                         }
                     }
                 }
 
                 // The chunks map now has chunks that are no longer important, free them
-                for (SignSpawnChunk originalChunk : this.chunks.getValues()) {
-                    originalChunk.close();
-                }
+                this.chunks.close();
 
                 // And now assign the chunks
-                this.chunks = new_chunks;
-                this.num_chunks_loaded = this.chunks.size();
+                this.chunks = newChunks;
+                this.num_chunks_loaded = this.chunks.getChunkCount();
             }
         }
     }
@@ -457,6 +450,69 @@ public class SpawnSign {
         }
     }
 
+    /**
+     * Tracks the area of chunks that must be loaded at the time the train is spawned.
+     * Chunks are sorted from the middle outwards in a consistent pattern to
+     * optimize the order of loading chunks.
+     */
+    private static class SignSpawnArea {
+        public final int cx, cz;
+        private final LongHashMap<SignSpawnChunk> chunksByChunk;
+        private List<SignSpawnChunk> sortedChunks = null;
+
+        public SignSpawnArea(int cx, int cz, int expectedChunkCount) {
+            this.cx = cx;
+            this.cz = cz;
+            this.chunksByChunk = new LongHashMap<>(expectedChunkCount);
+            this.sortedChunks = null;
+        }
+
+        public int getChunkCount() {
+            return chunksByChunk.size();
+        }
+
+        public boolean containsChunk(int cx, int cz) {
+            return this.chunksByChunk.contains(cx, cz);
+        }
+
+        public SignSpawnChunk removeChunk(int cx, int cz) {
+            SignSpawnChunk removed = this.chunksByChunk.remove(cx, cz);
+            if (removed != null) {
+                this.sortedChunks = null; // Invalidate
+            }
+            return removed;
+        }
+
+        public void storeNewChunk(SignSpawnChunk chunk) {
+            this.chunksByChunk.put(chunk.x, chunk.z, chunk);
+            this.sortedChunks = null; // Invalidate
+        }
+
+        public Collection<SignSpawnChunk> getUnsortedChunks() {
+            List<SignSpawnChunk> sortedChunks = this.sortedChunks;
+            return sortedChunks != null ? sortedChunks : this.chunksByChunk.getValues();
+        }
+
+        public List<SignSpawnChunk> getSortedChunks() {
+            List<SignSpawnChunk> sortedChunks = this.sortedChunks;
+            if (sortedChunks == null) {
+                sortedChunks = new ArrayList<>(this.chunksByChunk.getValues());
+                sortedChunks.sort((c1, c2) -> Util.compareChunkRelativePositions(
+                        c1.x - this.cx,
+                        c1.z - this.cz,
+                        c2.x - this.cx,
+                        c2.z - this.cz
+                ));
+                this.sortedChunks = sortedChunks;
+            }
+            return sortedChunks;
+        }
+
+        public void close() {
+            getUnsortedChunks().forEach(SignSpawnChunk::close);
+        }
+    }
+
     private static class SignSpawnChunk {
         private final ForcedChunk chunk;
         public final UUID worldUUID;
@@ -468,6 +524,16 @@ public class SpawnSign {
             this.worldUUID = worldUUID;
             this.x = x;
             this.z = z;
+        }
+
+        public int squareDist(int cx, int cz) {
+            return (this.x - cx) * (this.x - cx) + (this.z - cz) * (this.z - cz);
+        }
+
+        public boolean isUnloaded() {
+            // If not None (initial) then neither loadSync() nor loadAsync() was ever called, and the chunk
+            // is not loaded (=unloaded). Indicates the chunk still must be loaded.
+            return this.chunk.isNone();
         }
 
         public void loadSync() {
@@ -482,11 +548,9 @@ public class SpawnSign {
         }
 
         public void loadAsync() {
-            if (this.chunk != null) {
-                World world = Bukkit.getWorld(this.worldUUID);
-                if (world != null) {
-                    this.chunk.move(ChunkUtil.forceChunkLoaded(world, x, z));
-                }
+            World world = Bukkit.getWorld(this.worldUUID);
+            if (world != null) {
+                this.chunk.move(ChunkUtil.forceChunkLoaded(world, x, z));
             }
         }
 
