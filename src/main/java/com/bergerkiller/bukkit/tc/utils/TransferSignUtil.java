@@ -27,8 +27,8 @@ public class TransferSignUtil {
 
     public static Inventory getInventory(SignActionEvent info) {
         if (info.isCartSign()) {
-            if (info.getMember() instanceof MinecartMemberChest) {
-                return ((MinecartMemberChest) info.getMember()).getEntity().getInventory();
+            if (info.getMember().getEntity().getEntity() instanceof InventoryHolder) {
+                return ((InventoryHolder) info.getMember().getEntity().getEntity()).getInventory();
             } else {
                 return null;
             }
@@ -39,7 +39,7 @@ public class TransferSignUtil {
 
     public static Collection<InventoryHolder> getInventories(SignActionEvent info) {
         if (info.isCartSign()) {
-            if (info.getMember() instanceof MinecartMemberChest) {
+            if (info.getMember().getEntity().getEntity() instanceof InventoryHolder) {
                 return Collections.singletonList((InventoryHolder) info.getMember().getEntity().getEntity());
             } else {
                 return Collections.emptyList();
@@ -47,7 +47,7 @@ public class TransferSignUtil {
         } else {
             Collection<InventoryHolder> trainInvs = new ArrayList<>(info.getGroup().size());
             for (MinecartMember<?> member : info.getGroup()) {
-                if (member instanceof MinecartMemberChest) {
+                if (member.getEntity().getEntity() instanceof InventoryHolder) {
                     trainInvs.add((InventoryHolder) member.getEntity().getEntity());
                 }
             }
