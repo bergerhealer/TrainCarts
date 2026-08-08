@@ -11,6 +11,7 @@ import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.type.MinecartMemberChest;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
+import com.bergerkiller.bukkit.tc.itemanimation.ItemAnimation;
 import com.bergerkiller.bukkit.tc.itemanimation.ItemAnimatedInventory;
 import org.bukkit.Material;
 import org.bukkit.block.*;
@@ -389,7 +390,9 @@ public class TransferSignUtil {
 
         // Do not deposit using animations for ground items, it shows duplicates which looks bad
         if (TCConfig.showTransferAnimations && !(from instanceof GroundItemsInventory)) {
-            from = ItemAnimatedInventory.convert(from, fromHolder, toHolder);
+            from = ItemAnimatedInventory.convert(from,
+                    ItemAnimation.Target.of(fromHolder),
+                    ItemAnimation.Target.of(toHolder));
         }
 
         // Depositing into a furnace or other type of inventory?

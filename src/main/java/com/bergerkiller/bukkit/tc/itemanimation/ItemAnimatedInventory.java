@@ -2,7 +2,9 @@ package com.bergerkiller.bukkit.tc.itemanimation;
 
 import com.bergerkiller.bukkit.common.inventory.InventoryBase;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
+import com.bergerkiller.bukkit.tc.itemanimation.ItemAnimation.Target;
 import com.bergerkiller.bukkit.tc.utils.GroundItemsInventory;
+import org.bukkit.entity.Item;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
@@ -12,16 +14,17 @@ import org.bukkit.inventory.ItemStack;
 public class ItemAnimatedInventory extends InventoryBase {
     private final Inventory source;
     private final ItemStack[] original;
-    private Object other, self;
+    private final Target other;
+    private final Target self;
 
-    public ItemAnimatedInventory(Inventory inventory, Object self, Object other) {
+    public ItemAnimatedInventory(Inventory inventory, Target self, Target other) {
         this.other = other;
         this.self = self;
         this.source = inventory;
         this.original = ItemUtil.getClonedContents(inventory);
     }
 
-    public static Inventory convert(Inventory inventory, Object self, Object other) {
+    public static Inventory convert(Inventory inventory, Target self, Target other) {
         return new ItemAnimatedInventory(inventory, self, other);
     }
 
@@ -29,15 +32,15 @@ public class ItemAnimatedInventory extends InventoryBase {
     public void setItem(int index, ItemStack newitem) {
         ItemStack olditem = this.original[index];
         this.source.setItem(index, newitem);
-        Object self = this.getSelfAt(index);
+        Target selfTarget = this.getSelfAt(index);
         this.original[index] = ItemUtil.cloneItem(newitem);
         if (olditem == null) {
             if (newitem != null) {
-                ItemAnimation.start(other, self, newitem);
+                ItemAnimation.start(other, selfTarget, newitem);
             }
         } else {
             if (newitem == null) {
-                ItemAnimation.start(self, other, olditem);
+                ItemAnimation.start(selfTarget, other, olditem);
             } else {
                 //same type?
                 if (ItemUtil.equalsIgnoreAmount(olditem, newitem)) {
@@ -47,23 +50,24 @@ public class ItemAnimatedInventory extends InventoryBase {
                     int newAmount = trans.getAmount() - olditem.getAmount();
                     if (newAmount > 0) {
                         trans.setAmount(newAmount);
-                        ItemAnimation.start(other, self, trans);
+                        ItemAnimation.start(other, selfTarget, trans);
                     } else if (newAmount < 0) {
                         trans.setAmount(-newAmount);
-                        ItemAnimation.start(self, other, trans);
+                        ItemAnimation.start(selfTarget, other, trans);
                     }
                 } else {
                     //swap
-                    ItemAnimation.start(self, other, olditem);
-                    ItemAnimation.start(other, self, newitem);
+                    ItemAnimation.start(selfTarget, other, olditem);
+                    ItemAnimation.start(other, selfTarget, newitem);
                 }
             }
         }
     }
 
-    public Object getSelfAt(int index) {
+    public Target getSelfAt(int index) {
         if (this.source instanceof GroundItemsInventory) {
-            return ((GroundItemsInventory) this.source).getEntity(index);
+            Item entity = ((GroundItemsInventory) this.source).getEntity(index);
+            return Target.forEntity(entity);
         }
         return self;
     }

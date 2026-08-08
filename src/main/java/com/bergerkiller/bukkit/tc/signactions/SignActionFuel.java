@@ -77,7 +77,10 @@ public class SignActionFuel extends TrainCartsSignAction {
                             found = true;
                             member.addFuelTicks(3600);
                             if (TCConfig.showTransferAnimations) {
-                                ItemAnimation.start(chest, member, new ItemStack(Material.COAL, 1));
+                                ItemAnimation.start(
+                                        ItemAnimation.Target.forBlock(chest.getBlock()),
+                                        ItemAnimation.Target.forMember(member),
+                                        new ItemStack(Material.COAL, 1));
                             }
                             break;
                         }

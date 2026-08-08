@@ -11,6 +11,7 @@ import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
+import com.bergerkiller.bukkit.tc.itemanimation.ItemAnimation;
 import com.bergerkiller.bukkit.tc.itemanimation.ItemAnimatedInventory;
 import com.bergerkiller.bukkit.tc.utils.SignBuildOptions;
 import com.bergerkiller.bukkit.tc.utils.TransferSignUtil;
@@ -67,7 +68,9 @@ public class SignActionCraft extends TrainCartsSignAction {
             }
 
             if (w != null && TCConfig.showTransferAnimations) {
-                inventory = ItemAnimatedInventory.convert(inventory, info.getMember(), w);
+                inventory = ItemAnimatedInventory.convert(inventory,
+                        ItemAnimation.Target.forMember(info.getMember()),
+                        ItemAnimation.Target.forBlock(w));
             }
 
             // craft
