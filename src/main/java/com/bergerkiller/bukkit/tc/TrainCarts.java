@@ -1153,7 +1153,10 @@ public class TrainCarts extends PluginBase {
         // This makes sure that the default save function doesn't overwrite it
         // No need to do this when BKCommonLib handles the player takeable logic themselves, then
         // this is automatically done during clearControllers() / plugin shutdown.
-        if (!Common.hasCapability("Common:EntityController:isPlayerTakeable")) {
+        //
+        // Also do this when the server is shutting down. Otherwise when the server shuts down and saves,
+        // the isPlayerTakeable() isn't verified (because no controller is attached) and things break.
+        if (CommonUtil.isShuttingDown() || !Common.hasCapability("Common:EntityController:isPlayerTakeable")) {
             for (World world : WorldUtil.getWorlds()) {
                 for (Chunk chunk : WorldUtil.getChunks(world)) {
                     for (org.bukkit.entity.Entity entity : ChunkUtil.getEntities(chunk)) {
