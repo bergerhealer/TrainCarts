@@ -18,6 +18,7 @@ import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroupStore;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
+import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
 import com.bergerkiller.bukkit.tc.events.attachment.AttachmentInteractEvent;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.ServerboundAttackPacketHandle;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.ServerboundPlayerInputPacketHandle;
@@ -223,48 +224,85 @@ class TCPacketListener implements PacketListener {
                 return;
             }
 
-            // Find all Minecart entities that are nearby the player
-            Location eyeLoc = event.getPlayer().getEyeLocation();
+            // Save
+            final Location eyeLoc = event.getPlayer().getEyeLocation();
+
+            // Handle the click using the MinecartGroup the player's own vehicle is part of, if any
+            // It's better to check for this one first, as it's most likely to intercept the click, avoiding a global iteration
+            MinecartMember<?> playerVehicleMember = MinecartMemberStore.getFromEntity(player.getVehicle());
+            MinecartGroup playerVehicleGroup = (playerVehicleMember != null && playerVehicleMember.hasInitializedGroup())
+                    ? playerVehicleMember.getGroup() : null;
+            if (playerVehicleGroup != null && handleInteractionWithGroup(player, sneaking, eyeLoc, playerVehicleGroup, entityId, packet_use)) {
+                event.setCancelled(true);
+                return;
+            }
+
+            // Try all groups (near to player)
             try (ImplicitlySharedSet<MinecartGroup> groups = MinecartGroupStore.getGroups().clone()) {
                 for (MinecartGroup group : groups) {
-                    if (group.getWorld() != eyeLoc.getWorld()) {
-                        continue;
-                    }
-
-                    for (MinecartMember<?> member : group) {
-                        if (!member.getAttachments().isViewer(event.getPlayer())) {
-                            continue; // If not visible, don't loop through the model to check this
-                        }
-                        Attachment clickedAttachment = member.getAttachments().findAttachmentByEntityId(entityId);
-                        if (clickedAttachment == null) {
-                            continue; // Id is not used in the model
-                        }
-
-                        // Interaction with position fires for all entities including Armorstands
-                        // Before 26.1, it only fires without position for interactable entities, like Minecarts
-                        // Since it fires with position also for Minecarts, it is easier to ignore the one without
-                        // and do all handling with the one that has position.
-                        if (!packet_use.hasInteractAtPosition()) {
-                            event.setCancelled(true);
-                            return;
-                        }
-
-                        // Cancel the interaction and handle this ourselves.
-                        handleInteractionWithAttachment(member, new AttachmentInteractEvent(
-                                event.getPlayer(),
-                                false,
-                                packet_use.getHand(event.getPlayer()),
-                                sneaking,
-                                entityId,
-                                clickedAttachment,
-                                packet_use.getInteractAtPosition()
-                        ));
+                    if (group != playerVehicleGroup && handleInteractionWithGroup(player, sneaking, eyeLoc, group, entityId, packet_use)) {
                         event.setCancelled(true);
                         return;
                     }
                 }
             }
         }
+    }
+
+    /**
+     * Handles an interaction with a particular MinecartGroup, if the entityId is part of it. If so, the interaction is handled and true is returned.
+     *
+     * @param player Player that interacted
+     * @param sneaking Tri-state sneaking state of the player during the click (null if none supplied)
+     * @param eyeLoc Player Eye-Location at the time of the click
+     * @param group MinecartGroup to probe
+     * @param entityId Entity ID the player clicked
+     * @param packet_use Original interact packet
+     * @return True if the interaction was handled (intercepted), and server-side handling should be skipped
+     */
+    private boolean handleInteractionWithGroup(
+            final Player player,
+            final Boolean sneaking,
+            final Location eyeLoc,
+            final MinecartGroup group,
+            final int entityId,
+            final ServerboundInteractPacketHandle packet_use
+    ) {
+        if (group.getWorld() != eyeLoc.getWorld()) {
+            return false;
+        }
+
+        for (MinecartMember<?> member : group) {
+            if (!member.getAttachments().isViewer(player)) {
+                continue; // If not visible, don't loop through the model to check this
+            }
+            Attachment clickedAttachment = member.getAttachments().findAttachmentByEntityId(entityId);
+            if (clickedAttachment == null) {
+                continue; // Id is not used in the model
+            }
+
+            // Interaction with position fires for all entities including Armorstands
+            // Before 26.1, it only fires without position for interactable entities, like Minecarts
+            // Since it fires with position also for Minecarts, it is easier to ignore the one without
+            // and do all handling with the one that has position.
+            if (!packet_use.hasInteractAtPosition()) {
+                return true; // handled
+            }
+
+            // Cancel the interaction and handle this ourselves.
+            handleInteractionWithAttachment(member, new AttachmentInteractEvent(
+                    player,
+                    false,
+                    packet_use.getHand(player),
+                    sneaking,
+                    entityId,
+                    clickedAttachment,
+                    packet_use.getInteractAtPosition()
+            ));
+            return true; // Handled
+        }
+
+        return false;
     }
 
     private void applySneaking(final AttachmentInteractEvent event) {
