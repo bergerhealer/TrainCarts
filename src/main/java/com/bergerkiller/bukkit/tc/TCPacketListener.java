@@ -205,6 +205,7 @@ class TCPacketListener implements PacketListener {
                 if (player.getVehicle() == null) {
                     TCSeatChangeListener.markForUnmounting(traincarts, player);
                 } else if (!traincarts.handlePlayerVehicleChange(player, null)) {
+                    sneaking = Boolean.FALSE;
                     packet_use = ServerboundInteractPacketHandle.withUsingSecondaryAction(packet_use, false);
                     event.setPacket(packet_use);
                 }
