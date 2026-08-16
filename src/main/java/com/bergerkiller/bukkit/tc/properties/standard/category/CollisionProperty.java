@@ -543,7 +543,7 @@ public final class CollisionProperty extends FieldBackedStandardTrainProperty<Co
         if (name != null && (parsed = CollisionMode.parse(name)) != null) {
             return parsed;
         } else {
-            return null;
+            return defValue;
         }
     }
 
