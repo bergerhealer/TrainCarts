@@ -53,6 +53,18 @@ public final class CollisionOptions {
             CollisionMode trainMode,
             CollisionMode blockMode
     ) {
+        if (playerMode == null) {
+            throw new IllegalArgumentException("playerMode cannot be null");
+        }
+        if (miscMode == null) {
+            throw new IllegalArgumentException("miscMode cannot be null");
+        }
+        if (trainMode == null) {
+            throw new IllegalArgumentException("trainMode cannot be null");
+        }
+        if (blockMode == null) {
+            throw new IllegalArgumentException("blockMode cannot be null");
+        }
         this.mobModes = mobModes;
         this.playerMode = playerMode;
         this.miscMode = miscMode;
@@ -74,7 +86,7 @@ public final class CollisionOptions {
      * If none is defined, returns null.
      * 
      * @param category Mob category
-     * @return collision mode for this mob category
+     * @return collision mode for this mob category, or null if none is defined
      */
     public CollisionMode mobMode(CollisionMobCategory category) {
         return this.mobModes.get(category);
@@ -87,7 +99,7 @@ public final class CollisionOptions {
      * returned.
      * 
      * @param entity The entity to find the collision mode for
-     * @return Collision mode
+     * @return Collision mode, not null
      */
     public CollisionMode forEntity(Entity entity) {
         if (entity instanceof Player) {
@@ -171,6 +183,7 @@ public final class CollisionOptions {
             return this;
         }
 
+        // Note: no null allowed
         return new CollisionOptions(this.mobModes,
                                    mode,
                                    this.miscMode,
@@ -184,6 +197,7 @@ public final class CollisionOptions {
             return this;
         }
 
+        // Note: no null allowed
         return new CollisionOptions(this.mobModes,
                                    this.playerMode,
                                    mode,
@@ -197,6 +211,7 @@ public final class CollisionOptions {
             return this;
         }
 
+        // Note: no null allowed
         return new CollisionOptions(this.mobModes,
                                    this.playerMode,
                                    this.miscMode,
@@ -210,6 +225,7 @@ public final class CollisionOptions {
             return this;
         }
 
+        // Note: no null allowed
         return new CollisionOptions(this.mobModes,
                                    this.playerMode,
                                    this.miscMode,
@@ -384,6 +400,9 @@ public final class CollisionOptions {
          * @return this builder
          */
         public Builder setPlayerMode(CollisionMode mode) {
+            if (mode == null) {
+                throw new IllegalArgumentException("Collision mode for players cannot be null");
+            }
             this.playerMode = mode;
             return this;
         }
@@ -397,6 +416,9 @@ public final class CollisionOptions {
          * @return this builder
          */
         public Builder setMiscMode(CollisionMode mode) {
+            if (mode == null) {
+                throw new IllegalArgumentException("Collision mode for misc cannot be null");
+            }
             this.miscMode = mode;
             return this;
         }
@@ -408,6 +430,9 @@ public final class CollisionOptions {
          * @return this builder
          */
         public Builder setTrainMode(CollisionMode mode) {
+            if (mode == null) {
+                throw new IllegalArgumentException("Collision mode for trains cannot be null");
+            }
             this.trainMode = mode;
             return this;
         }
@@ -419,6 +444,9 @@ public final class CollisionOptions {
          * @return this builder
          */
         public Builder setBlockMode(CollisionMode mode) {
+            if (mode == null) {
+                throw new IllegalArgumentException("Collision mode for blocks cannot be null");
+            }
             this.blockMode = mode;
             return this;
         }
