@@ -3,6 +3,9 @@ package com.bergerkiller.bukkit.tc.attachments.ui.animation;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import com.bergerkiller.bukkit.common.map.MapFont;
+import com.bergerkiller.bukkit.common.map.widgets.MapWidgetText;
+import com.bergerkiller.bukkit.tc.attachments.ui.*;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
@@ -13,11 +16,9 @@ import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetSubmitText;
 import com.bergerkiller.bukkit.common.wrappers.ChatText;
 import com.bergerkiller.bukkit.tc.attachments.animation.AnimationNode;
-import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetBlinkyButton;
-import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetMenu;
-import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetNumberBox;
 
 public class ConfigureAnimationNodeDialog extends MapWidgetMenu {
+    private final MapWidgetScroller scroller = new MapWidgetScroller();
     private final AnimationNode _average;
     private List<Node> _nodes;
     private MapWidgetSubmitText sceneMarkerSubmit = null;
@@ -89,6 +90,23 @@ public class ConfigureAnimationNodeDialog extends MapWidgetMenu {
         return this._nodes.stream().map(n -> n.node).collect(Collectors.toList());
     }
 
+    /**
+     * Modified method to add the label to the scroller instead of the
+     * default behavior of adding it to the dialog itself.
+     * @param x
+     * @param y
+     * @param text
+     */
+    @Override
+    public void addLabel(int x, int y, String text) {
+        MapWidgetText label = new MapWidgetText();
+        label.setFont(MapFont.TINY);
+        label.setText(text);
+        label.setPosition(x, y);
+        label.setColor(MapColorPalette.getSpecular(this.labelColor, 0.5f));
+        scroller.addContainerWidget(label);
+    }
+
     @Override
     public void onAttached() {
         super.onAttached();
@@ -96,6 +114,11 @@ public class ConfigureAnimationNodeDialog extends MapWidgetMenu {
         // Note: relative to view widget
         // Adjust own bounds to be relative to where parent is at
         this.setBounds(5 - this.parent.getX(), 15 - this.parent.getY(), 105, 88);
+
+        // Initialize scroller
+        this.scroller.setBounds(0, 5, getWidth(), getHeight() - 5);
+        this.scroller.setScrollPadding(20);
+        this.addWidget(this.scroller);
         
         int slider_width = 72;
         int x_offset = 31;
@@ -106,7 +129,7 @@ public class ConfigureAnimationNodeDialog extends MapWidgetMenu {
 
         // Assign a scene marker to this node, so the animation can be played from this node onwards
         // Clicking will open an anvil dialog to enter a marker name - or empty to clear it
-        MapWidgetSceneBlinkyButton sceneMarkerButton = this.addWidget(new MapWidgetSceneBlinkyButton());
+        MapWidgetSceneBlinkyButton sceneMarkerButton = scroller.addContainerWidget(new MapWidgetSceneBlinkyButton());
         sceneMarkerButton.setTooltip("Scene marker").setPosition(mtmpx, y_offset);
         sceneMarkerSubmit = this.addWidget(new MapWidgetSubmitText() {
             @Override
@@ -129,7 +152,7 @@ public class ConfigureAnimationNodeDialog extends MapWidgetMenu {
 
         // Activate/de-activate the node - checkbox or slider?
         mtmpx += mtmpx_step;
-        this.addWidget(new MapWidgetBlinkyButton() {
+        scroller.addContainerWidget(new MapWidgetBlinkyButton() {
             @Override
             public void onAttached() {
                 super.onAttached();
@@ -159,14 +182,14 @@ public class ConfigureAnimationNodeDialog extends MapWidgetMenu {
                             num_active++;
                         }
                     }
-                    return num_active >= (_nodes.size()>>1);
+                    return num_active >= (_nodes.size() >> 1);
                 }
             }
         }.setPosition(mtmpx, y_offset));
 
         // Select a range of animation frames from the currently selected node
         mtmpx += mtmpx_step;
-        this.addWidget(new MapWidgetBlinkyButton() {
+        scroller.addContainerWidget(new MapWidgetBlinkyButton() {
             @Override
             public void onClick() {
                 onMultiSelect();
@@ -176,7 +199,7 @@ public class ConfigureAnimationNodeDialog extends MapWidgetMenu {
 
         // Change the position of one or a group of nodes, moving it up/down
         mtmpx += mtmpx_step;
-        this.addWidget(new MapWidgetBlinkyButton() {
+        scroller.addContainerWidget(new MapWidgetBlinkyButton() {
             @Override
             public void onClick() {
                 onReorder();
@@ -186,7 +209,7 @@ public class ConfigureAnimationNodeDialog extends MapWidgetMenu {
 
         // Copy selected nodes to the clipboard of the player
         mtmpx += mtmpx_step;
-        this.addWidget(new MapWidgetBlinkyButton() {
+        scroller.addContainerWidget(new MapWidgetBlinkyButton() {
             @Override
             public void onActivate() {
                 this.onClick(); // Disable extinquish sfx
@@ -201,7 +224,7 @@ public class ConfigureAnimationNodeDialog extends MapWidgetMenu {
 
         // Paste clipboard contents of the player below the selected nodes
         mtmpx += mtmpx_step;
-        this.addWidget(new MapWidgetBlinkyButton() {
+        scroller.addContainerWidget(new MapWidgetBlinkyButton() {
             @Override
             public void onAttached() {
                 super.onAttached();
@@ -229,7 +252,7 @@ public class ConfigureAnimationNodeDialog extends MapWidgetMenu {
 
         // Duplicate node below this one node
         mtmpx += mtmpx_step;
-        MapWidget duplicateButton = this.addWidget(new MapWidgetBlinkyButton() {
+        MapWidget duplicateButton = scroller.addContainerWidget(new MapWidgetBlinkyButton() {
             @Override
             public void onActivate() {
                 this.onClick(); // Disable extinquish sfx
@@ -244,7 +267,7 @@ public class ConfigureAnimationNodeDialog extends MapWidgetMenu {
 
         // Delete the node
         mtmpx += mtmpx_step;
-        this.addWidget(new MapWidgetBlinkyButton() {
+        scroller.addContainerWidget(new MapWidgetBlinkyButton() {
             @Override
             public void onClick() {
                 onDelete();
@@ -254,7 +277,7 @@ public class ConfigureAnimationNodeDialog extends MapWidgetMenu {
 
         y_offset += 12;
 
-        this.addWidget(new MapWidgetNumberBox() { // Delta Time
+        scroller.addContainerWidget(new MapWidgetNumberBox() { // Delta Time
             @Override
             public void onAttached() {
                 super.onAttached();
@@ -284,7 +307,7 @@ public class ConfigureAnimationNodeDialog extends MapWidgetMenu {
         addLabel(5, y_offset + 3, "Delta T");
         y_offset += y_step;
 
-        MapWidget posXWidget = this.addWidget(new MapWidgetNumberBox() { // Position X
+        MapWidget posXWidget = scroller.addContainerWidget(new MapWidgetNumberBox() { // Position X
             @Override
             public void onAttached() {
                 super.onAttached();
@@ -304,7 +327,7 @@ public class ConfigureAnimationNodeDialog extends MapWidgetMenu {
         addLabel(5, y_offset + 3, "Pos.X");
         y_offset += y_step;
 
-        this.addWidget(new MapWidgetNumberBox() { // Position Y
+        scroller.addContainerWidget(new MapWidgetNumberBox() { // Position Y
             @Override
             public void onAttached() {
                 super.onAttached();
@@ -324,7 +347,7 @@ public class ConfigureAnimationNodeDialog extends MapWidgetMenu {
         addLabel(5, y_offset + 3, "Pos.Y");
         y_offset += y_step;
 
-        this.addWidget(new MapWidgetNumberBox() { // Position Z
+        scroller.addContainerWidget(new MapWidgetNumberBox() { // Position Z
             @Override
             public void onAttached() {
                 super.onAttached();
@@ -344,7 +367,7 @@ public class ConfigureAnimationNodeDialog extends MapWidgetMenu {
         addLabel(5, y_offset + 3, "Pos.Z");
         y_offset += y_step;
 
-        this.addWidget(new MapWidgetNumberBox() { // Rotation X
+        scroller.addContainerWidget(new MapWidgetNumberBox() { // Rotation X
             @Override
             public void onAttached() {
                 super.onAttached();
@@ -365,7 +388,7 @@ public class ConfigureAnimationNodeDialog extends MapWidgetMenu {
         addLabel(5, y_offset + 3, "Pitch");
         y_offset += y_step;
 
-        this.addWidget(new MapWidgetNumberBox() { // Rotation Y
+        scroller.addContainerWidget(new MapWidgetNumberBox() { // Rotation Y
             @Override
             public void onAttached() {
                 super.onAttached();
@@ -386,7 +409,7 @@ public class ConfigureAnimationNodeDialog extends MapWidgetMenu {
         addLabel(5, y_offset + 3, "Yaw");
         y_offset += y_step;
 
-        this.addWidget(new MapWidgetNumberBox() { // Rotation Z
+        scroller.addContainerWidget(new MapWidgetNumberBox() { // Rotation Z
             @Override
             public void onAttached() {
                 super.onAttached();
@@ -405,13 +428,12 @@ public class ConfigureAnimationNodeDialog extends MapWidgetMenu {
             }
         }).setBounds(x_offset, y_offset, slider_width, 9);
         addLabel(5, y_offset + 3, "Roll");
-        y_offset += y_step;
 
         // Focus the widget we had focused last time the menu was open
         // If -1, select pos x by default
         int initialFocusedIndex = attachment.getEditorOption("animNodeSelectedOption", -1);
-        if (initialFocusedIndex >= 0 && initialFocusedIndex < this.getWidgetCount()) {
-            this.getWidget(initialFocusedIndex).focus();
+        if (initialFocusedIndex >= 0 && initialFocusedIndex < scroller.getWidgetCount()) {
+            scroller.getWidget(initialFocusedIndex).focus();
         } else {
             posXWidget.focus();
         }
@@ -423,7 +445,7 @@ public class ConfigureAnimationNodeDialog extends MapWidgetMenu {
 
         // Key press may have altered focused widget
         if (display != null) {
-            int index = getWidgets().indexOf(display.getFocusedWidget());
+            int index = scroller.getWidgets().indexOf(display.getFocusedWidget());
             if (index != -1) {
                 attachment.setEditorOption("animNodeSelectedOption", -1, index);
             }
