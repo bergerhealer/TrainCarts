@@ -33,19 +33,33 @@ public enum CollisionMode {
     }
 
     /**
+     * Parses a Collision Mode from a String, but will not try to match booleans (true/false).
+     *
+     * @param text Text to parse
+     * @return CollisionMode
+     */
+    public static CollisionMode parseNonBool(String text) {
+        // This used to be a thing / legacy...
+        if (text.equalsIgnoreCase("skip")) {
+            return CollisionMode.CANCEL;
+        }
+
+        return ParseUtil.parseEnum(CollisionMode.class, text, null);
+    }
+
+    /**
      * Parses a Collision Mode from a String
      *
      * @param text to parse
      * @return Collision Mode, or null if not parsed
      */
     public static CollisionMode parse(String text) {
-        // This used to be a thing / legacy...
-        if (text.equalsIgnoreCase("skip")) {
-            return CollisionMode.CANCEL;
+        CollisionMode exact = parseNonBool(text);
+        if (exact != null) {
+            return exact;
+        } else {
+            return ParseUtil.isBool(text) ? (ParseUtil.parseBool(text) ? DEFAULT : CANCEL) : null;
         }
-
-        CollisionMode tf = ParseUtil.isBool(text) ? (ParseUtil.parseBool(text) ? DEFAULT : CANCEL) : null;
-        return ParseUtil.parseEnum(CollisionMode.class, text, tf);
     }
 
     /**
