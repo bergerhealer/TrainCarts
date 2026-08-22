@@ -230,6 +230,32 @@ public final class CollisionProperty extends FieldBackedStandardTrainProperty<Co
     }
 
     @CommandTargetTrain
+    @PropertyCheckPermission("collision")
+    @Command("train collision entity|entities <mode>")
+    @CommandDescription("Configures the collision settings for all entities")
+    private void trainSetCollisionAllEntities(
+            final CommandSender sender,
+            final TrainProperties properties,
+            final @Argument("mode") CollisionMode mode
+    ) {
+        properties.setCollision(properties.getCollision().cloneAndSetCollidesWithEntities(mode));
+        showMode(sender, "entities", mode);
+    }
+
+    @CommandTargetTrain
+    @PropertyCheckPermission("collision")
+    @Command("train collision all <mode>")
+    @CommandDescription("Configures the collision settings for all entities and blocks")
+    private void trainSetCollisionAllEntitiesAndBlocks(
+            final CommandSender sender,
+            final TrainProperties properties,
+            final @Argument("mode") CollisionMode mode
+    ) {
+        properties.setCollision(CollisionOptions.all(mode));
+        showMode(sender, "entities and blocks", mode);
+    }
+
+    @CommandTargetTrain
     @PropertyCheckPermission("blockcollision")
     @Command("train collision block <mode>")
     @CommandDescription("Sets the behavior of the train when colliding with blocks")
@@ -344,6 +370,11 @@ public final class CollisionProperty extends FieldBackedStandardTrainProperty<Co
         return context.current().cloneAndSetBlockMode(parseMode(context));
     }
 
+    @PropertyParser("entitycollision")
+    public CollisionOptions parseAllEntityCollisionMode(PropertyParseContext<CollisionOptions> context) {
+        return context.current().cloneAndSetCollidesWithEntities(parseMode(context));
+    }
+
     // For mobs, only used if it doesn't match player/misc/train/block
     @PropertyParser("([a-z]+)collision")
     public CollisionOptions parseCollisionMobsType(PropertyParseContext<CollisionOptions> context) {
@@ -404,7 +435,18 @@ public final class CollisionProperty extends FieldBackedStandardTrainProperty<Co
 
     @PropertyParser("collision|collide")
     public CollisionOptions parseDefaultOrNoCollision(PropertyParseContext<CollisionOptions> context) {
-        return context.inputBoolean() ? CollisionOptions.DEFAULT : CollisionOptions.CANCEL;
+        // Try exact mode
+        CollisionMode exact = CollisionMode.parseNonBool(context.input());
+        if (exact != null) {
+            return CollisionOptions.all(exact);
+        }
+
+        // Try true/false or a statement expression
+        try {
+            return context.inputBoolean() ? CollisionOptions.DEFAULT : CollisionOptions.CANCEL;
+        } catch (PropertyInvalidInputException ex) {
+            throw new PropertyInvalidInputException("Not a collision mode, true, false or a Statement expression");
+        }
     }
 
     @Override

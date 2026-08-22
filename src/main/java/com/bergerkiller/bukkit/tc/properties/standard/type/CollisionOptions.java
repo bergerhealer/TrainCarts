@@ -32,13 +32,23 @@ public final class CollisionOptions {
      * {@link CollisionMode#CANCEL}. When this configuration is used,
      * trains will go through everything, not doing any collision hit detection.
      */
-    public static final CollisionOptions CANCEL = new CollisionOptions(
-            NO_MOB_MODES, /* Mob modes */
-            CollisionMode.CANCEL, /* Players */
-            CollisionMode.CANCEL, /* Misc */
-            CollisionMode.CANCEL, /* Trains */
-            CollisionMode.CANCEL /* Blocks */
-    );
+    public static final CollisionOptions CANCEL = all(CollisionMode.CANCEL);
+
+    /**
+     * Creates a new collision configuration with all modes set to the same value (like CANCEL)
+     *
+     * @param mode Collision mode to use for all entity types and blocks
+     * @return New CollisionOptions
+     */
+    public static CollisionOptions all(CollisionMode mode) {
+        return new CollisionOptions(
+                NO_MOB_MODES, /* Mob modes */
+                mode, /* Players */
+                mode, /* Misc */
+                mode, /* Trains */
+                mode /* Blocks */
+        );
+    }
 
     private final EnumMap<CollisionMobCategory, CollisionMode> mobModes;
     private final CollisionMode playerMode;
@@ -154,7 +164,10 @@ public final class CollisionOptions {
      * Checks whether collision with entities has any effect.
      * If collision with players, trains, mobs and other miscellaneous
      * entities is all set to {@link CollisionMode#CANCEL}, then
-     * this method will return false. Otherwise, it will return true.
+     * this method will return false. Otherwise, it will return true.<br>
+     * <br>
+     * When false, it allows TrainCarts to turn off collision checking with entities entirely,
+     * helping server performance.
      * 
      * @return True if collisions with entities are possible
      */
@@ -175,6 +188,22 @@ public final class CollisionOptions {
 
         // It's all cancel! So it doesn't collide.
         return false;
+    }
+
+    /**
+     * Sets whether entity collision is enabled or not for all entity types at once.
+     * Use this with {@link CollisionMode#CANCEL} to turn of all collisions with entities,
+     * making {@link #collidesWithEntities()} return false.
+     *
+     * @param mode Collision Mode
+     * @return new collision options with the new entity collision mode
+     */
+    public CollisionOptions cloneAndSetCollidesWithEntities(CollisionMode mode) {
+        return new CollisionOptions(NO_MOB_MODES,
+                mode,
+                mode,
+                mode,
+                this.blockMode);
     }
 
     public CollisionOptions cloneAndSetPlayerMode(CollisionMode mode) {
