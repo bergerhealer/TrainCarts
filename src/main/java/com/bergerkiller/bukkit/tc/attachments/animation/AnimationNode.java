@@ -490,19 +490,19 @@ public class AnimationNode implements Cloneable {
      * All easing type presets. Also contains CUSTOM which can be used to specify a custom easing curve.
      */
     public enum EasingType {
-        CUSTOM(false, 0, 0, 1, 1),
-        LINEAR(true, 0, 0, 1, 1),
-        SINE_IN(true, 0.12f, 0, 0.39f, 0),
-        SINE_OUT(true, 0.61f, 1, 0.88f, 1),
-        SINE_IN_OUT(true, 0.37f, 0, 0.63f, 1),
-        CUBIC_IN(true, 0.32f, 0, 0.67f, 0),
-        CUBIC_OUT(true, 0.33f, 1, 0.68f, 1),
-        CUBIC_IN_OUT(true, 0.65f, 0, 0.35f, 1),
-        EXP_IN(true, 0.7f, 0, 0.84f, 0),
-        EXP_OUT(true, 0.16f, 1, 0.3f, 1),
-        EXP_IN_OUT(true, 0.87f, 0, 0.13f, 1);
+        LINEAR(false, 0, 0, 1, 1),
+        SINE_IN(false, 0.12f, 0, 0.39f, 0),
+        SINE_OUT(false, 0.61f, 1, 0.88f, 1),
+        SINE_IN_OUT(false, 0.37f, 0, 0.63f, 1),
+        CUBIC_IN(false, 0.32f, 0, 0.67f, 0),
+        CUBIC_OUT(false, 0.33f, 1, 0.68f, 1),
+        CUBIC_IN_OUT(false, 0.65f, 0, 0.35f, 1),
+        EXP_IN(false, 0.7f, 0, 0.84f, 0),
+        EXP_OUT(false, 0.16f, 1, 0.3f, 1),
+        EXP_IN_OUT(false, 0.87f, 0, 0.13f, 1),
+        CUSTOM(true, 0, 0, 1, 1);
 
-        private final boolean autoSet;
+        private final boolean editable;
         private final float x1;
         private final float y1;
         private final float x2;
@@ -510,14 +510,14 @@ public class AnimationNode implements Cloneable {
 
         /**
          * EasingType constructor. All arguments must be between 0 and 1.
-         * @param autoSet whether this type should be automatically set when it is selected
+         * @param editable whether this type should be automatically set when it is selected
          * @param x1 x coordinate of first point
          * @param y1 y coordinate of first point
          * @param x2 x coordinate of second point
          * @param y2 y coordinate of second point
          * @throws IllegalArgumentException when arguments are out of bounds.
          */
-        EasingType(boolean autoSet, float x1, float y1, float x2, float y2) {
+        EasingType(boolean editable, float x1, float y1, float x2, float y2) {
             if (x1 < 0 || x1 > 1) {
                 throw new IllegalArgumentException("x1 must be between 0 and 1");
             }
@@ -531,15 +531,15 @@ public class AnimationNode implements Cloneable {
                 throw new IllegalArgumentException("y2 must be between 0 and 1");
             }
 
-            this.autoSet = autoSet;
+            this.editable = editable;
             this.x1 = x1;
             this.y1 = y1;
             this.x2 = x2;
             this.y2 = y2;
         }
 
-        public boolean isAutoSet() {
-            return autoSet;
+        public boolean isEditable() {
+            return editable;
         }
 
         public float getX1() {
@@ -556,6 +556,28 @@ public class AnimationNode implements Cloneable {
 
         public float getY2() {
             return y2;
+        }
+
+        public float cubicBezierY(float t) {
+            return cubicBezier(0, y1, y2, 1, 0.5f);
+        }
+
+        /**
+         * Calculates the cubic bezier value at t for the given points. To receive the x value,
+         * enter the x-coordinates of the points, to receive the y value, enter the y-coordinates of the points.
+         * @param p0 the start point
+         * @param p1 the first control point
+         * @param p2 the second control point
+         * @param p3 the finish point
+         * @param t progression between 0 and 1
+         */
+        public static float cubicBezier(float p0, float p1, float p2, float p3, float t) {
+            float mt = 1.0f - t;
+
+            return mt * mt * mt * p0
+                    + 3.0f * mt * mt * t * p1
+                    + 3.0f * mt * t * t * p2
+                    + t * t * t * p3;
         }
 
     }
