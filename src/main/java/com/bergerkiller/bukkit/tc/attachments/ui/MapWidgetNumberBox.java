@@ -126,16 +126,6 @@ public class MapWidgetNumberBox extends MapWidget implements SetValueTarget {
         }
     }
 
-    /**
-     * Same as {@link #setValue(double)}, but without firing {@link #onValueChanged()}.
-     * @param value The new value
-     */
-    public void setValueSilent(double value) {
-        if (value != this._value) {
-            updateValue(value);
-        }
-    }
-
     private void updateValue(double value) {
         this._value = value;
         if (this._value < this._min) {
