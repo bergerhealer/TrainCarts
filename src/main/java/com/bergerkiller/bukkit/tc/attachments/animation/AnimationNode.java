@@ -21,13 +21,14 @@ public class AnimationNode implements Cloneable {
     private final double _duration;
     private final boolean _hasValidDuration;
     private final String _scene; // null if not a scene start marker
+    private Easing _easing; // null if not set
 
     /**
      * Initializes a new Animation Node with a position, rotation and duration to the next node.
      * The rotation is initialized using a Quaternion, with the yaw/pitch/roll rotation vector
      * initialized on first use.
      * 
-     * @param position, null to deactivate the attachment
+     * @param position null to deactivate the attachment
      * @param rotationQuaternion
      * @param active whether the attachment is active (and visible) when this node is reached
      * @param duration Delta-time (t) in seconds between the previous frame and this animation frame
@@ -47,7 +48,7 @@ public class AnimationNode implements Cloneable {
      * The rotation is initialized using a yaw/pitch/roll vector, with the quaternion rotation
      * initialized on first use.
      * 
-     * @param position, null to deactivate the attachment
+     * @param position null to deactivate the attachment
      * @param rotationVector
      * @param active whether the attachment is active (and visible) when this node is reached
      * @param duration Delta-time (t) in seconds between the previous frame and this animation frame
@@ -63,17 +64,40 @@ public class AnimationNode implements Cloneable {
     }
 
     /**
+     * Initializes a new Animation Node with a position, rotation, easing and duration to the next node.
+     * The rotation is initialized using a yaw/pitch/roll vector, with the quaternion rotation
+     * initialized on first use.
+     *
+     * @param position null to deactivate the attachment
+     * @param rotationVector
+     * @param active whether the attachment is active (and visible) when this node is reached
+     * @param duration Delta-time (t) in seconds between the previous frame and this animation frame
+     * @param easing null to use linear easing
+     */
+    public AnimationNode(Vector position, Vector rotationVector, boolean active, double duration, Easing easing) {
+        this._position = position;
+        this._rotationVec = rotationVector;
+        this._rotationQuat = null;
+        this._active = active;
+        this._hasValidDuration = !Double.isNaN(duration);
+        this._duration = this._hasValidDuration ? duration : 0.0;
+        this._scene = null;
+        this._easing = easing;
+    }
+
+    /**
      * Initializes a new Animation Node with a position, rotation and duration to the next node.
      * The rotation is initialized using a yaw/pitch/roll vector, with the quaternion rotation
      * initialized on first use.
      * 
-     * @param position, null to deactivate the attachment
+     * @param position null to deactivate the attachment
      * @param rotationVector
      * @param active whether the attachment is active (and visible) when this node is reached
      * @param duration Delta-time (t) in seconds between the previous frame and this animation frame
      * @param scene Scene start marker, null for none
+     * @param easing Easing function for the animation
      */
-    public AnimationNode(Vector position, Vector rotationVector, boolean active, double duration, String scene) {
+    public AnimationNode(Vector position, Vector rotationVector, boolean active, double duration, String scene, Easing easing) {
         this._position = position;
         this._rotationVec = rotationVector;
         this._rotationQuat = null;
@@ -81,6 +105,7 @@ public class AnimationNode implements Cloneable {
         this._hasValidDuration = !Double.isNaN(duration);
         this._duration = this._hasValidDuration ? duration : 0.0;
         this._scene = scene;
+        this._easing = easing;
     }
 
     /**
@@ -125,7 +150,19 @@ public class AnimationNode implements Cloneable {
             sceneName = sceneName.replace('\t', '_');
         }
         return new AnimationNode(this._position, this._rotationVec,
-                this._active, this._duration, sceneName);
+                this._active, this._duration, sceneName, _easing);
+    }
+
+    public Easing getEasing() {
+        return this._easing;
+    }
+
+    public AnimationNode setEasing(Easing easing) {
+        if (LogicUtil.bothNullOrEqual(this._easing, easing)) {
+            return this;
+        }
+        return new AnimationNode(this._position, this._rotationVec,
+                this._active, this._duration, this._scene, easing);
     }
 
     /**
@@ -220,6 +257,7 @@ public class AnimationNode implements Cloneable {
         ypr.setY(MathUtil.round(ypr.getY(), 6));
         ypr.setZ(MathUtil.round(ypr.getZ(), 6));
         String scene = this.getSceneMarker();
+        Easing easing = this.getEasing();
 
         StringBuilder builder = new StringBuilder(90);
         builder.append("t=").append(this._duration);
@@ -231,7 +269,8 @@ public class AnimationNode implements Cloneable {
         if (ypr.getX() != 0.0) builder.append(" pitch=").append(ypr.getX());
         if (ypr.getY() != 0.0) builder.append(" yaw=").append(ypr.getY());
         if (ypr.getZ() != 0.0) builder.append(" roll=").append(ypr.getZ());
-        if (scene != null) builder.append(" scene=" + scene);
+        if (scene != null) builder.append(" scene=").append(scene);
+        if (easing != null) builder.append(" easing=").append(easing);
 
         return builder.toString();
     }
@@ -243,13 +282,13 @@ public class AnimationNode implements Cloneable {
      */
     public AnimationNode cloneWithoutSceneMarker() {
         return new AnimationNode(this._position.clone(), this._rotationVec.clone(),
-                this._active, this._duration);
+                this._active, this._duration, this._easing);
     }
 
     @Override
     public AnimationNode clone() {
         return new AnimationNode(this._position.clone(), this._rotationVec.clone(),
-                this._active, this._duration, this._scene);
+                this._active, this._duration, this._scene, this._easing);
     }
 
     @Override
@@ -285,9 +324,9 @@ public class AnimationNode implements Cloneable {
     /**
      * Interpolates two nodes
      * 
-     * @param nodeA
-     * @param nodeB
-     * @param theta
+     * @param nodeA start node
+     * @param nodeB end node
+     * @param theta progress between [0.0, 1.0]
      * @return interpolated node
      */
     public static AnimationNode interpolate(AnimationNode nodeA, AnimationNode nodeB, double theta) {
@@ -370,6 +409,7 @@ public class AnimationNode implements Cloneable {
      * <li> x50.3z0.63yaw0.32pitch330.2roll-332.3y=30.2
      * <li>x=50 y=30 scene=myscene yaw=20.0
      * <li>x5 y7 z=7 scene=12helloworld
+     * <li>x5 y7 z=7 easing=0.2,0.2,0.8,0.8</li>
      * </ul>
      */
     private static class Parser {
@@ -379,8 +419,10 @@ public class AnimationNode implements Cloneable {
         private Vector position = new Vector();
         private Vector rotation = new Vector();
         private String scene = null;
+        private Easing easing = null;
         private boolean active = true;
         private double duration = Double.NaN;
+
 
         public Parser(String config) {
             this.config = config;
@@ -433,6 +475,25 @@ public class AnimationNode implements Cloneable {
                     if (scene.isEmpty()) {
                         scene = null;
                     }
+                } else if ("easing".equals(name)) {
+                    // Skip all spaces
+                    skip(ch -> (ch == ' ' || ch == '\t'));
+                    if (index >= config_length) {
+                        break;
+                    }
+
+                    // If starts with =, omit. Then skip all spaces after.
+                    if (config.charAt(index) == '=') {
+                        index++;
+                    }
+                    skip(ch -> (ch == ' ' || ch == '\t'));
+
+                    // Remainder, up until the next space, is considered the easing string
+                    int valueStart = index;
+                    skip(ch -> (ch != ' ' && ch != '\t'));
+
+                    // Returns null if it's invalid
+                    easing = Easing.parse(config.substring(valueStart, index));
                 } else {
                     int value_start, value_end;
                     double value;
@@ -477,108 +538,12 @@ public class AnimationNode implements Cloneable {
                 }
             }
 
-            return new AnimationNode(position, rotation, active, duration, scene);
+            return new AnimationNode(position, rotation, active, duration, scene, easing);
         }
 
         @FunctionalInterface
         private static interface CharFilter {
             boolean filter(char ch);
         }
-    }
-
-    /**
-     * All easing type presets. Also contains CUSTOM which can be used to specify a custom easing curve.
-     */
-    public enum EasingType {
-        LINEAR(false, 0, 0, 1, 1),
-        SINE_IN(false, 0.12f, 0, 0.39f, 0),
-        SINE_OUT(false, 0.61f, 1, 0.88f, 1),
-        SINE_IN_OUT(false, 0.37f, 0, 0.63f, 1),
-        CUBIC_IN(false, 0.32f, 0, 0.67f, 0),
-        CUBIC_OUT(false, 0.33f, 1, 0.68f, 1),
-        CUBIC_IN_OUT(false, 0.65f, 0, 0.35f, 1),
-        EXP_IN(false, 0.7f, 0, 0.84f, 0),
-        EXP_OUT(false, 0.16f, 1, 0.3f, 1),
-        EXP_IN_OUT(false, 0.87f, 0, 0.13f, 1),
-        CUSTOM(true, 0, 0, 1, 1);
-
-        private final boolean editable;
-        private final float x1;
-        private final float y1;
-        private final float x2;
-        private final float y2;
-
-        /**
-         * EasingType constructor. All arguments must be between 0 and 1.
-         * @param editable whether this type should be automatically set when it is selected
-         * @param x1 x coordinate of first point
-         * @param y1 y coordinate of first point
-         * @param x2 x coordinate of second point
-         * @param y2 y coordinate of second point
-         * @throws IllegalArgumentException when arguments are out of bounds.
-         */
-        EasingType(boolean editable, float x1, float y1, float x2, float y2) {
-            if (x1 < 0 || x1 > 1) {
-                throw new IllegalArgumentException("x1 must be between 0 and 1");
-            }
-            if (y1 < 0 || y1 > 1) {
-                throw new IllegalArgumentException("y1 must be between 0 and 1");
-            }
-            if (x2 < 0 || x2 > 1) {
-                throw new IllegalArgumentException("x2 must be between 0 and 1");
-            }
-            if (y2 < 0 || y2 > 1) {
-                throw new IllegalArgumentException("y2 must be between 0 and 1");
-            }
-
-            this.editable = editable;
-            this.x1 = x1;
-            this.y1 = y1;
-            this.x2 = x2;
-            this.y2 = y2;
-        }
-
-        public boolean isEditable() {
-            return editable;
-        }
-
-        public float getX1() {
-            return x1;
-        }
-
-        public float getY1() {
-            return y1;
-        }
-
-        public float getX2() {
-            return x2;
-        }
-
-        public float getY2() {
-            return y2;
-        }
-
-        public float cubicBezierY(float t) {
-            return cubicBezier(0, y1, y2, 1, 0.5f);
-        }
-
-        /**
-         * Calculates the cubic bezier value at t for the given points. To receive the x value,
-         * enter the x-coordinates of the points, to receive the y value, enter the y-coordinates of the points.
-         * @param p0 the start point
-         * @param p1 the first control point
-         * @param p2 the second control point
-         * @param p3 the finish point
-         * @param t progression between 0 and 1
-         */
-        public static float cubicBezier(float p0, float p1, float p2, float p3, float t) {
-            float mt = 1.0f - t;
-
-            return mt * mt * mt * p0
-                    + 3.0f * mt * mt * t * p1
-                    + 3.0f * mt * t * t * p2
-                    + t * t * t * p3;
-        }
-
     }
 }
