@@ -21,7 +21,7 @@ public class AnimationNode implements Cloneable {
     private final double _duration;
     private final boolean _hasValidDuration;
     private final String _scene; // null if not a scene start marker
-    private Easing _easing; // null if not set
+    private AnimationEasing _easing; // null if not set
 
     /**
      * Initializes a new Animation Node with a position, rotation and duration to the next node.
@@ -74,7 +74,7 @@ public class AnimationNode implements Cloneable {
      * @param duration Delta-time (t) in seconds between the previous frame and this animation frame
      * @param easing null to use linear easing
      */
-    public AnimationNode(Vector position, Vector rotationVector, boolean active, double duration, Easing easing) {
+    public AnimationNode(Vector position, Vector rotationVector, boolean active, double duration, AnimationEasing easing) {
         this._position = position;
         this._rotationVec = rotationVector;
         this._rotationQuat = null;
@@ -97,7 +97,7 @@ public class AnimationNode implements Cloneable {
      * @param scene Scene start marker, null for none
      * @param easing Easing function for the animation
      */
-    public AnimationNode(Vector position, Vector rotationVector, boolean active, double duration, String scene, Easing easing) {
+    public AnimationNode(Vector position, Vector rotationVector, boolean active, double duration, String scene, AnimationEasing easing) {
         this._position = position;
         this._rotationVec = rotationVector;
         this._rotationQuat = null;
@@ -153,11 +153,11 @@ public class AnimationNode implements Cloneable {
                 this._active, this._duration, sceneName, _easing);
     }
 
-    public Easing getEasing() {
+    public AnimationEasing getEasing() {
         return this._easing;
     }
 
-    public AnimationNode setEasing(Easing easing) {
+    public AnimationNode setEasing(AnimationEasing easing) {
         if (LogicUtil.bothNullOrEqual(this._easing, easing)) {
             return this;
         }
@@ -257,7 +257,7 @@ public class AnimationNode implements Cloneable {
         ypr.setY(MathUtil.round(ypr.getY(), 6));
         ypr.setZ(MathUtil.round(ypr.getZ(), 6));
         String scene = this.getSceneMarker();
-        Easing easing = this.getEasing();
+        AnimationEasing easing = this.getEasing();
 
         StringBuilder builder = new StringBuilder(90);
         builder.append("t=").append(this._duration);
@@ -369,6 +369,9 @@ public class AnimationNode implements Cloneable {
         Vector pos = new Vector();
         Vector rot = new Vector();
 
+        // Can't take average of easing, so we just use first :(
+        AnimationEasing easing = nodes.stream().findFirst().get().getEasing();
+
         int num_active = 0;
         double duration = 0.0;
         for (AnimationNode node : nodes) {
@@ -386,7 +389,9 @@ public class AnimationNode implements Cloneable {
         rot.setX(MathUtil.wrapAngle(rot.getX()));
         rot.setY(MathUtil.wrapAngle(rot.getY()));
         rot.setZ(MathUtil.wrapAngle(rot.getZ()));
-        return new AnimationNode(pos, rot, num_active >= (nodes.size()>>1), duration);
+
+
+        return new AnimationNode(pos, rot, num_active >= (nodes.size()>>1), duration, easing);
     }
 
     private static boolean isNumericChar(char ch) {
@@ -419,7 +424,7 @@ public class AnimationNode implements Cloneable {
         private Vector position = new Vector();
         private Vector rotation = new Vector();
         private String scene = null;
-        private Easing easing = null;
+        private AnimationEasing easing = null;
         private boolean active = true;
         private double duration = Double.NaN;
 
@@ -493,7 +498,7 @@ public class AnimationNode implements Cloneable {
                     skip(ch -> (ch != ' ' && ch != '\t'));
 
                     // Returns null if it's invalid
-                    easing = Easing.parse(config.substring(valueStart, index));
+                    easing = AnimationEasing.parse(config.substring(valueStart, index));
                 } else {
                     int value_start, value_end;
                     double value;
