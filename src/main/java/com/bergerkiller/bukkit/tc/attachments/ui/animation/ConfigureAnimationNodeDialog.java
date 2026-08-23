@@ -556,7 +556,7 @@ public class ConfigureAnimationNodeDialog extends MapWidgetMenu {
     private enum ChangeMode {
         POS_X, POS_Y, POS_Z,
         ROT_X, ROT_Y, ROT_Z,
-        DURATION, ACTIVE;
+        DURATION, ACTIVE
     }
 
     private class Node {
@@ -710,6 +710,11 @@ public class ConfigureAnimationNodeDialog extends MapWidgetMenu {
                     );
                     updateEasing(cubicBezier.getEasing(), true);
                 }
+
+                @Override
+                public String getAcceptedPropertyName() {
+                    return "Point 1 X-coordinate";
+                }
             });
             p1x.setBounds(66, 12, 52, 9);
             addLabel(62, 14, "x");
@@ -731,6 +736,11 @@ public class ConfigureAnimationNodeDialog extends MapWidgetMenu {
                             (float) getValue()
                     );
                     updateEasing(cubicBezier.getEasing(), true);
+                }
+
+                @Override
+                public String getAcceptedPropertyName() {
+                    return "Point 1 Y-coordinate";
                 }
             });
             p1y.setBounds(66, 22, 52, 9);
@@ -754,6 +764,11 @@ public class ConfigureAnimationNodeDialog extends MapWidgetMenu {
                     );
                     updateEasing(cubicBezier.getEasing(), true);
                 }
+
+                @Override
+                public String getAcceptedPropertyName() {
+                    return "Point 2 X-coordinate";
+                }
             });
             p2x.setBounds(66, 41, 52, 9);
             addLabel(62, 43, "x");
@@ -775,6 +790,11 @@ public class ConfigureAnimationNodeDialog extends MapWidgetMenu {
                             (float) getValue()
                     );
                     updateEasing(cubicBezier.getEasing(), true);
+                }
+
+                @Override
+                public String getAcceptedPropertyName() {
+                    return "Point 2 Y-coordinate";
                 }
             });
             p2y.setBounds(66, 51, 52, 9);
