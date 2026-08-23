@@ -860,9 +860,19 @@ public class Animation implements Cloneable {
             }
         }
 
+        /**
+         * Handles the interpolation between two nodes.
+         * @return the animation node for the current frame
+         */
         @Override
         public AnimationNode toNode() {
-            return AnimationNode.interpolate(node0(), node1(), theta());
+            double easedTheta = theta();
+
+            AnimationEasing easing = node0().getEasing();
+            if (easing != null) {
+                easedTheta = easing.evaluate(easedTheta);
+            }
+            return AnimationNode.interpolate(node0(), node1(), easedTheta);
         }
 
         @Override
