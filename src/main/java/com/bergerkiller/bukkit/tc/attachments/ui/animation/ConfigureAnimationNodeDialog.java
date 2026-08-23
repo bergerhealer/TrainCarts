@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.tc.attachments.ui.animation;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -116,7 +117,7 @@ public class ConfigureAnimationNodeDialog extends MapWidgetMenu {
         this.setBounds(5 - this.parent.getX(), 15 - this.parent.getY(), 105, 88);
 
         // Initialize scroller
-        this.scroller.setBounds(0, 5, getWidth(), getHeight() - 5);
+        this.scroller.setBounds(0, 2, getWidth(), getHeight() - 5);
         this.scroller.setScrollPadding(20);
         this.addWidget(this.scroller);
         
@@ -277,6 +278,60 @@ public class ConfigureAnimationNodeDialog extends MapWidgetMenu {
 
         y_offset += 12;
 
+        scroller.addContainerWidget(new MapWidgetSelectionBox() {
+            private final MapWidgetTooltip tooltip = new MapWidgetTooltip();
+
+            @Override
+            public void onAttached() {
+                super.onAttached();
+                Arrays.stream(AnimationNode.EasingType.values())
+                        .map(Enum::name)
+                        .forEach(this::addItem);
+                this.setSelectedIndex(0);
+                this.setFont(MapFont.TINY);
+                onSelectedItemChanged(); // Call manually to set correct tooltip text
+            }
+
+            @Override
+            public void onFocus() {
+                super.onFocus();
+                this.addWidget(this.tooltip);
+            }
+
+            @Override
+            public void onBlur() {
+                super.onBlur();
+                this.removeWidget(this.tooltip);
+            }
+
+            @Override
+            public void onSelectedItemChanged() {
+                AnimationNode.EasingType selected = AnimationNode.EasingType.valueOf(this.getSelectedItem());
+                if (selected.isEditable()) {
+                    tooltip.setText("Enter [space] to edit");
+                } else {
+                    tooltip.setText("Enter [space] to view");
+                }
+            }
+
+            @Override
+            public void onKeyPressed(MapKeyEvent event) {
+                if (event.getKey() == Key.UP) {
+                    // Force the duplicate button to be focused
+                    duplicateButton.focus();
+                } else {
+                    super.onKeyPressed(event);
+                }
+
+                if (event.getKey() == Key.ENTER) {
+                    openAnimationEaseDialog();
+                }
+            }
+        }).setBounds(x_offset, y_offset, slider_width, 9);
+
+        addLabel(5, y_offset + 3, "Easing");
+        y_offset += y_step;
+
         scroller.addContainerWidget(new MapWidgetNumberBox() { // Delta Time
             @Override
             public void onAttached() {
@@ -292,16 +347,6 @@ public class ConfigureAnimationNodeDialog extends MapWidgetMenu {
             @Override
             public String getAcceptedPropertyName() {
                 return "Delta Time";
-            }
-
-            @Override
-            public void onKeyPressed(MapKeyEvent event) {
-                if (event.getKey() == Key.UP) {
-                    // Force the duplicate button to be focused
-                    duplicateButton.focus();
-                } else {
-                    super.onKeyPressed(event);
-                }
             }
         }).setBounds(x_offset, y_offset, slider_width, 9);
         addLabel(5, y_offset + 3, "Delta T");
@@ -452,6 +497,10 @@ public class ConfigureAnimationNodeDialog extends MapWidgetMenu {
         }
     }
 
+    private void openAnimationEaseDialog() {
+        this.addWidget(new ConfigureAnimationEaseDialog()).setAttachment(attachment);
+    }
+
     private void updateNode(ChangeMode mode, double new_value) {
         for (Node n : this._nodes) {
             n.update(mode, new_value);
@@ -470,7 +519,7 @@ public class ConfigureAnimationNodeDialog extends MapWidgetMenu {
         this.onChanged();
     }
 
-    private static enum ChangeMode {
+    private enum ChangeMode {
         POS_X, POS_Y, POS_Z,
         ROT_X, ROT_Y, ROT_Z,
         DURATION, ACTIVE
@@ -549,4 +598,150 @@ public class ConfigureAnimationNodeDialog extends MapWidgetMenu {
             }
         }
     }
+
+    private static class ConfigureAnimationEaseDialog extends MapWidgetMenu {
+
+        // We need to save the number boxes in variables because they have a
+        // bidirectional association with the control points
+        private MapWidgetNumberBox p1x;
+        private MapWidgetNumberBox p1y;
+        private MapWidgetNumberBox p2x;
+        private MapWidgetNumberBox p2y;
+
+        public ConfigureAnimationEaseDialog() {
+            this.setBackgroundColor(MapColorPalette.COLOR_PURPLE);
+            labelColor = MapColorPalette.COLOR_PURPLE;
+        }
+
+        private void updatePoint1(float x, float y) {
+            p1x.setInitialValue(x);
+            p1y.setInitialValue(y);
+        }
+
+        private void updatePoint2(float x, float y) {
+            p2x.setInitialValue(x);
+            p2y.setInitialValue(y);
+        }
+
+        @Override
+        public void onAttached() {
+            super.onAttached();
+            this.setBounds(-6, 10, 120, 63);
+
+            final MapWidgetCubicBezier.MapWidgetControlPoint controlPoint1 = new MapWidgetCubicBezier.MapWidgetControlPoint() {
+                @Override
+                public void onValueChanged() {
+                    updatePoint1(x(), y());
+                }
+            };
+            controlPoint1.setColor(MapColorPalette.COLOR_BLUE);
+
+            final MapWidgetCubicBezier.MapWidgetControlPoint controlPoint2 = new MapWidgetCubicBezier.MapWidgetControlPoint() {
+                @Override
+                public void onValueChanged() {
+                    updatePoint2(x(), y());
+                }
+            };
+            controlPoint2.setColor(MapColorPalette.COLOR_RED);
+
+            final MapWidgetCubicBezier cubicBezier = this.addWidget(new MapWidgetCubicBezier(controlPoint1, controlPoint2));
+            cubicBezier.setBounds(3, 3, 57);
+
+            addLabel(75, 6, "Point 1");
+            addLabel(75, 35, "Point 2");
+
+            // Point 1 x
+            p1x = this.addWidget(new MapWidgetNumberBox() {
+                @Override
+                public void onAttached() {
+                    super.onAttached();
+                    setIncrement(0.01);
+                    setRange(0.0, 1.0);
+
+                    setInitialValue(cubicBezier.getControlPoint1().x());
+                }
+
+                @Override
+                public void onValueChanged() {
+                    cubicBezier.getControlPoint1().setInitialPoint(
+                            (float) getValue(),
+                            cubicBezier.getControlPoint1().y()
+                    );
+                }
+            });
+            p1x.setBounds(66, 12, 52, 9);
+            addLabel(62, 14, "x");
+
+            // Point 1 y
+            p1y = this.addWidget(new MapWidgetNumberBox() {
+                @Override
+                public void onAttached() {
+                    super.onAttached();
+                    setIncrement(0.01);
+                    setRange(0.0, 1.0);
+                    setInitialValue(cubicBezier.getControlPoint1().y());
+                }
+
+                @Override
+                public void onValueChanged() {
+                    cubicBezier.getControlPoint1().setInitialPoint(
+                            cubicBezier.getControlPoint1().x(),
+                            (float) getValue()
+                    );
+                }
+            });
+            p1y.setBounds(66, 22, 52, 9);
+            addLabel(62, 24, "y");
+
+            // Point 2 x
+            p2x = this.addWidget(new MapWidgetNumberBox() {
+                @Override
+                public void onAttached() {
+                    super.onAttached();
+                    setIncrement(0.01);
+                    setRange(0.0, 1.0);
+                    setInitialValue(cubicBezier.getControlPoint2().x());
+                }
+
+                @Override
+                public void onValueChanged() {
+                    cubicBezier.getControlPoint2().setInitialPoint(
+                            (float) getValue(),
+                            cubicBezier.getControlPoint2().y()
+                    );
+                }
+            });
+            p2x.setBounds(66, 41, 52, 9);
+            addLabel(62, 43, "x");
+
+            // Point 2 y
+            p2y = this.addWidget(new MapWidgetNumberBox() {
+                @Override
+                public void onAttached() {
+                    super.onAttached();
+                    setIncrement(0.01);
+                    setRange(0.0, 1.0);
+                    setInitialValue(cubicBezier.getControlPoint2().y());
+                }
+
+                @Override
+                public void onValueChanged() {
+                    cubicBezier.getControlPoint2().setInitialPoint(
+                            cubicBezier.getControlPoint2().x(),
+                            (float) getValue()
+                    );
+                }
+            });
+            p2y.setBounds(66, 51, 52, 9);
+            addLabel(62, 53, "y");
+
+            // Set values of number boxes directly to prevent overflowing digits
+            p1x.setValue(0.2);
+            p1y.setValue(0.2);
+            p2x.setValue(0.8);
+            p2y.setValue(0.8);
+        }
+
+    }
 }
+
