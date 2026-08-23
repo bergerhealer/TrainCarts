@@ -218,9 +218,6 @@ public class MapWidgetCubicBezier extends MapWidget {
                 py = getBezierParent().getInnerHeight();
             }
 
-            TrainCarts.plugin.getLogger().info("Linear point: x=" + x + " y=" + y);
-            TrainCarts.plugin.getLogger().info("Linear point: px=" + px + " py=" + py);
-
             setPosition(px, py);
             getBezierParent().invalidate();
         }
