@@ -4,7 +4,7 @@ import com.bergerkiller.bukkit.common.events.map.MapKeyEvent;
 import com.bergerkiller.bukkit.common.map.MapColorPalette;
 import com.bergerkiller.bukkit.common.map.MapFont;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
-import com.bergerkiller.bukkit.tc.attachments.animation.AnimationNode;
+import com.bergerkiller.bukkit.tc.attachments.animation.Easing;
 
 /**
  * Displays a cubic bezier graph editor.
@@ -12,8 +12,8 @@ import com.bergerkiller.bukkit.tc.attachments.animation.AnimationNode;
  */
 public class MapWidgetCubicBezier extends MapWidget {
 
-    private MapWidgetControlPoint controlPoint1;
-    private MapWidgetControlPoint controlPoint2;
+    private final MapWidgetControlPoint controlPoint1;
+    private final MapWidgetControlPoint controlPoint2;
     private final MapWidget focusEditTooltip = new MapWidget() {
         @Override
         public void onDraw() {
@@ -27,6 +27,11 @@ public class MapWidgetCubicBezier extends MapWidget {
         }
     };
 
+    /**
+     * Create a new cubic bezier editor widget.
+     * @param controlPoint1 First control point
+     * @param controlPoint2 Second control point
+     */
     public MapWidgetCubicBezier(MapWidgetControlPoint controlPoint1, MapWidgetControlPoint controlPoint2) {
         this.controlPoint1 = this.addWidget(controlPoint1);
         this.controlPoint2 = this.addWidget(controlPoint2);
@@ -37,9 +42,9 @@ public class MapWidgetCubicBezier extends MapWidget {
 
     /**
      * Sets the bounds for this widget. Height should always be the same as the width.
-     * @param x
-     * @param y
-     * @param widthHeight
+     * @param x - position relative to the parent
+     * @param y - position relative to the parent
+     * @param widthHeight width and height
      */
     public void setBounds(int x, int y, int widthHeight) {
         setBounds(x, y, widthHeight, widthHeight);
@@ -87,7 +92,7 @@ public class MapWidgetCubicBezier extends MapWidget {
             float t = i / (float) samples;
 
             int x = 1 + Math.round(
-                    AnimationNode.EasingType.cubicBezier(
+                    Easing.EasingType.cubicBezier(
                             0.0f,
                             getControlPoint1().x(),
                             getControlPoint2().x(),
@@ -97,7 +102,7 @@ public class MapWidgetCubicBezier extends MapWidget {
 
             int y = 1 + Math.round(
                     (1.0f - // invert y so it displays correctly
-                            AnimationNode.EasingType.cubicBezier(
+                            Easing.EasingType.cubicBezier(
                             0.0f,
                             getControlPoint1().y(),
                             getControlPoint2().y(),
@@ -216,6 +221,7 @@ public class MapWidgetCubicBezier extends MapWidget {
             }
 
             if (blinkMode) {
+                this.view.drawPixel(1, 1, drawColor);
                 return;
             }
 

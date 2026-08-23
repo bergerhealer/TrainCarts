@@ -6,6 +6,7 @@ import java.util.stream.Collectors;
 
 import com.bergerkiller.bukkit.common.map.MapFont;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetText;
+import com.bergerkiller.bukkit.tc.attachments.animation.Easing;
 import com.bergerkiller.bukkit.tc.attachments.ui.*;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
@@ -284,7 +285,7 @@ public class ConfigureAnimationNodeDialog extends MapWidgetMenu {
             @Override
             public void onAttached() {
                 super.onAttached();
-                Arrays.stream(AnimationNode.EasingType.values())
+                Arrays.stream(Easing.EasingType.values())
                         .map(Enum::name)
                         .forEach(this::addItem);
                 this.setSelectedIndex(0);
@@ -306,7 +307,7 @@ public class ConfigureAnimationNodeDialog extends MapWidgetMenu {
 
             @Override
             public void onSelectedItemChanged() {
-                AnimationNode.EasingType selected = AnimationNode.EasingType.valueOf(this.getSelectedItem());
+                Easing.EasingType selected = Easing.EasingType.valueOf(this.getSelectedItem());
                 if (selected.isEditable()) {
                     tooltip.setText("Enter [space] to edit");
                 } else {
@@ -538,6 +539,10 @@ public class ConfigureAnimationNodeDialog extends MapWidgetMenu {
             this.node = this.node.setSceneMarker(newSceneName);
         }
 
+        public void updateEasing(Easing newEasing) {
+            this.node = this.node.setEasing(newEasing);
+        }
+
         public void update(ChangeMode mode, double new_value) {
             Vector pos = this.node.getPosition().clone();
             Vector rot = this.node.getRotationVector().clone();
@@ -574,7 +579,7 @@ public class ConfigureAnimationNodeDialog extends MapWidgetMenu {
                 }
             }
 
-            this.node = new AnimationNode(pos, rot, active, duration, this.node.getSceneMarker());
+            this.node = new AnimationNode(pos, rot, active, duration, this.node.getSceneMarker(), this.node.getEasing());
         }
     }
 
@@ -623,6 +628,8 @@ public class ConfigureAnimationNodeDialog extends MapWidgetMenu {
             p2y.setInitialValue(y);
         }
 
+
+
         @Override
         public void onAttached() {
             super.onAttached();
@@ -647,6 +654,7 @@ public class ConfigureAnimationNodeDialog extends MapWidgetMenu {
             final MapWidgetCubicBezier cubicBezier = this.addWidget(new MapWidgetCubicBezier(controlPoint1, controlPoint2));
             cubicBezier.setBounds(3, 3, 57);
 
+            // Shows which number boxes change which point
             addLabel(75, 6, "Point 1");
             addLabel(75, 35, "Point 2");
 
