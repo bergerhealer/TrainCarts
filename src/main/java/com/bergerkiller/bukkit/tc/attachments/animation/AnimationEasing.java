@@ -108,16 +108,26 @@ public class AnimationEasing {
     private double solveCurveParameter(double theta) {
         double u = theta;
 
-        /*
-         * First try Newton-Raphson (fall back to binary subdivision on fail)
-         * Starting approximation at u = theta
-         */
+        // Lower and upper bound for binary subdivision
+        // Updated by Newton-Raphson based on the error it calculates
+        // Only works because graph is monotonic
+        double lower = 0.0;
+        double upper = 1.0;
+
+        // First try Newton-Raphson (fall back to binary subdivision on fail)
+        // Starting approximation at u = theta
         for (int i = 0; i < NEWTON_ITERATIONS; i++) {
             double error = sampleCurveX(u) - theta;
 
             // When error is very little, return found u
             if (Math.abs(error) <= SOLVER_EPSILON) {
                 return u;
+            }
+
+            if (error < 0) {
+                lower = u;
+            } else {
+                upper = u;
             }
 
             double slope = sampleCurveDerivativeX(u);
@@ -136,12 +146,7 @@ public class AnimationEasing {
             u = next;
         }
 
-        /*
-         * Fallback: binary subdivision
-         */
-        double lower = 0.0;
-        double upper = 1.0;
-
+        // Fallback: binary subdivision
         for (int i = 0; i < BISECTION_ITERATIONS; i++) {
             u = 0.5 * (lower + upper);
             double x = sampleCurveX(u);
@@ -157,7 +162,7 @@ public class AnimationEasing {
             }
         }
 
-        return 0.5 * lower + upper;
+        return 0.5 * (lower + upper);
     }
 
     private double sampleCurveX(double u) {
