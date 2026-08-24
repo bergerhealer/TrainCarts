@@ -3,8 +3,8 @@ package com.bergerkiller.bukkit.tc.attachments.ui;
 import com.bergerkiller.bukkit.common.events.map.MapKeyEvent;
 import com.bergerkiller.bukkit.common.map.MapColorPalette;
 import com.bergerkiller.bukkit.common.map.MapFont;
+import com.bergerkiller.bukkit.common.map.MapPlayerInput;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
-import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.animation.AnimationEasing;
 
 /**
@@ -265,6 +265,11 @@ public class MapWidgetCubicBezier extends MapWidget {
         @Override
         public void onKey(MapKeyEvent event) {
             if (!isActivated()) {
+                return;
+            }
+
+            if (event.getKey() != MapPlayerInput.Key.UP && event.getKey() != MapPlayerInput.Key.RIGHT &&
+                    event.getKey() != MapPlayerInput.Key.DOWN && event.getKey() != MapPlayerInput.Key.LEFT) {
                 return;
             }
 
