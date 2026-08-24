@@ -66,7 +66,7 @@ public class AnimationEasing {
         this.by = 3.0 * (y2 - y1) - this.cy;
         this.ay = 1.0 - this.cy - this.by;
 
-        this.linear = Double.compare(x1, x2) == 0 && Double.compare(y1, y2) == 0;
+        this.linear = Double.compare(x1, y1) == 0 && Double.compare(x2, y2) == 0;
     }
 
     public double getX1() {
