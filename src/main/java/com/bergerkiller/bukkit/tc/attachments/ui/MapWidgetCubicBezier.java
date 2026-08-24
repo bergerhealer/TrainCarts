@@ -85,11 +85,14 @@ public class MapWidgetCubicBezier extends MapWidget {
     }
 
     @Override
-    public void onDraw() {
+    public void onBoundsChanged() {
         if (getHeight() != getWidth()) { // Width and height must be identical
             setBounds(getX(), getY(), getWidth());
         }
+    }
 
+    @Override
+    public void onDraw() {
         byte frameColor = this.isFocused() ? MapColorPalette.COLOR_YELLOW : MapColorPalette.COLOR_BLACK;
 
         this.view.fill(MapColorPalette.getColor(96, 96, 96));
