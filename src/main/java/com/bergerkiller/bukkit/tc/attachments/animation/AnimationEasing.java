@@ -15,7 +15,7 @@ public class AnimationEasing {
 
     // Uses Newton-Raphson to find u, when it fails, algorithm falls back to bisection
     private static final int NEWTON_ITERATIONS = 6;
-    private static final int BISECTION_ITERATIONS = 16;
+    private static final int BISECTION_ITERATIONS = 24;
 
     // Coordinates of the 2 control points
     private final double x1;
