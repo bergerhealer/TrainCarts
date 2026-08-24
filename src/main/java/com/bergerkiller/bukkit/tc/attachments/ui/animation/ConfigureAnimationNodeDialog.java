@@ -488,8 +488,8 @@ public class ConfigureAnimationNodeDialog extends MapWidgetMenu {
         // Focus the widget we had focused last time the menu was open
         // If -1, select pos x by default
         int initialFocusedIndex = attachment.getEditorOption("animNodeSelectedOption", -1);
-        if (initialFocusedIndex >= 0 && initialFocusedIndex < _scroller.getWidgetCount()) {
-            _scroller.getWidget(initialFocusedIndex).focus();
+        if (initialFocusedIndex >= 0 && initialFocusedIndex < _scroller.getContainer().getWidgetCount()) {
+            _scroller.getContainer().getWidget(initialFocusedIndex).focus();
         } else {
             posXWidget.focus();
         }
@@ -501,7 +501,7 @@ public class ConfigureAnimationNodeDialog extends MapWidgetMenu {
 
         // Key press may have altered focused widget
         if (display != null) {
-            int index = _scroller.getWidgets().indexOf(display.getFocusedWidget());
+            int index = _scroller.getContainer().getWidgets().indexOf(display.getFocusedWidget());
             if (index != -1) {
                 attachment.setEditorOption("animNodeSelectedOption", -1, index);
             }
