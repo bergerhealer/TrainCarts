@@ -153,8 +153,11 @@ public class AnimationNode implements Cloneable {
                 this._active, this._duration, sceneName, _easing);
     }
 
+    /**
+     * @return the easing, returns {@link AnimationEasing#LINEAR} if null.
+     */
     public AnimationEasing getEasing() {
-        return this._easing;
+        return this._easing != null ? this._easing : AnimationEasing.LINEAR;
     }
 
     public AnimationNode setEasing(AnimationEasing easing) {

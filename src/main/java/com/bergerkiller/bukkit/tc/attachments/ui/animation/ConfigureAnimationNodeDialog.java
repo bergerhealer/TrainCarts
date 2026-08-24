@@ -803,10 +803,6 @@ public class ConfigureAnimationNodeDialog extends MapWidgetMenu {
             // Set values of number boxes directly to prevent overflowing digits
             AnimationEasing easing = _nodes.get(0).node.getEasing();
 
-            if (easing == null) {
-                easing = AnimationEasing.EasingType.LINEAR.getEasing();
-            }
-
             // Initialize the graph directly.
             // setInitialPoint() does not invoke onValueChanged().
             controlPoint1.setInitialPoint(easing.getX1(), easing.getY1());
