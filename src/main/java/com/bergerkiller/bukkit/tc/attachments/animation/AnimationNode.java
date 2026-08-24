@@ -72,6 +72,27 @@ public class AnimationNode implements Cloneable {
      * @param rotationVector
      * @param active whether the attachment is active (and visible) when this node is reached
      * @param duration Delta-time (t) in seconds between the previous frame and this animation frame
+     * @param scene Scene start marker, null for none
+     */
+    public AnimationNode(Vector position, Vector rotationVector, boolean active, double duration, String scene) {
+        this._position = position;
+        this._rotationVec = rotationVector;
+        this._rotationQuat = null;
+        this._active = active;
+        this._hasValidDuration = !Double.isNaN(duration);
+        this._duration = this._hasValidDuration ? duration : 0.0;
+        this._scene = scene;
+    }
+
+    /**
+     * Initializes a new Animation Node with a position, rotation, easing and duration to the next node.
+     * The rotation is initialized using a yaw/pitch/roll vector, with the quaternion rotation
+     * initialized on first use.
+     *
+     * @param position null to deactivate the attachment
+     * @param rotationVector
+     * @param active whether the attachment is active (and visible) when this node is reached
+     * @param duration Delta-time (t) in seconds between the previous frame and this animation frame
      * @param easing null to use linear easing
      */
     public AnimationNode(Vector position, Vector rotationVector, boolean active, double duration, AnimationEasing easing) {
