@@ -21,7 +21,7 @@ public class AnimationNode implements Cloneable {
     private final double _duration;
     private final boolean _hasValidDuration;
     private final String _scene; // null if not a scene start marker
-    private AnimationEasing _easing; // null if not set
+    private AnimationEasing _easing = AnimationEasing.LINEAR; // linear if not set
 
     /**
      * Initializes a new Animation Node with a position, rotation and duration to the next node.
@@ -424,7 +424,7 @@ public class AnimationNode implements Cloneable {
         private Vector position = new Vector();
         private Vector rotation = new Vector();
         private String scene = null;
-        private AnimationEasing easing = null;
+        private AnimationEasing easing = AnimationEasing.LINEAR;
         private boolean active = true;
         private double duration = Double.NaN;
 
@@ -497,7 +497,7 @@ public class AnimationNode implements Cloneable {
                     int valueStart = index;
                     skip(ch -> (ch != ' ' && ch != '\t'));
 
-                    // Returns null if it's invalid
+                    // Returns linear as default when it's invalid
                     easing = AnimationEasing.parse(config.substring(valueStart, index));
                 } else {
                     int value_start, value_end;

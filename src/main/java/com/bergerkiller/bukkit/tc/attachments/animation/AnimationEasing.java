@@ -34,8 +34,19 @@ public class AnimationEasing {
 
     private final boolean linear;
 
+    // Static linear easing constant as default
+    public static final AnimationEasing LINEAR = new AnimationEasing(0.0, 0.0, 1.0, 1.0) {
+        @Override
+        public double evaluate(double theta) {
+            return theta;
+        }
+    };
+
     /**
      * All values must lie between [0.0, 1.0].
+     * <br>
+     * For creating linear easing, use {@link AnimationEasing#LINEAR}.
+     *
      * @param x1 x coordinate for point 1
      * @param y1 y coordinate for point 1
      * @param x2 x coordinate for point 2
@@ -206,7 +217,7 @@ public class AnimationEasing {
     public static AnimationEasing parse(String string) {
         String[] parts = string.split(",");
         if (parts.length != 4) {
-            return null;
+            return LINEAR;
         }
         try {
             double x1 = Double.parseDouble(parts[0]);
@@ -215,7 +226,7 @@ public class AnimationEasing {
             double y2 = Double.parseDouble(parts[3]);
             return new AnimationEasing(x1, y1, x2, y2);
         } catch (NumberFormatException e) {
-            return null;
+            return LINEAR;
         }
     }
 
@@ -241,10 +252,6 @@ public class AnimationEasing {
                 + 3.0 * mt * mt * t * p1
                 + 3.0 * mt * t * t * p2
                 + t * t * t * p3;
-    }
-
-    public static double cubicBezier(AnimationEasing easing, double t) {
-        return cubicBezier(easing.getX1(), easing.getY1(), easing.getX2(), easing.getY2(), t);
     }
 
     /**
