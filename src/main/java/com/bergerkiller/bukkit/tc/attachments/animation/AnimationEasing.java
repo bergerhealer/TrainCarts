@@ -69,6 +69,10 @@ public class AnimationEasing {
         this.linear = Double.compare(x1, y1) == 0 && Double.compare(x2, y2) == 0;
     }
 
+    public boolean isLinear() {
+        return linear;
+    }
+
     public double getX1() {
         return x1;
     }

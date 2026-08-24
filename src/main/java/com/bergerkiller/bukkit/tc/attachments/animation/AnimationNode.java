@@ -273,7 +273,7 @@ public class AnimationNode implements Cloneable {
         if (ypr.getY() != 0.0) builder.append(" yaw=").append(ypr.getY());
         if (ypr.getZ() != 0.0) builder.append(" roll=").append(ypr.getZ());
         if (scene != null) builder.append(" scene=").append(scene);
-        if (easing != null) builder.append(" easing=").append(easing);
+        if (!easing.isLinear()) builder.append(" easing=").append(easing);
 
         return builder.toString();
     }

@@ -868,10 +868,10 @@ public class Animation implements Cloneable {
         public AnimationNode toNode() {
             double easedTheta = theta();
 
+            // Easing has to happen from node0 to node1, so node0 easing is taken
             AnimationEasing easing = node0().getEasing();
-            if (easing != null) {
-                easedTheta = easing.evaluate(easedTheta);
-            }
+            easedTheta = easing.evaluate(easedTheta);
+
             return AnimationNode.interpolate(node0(), node1(), easedTheta);
         }
 
