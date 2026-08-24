@@ -119,13 +119,13 @@ public class ConfigureAnimationNodeDialog extends MapWidgetMenu {
         this.setBounds(5 - this.parent.getX(), 15 - this.parent.getY(), 105, 88);
 
         // Initialize scroller
-        this._scroller.setBounds(0, 2, getWidth(), getHeight() - 5);
+        this._scroller.setBounds(0, 4, getWidth(), getHeight() - 8);
         this._scroller.setScrollPadding(20);
         this.addWidget(this._scroller);
         
         int slider_width = 72;
         int x_offset = 31;
-        int y_offset = 4;
+        int y_offset = 1;
         int y_step = 10;
         int mtmpx = x_offset - 25;
         final int mtmpx_step = 12;
