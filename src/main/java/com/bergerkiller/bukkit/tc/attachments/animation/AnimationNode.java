@@ -391,7 +391,7 @@ public class AnimationNode implements Cloneable {
         rot.setZ(MathUtil.wrapAngle(rot.getZ()));
 
 
-        return new AnimationNode(pos, rot, num_active >= (nodes.size()>>1), duration, easing);
+        return new AnimationNode(pos, rot, num_active >= (nodes.size() / 2), duration, easing);
     }
 
     private static boolean isNumericChar(char ch) {
