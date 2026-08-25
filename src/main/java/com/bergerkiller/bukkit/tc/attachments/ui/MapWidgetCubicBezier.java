@@ -267,16 +267,13 @@ public class MapWidgetCubicBezier extends MapWidget {
 
         @Override
         public void onKeyPressed(MapKeyEvent event) {
-            // This variable is used to check whether the super method changed the activated state
-            boolean wasActivated = isActivated();
-            super.onKeyPressed(event);
-
             // Adds support to deactivate control points by pressing space
-            if (this.isActivated() == wasActivated &&
-                    this.isActivated() &&
-                    (event.getKey() == MapPlayerInput.Key.ENTER)) {
+            if (this.isActivated() && (event.getKey() == MapPlayerInput.Key.ENTER)) {
                 deactivate();
+                return;
             }
+
+            super.onKeyPressed(event);
         }
 
         @Override
