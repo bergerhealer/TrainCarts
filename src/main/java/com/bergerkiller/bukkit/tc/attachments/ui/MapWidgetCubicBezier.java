@@ -267,9 +267,11 @@ public class MapWidgetCubicBezier extends MapWidget {
 
         @Override
         public void onKeyPressed(MapKeyEvent event) {
+            // This variable is used to check whether the super method changed the activated state
             boolean wasActivated = isActivated();
             super.onKeyPressed(event);
 
+            // Adds support to deactivate control points by pressing space
             if (this.isActivated() == wasActivated &&
                     this.isActivated() &&
                     (event.getKey() == MapPlayerInput.Key.ENTER)) {
@@ -283,6 +285,7 @@ public class MapWidgetCubicBezier extends MapWidget {
                 return;
             }
 
+            // Only moves the control point using W/A/S/D
             if (event.getKey() != MapPlayerInput.Key.UP && event.getKey() != MapPlayerInput.Key.RIGHT &&
                     event.getKey() != MapPlayerInput.Key.DOWN && event.getKey() != MapPlayerInput.Key.LEFT) {
                 return;
@@ -300,6 +303,7 @@ public class MapWidgetCubicBezier extends MapWidget {
             this.normalizedX = clampAndRound((x + 1.0) / getBezierParent().getInnerWidth());
             this.normalizedY = clampAndRound(1.0 - ((y + 1.0) / getBezierParent().getInnerHeight()));
 
+            // Parent has to re-render
             getBezierParent().invalidate();
             onValueChanged();
         }
@@ -324,6 +328,10 @@ public class MapWidgetCubicBezier extends MapWidget {
             }
         }
 
+        /**
+         * @param value value to clamp and round
+         * @return the value clamped between 0.0 and 1.0 and rounded to 2 decimals
+         */
         private double clampAndRound(double value) {
             double clamped = Math.max(0.0f, Math.min(1.0f, value));
             BigDecimal bd = BigDecimal.valueOf(clamped);
