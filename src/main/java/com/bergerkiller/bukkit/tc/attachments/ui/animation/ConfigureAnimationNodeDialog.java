@@ -1,8 +1,13 @@
 package com.bergerkiller.bukkit.tc.attachments.ui.animation;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import com.bergerkiller.bukkit.common.map.MapFont;
+import com.bergerkiller.bukkit.common.map.widgets.MapWidgetText;
+import com.bergerkiller.bukkit.tc.attachments.animation.AnimationEasing;
+import com.bergerkiller.bukkit.tc.attachments.ui.*;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
@@ -13,14 +18,13 @@ import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetSubmitText;
 import com.bergerkiller.bukkit.common.wrappers.ChatText;
 import com.bergerkiller.bukkit.tc.attachments.animation.AnimationNode;
-import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetBlinkyButton;
-import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetMenu;
-import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetNumberBox;
 
 public class ConfigureAnimationNodeDialog extends MapWidgetMenu {
+    private final MapWidgetScroller _scroller = new MapWidgetScroller();
     private final AnimationNode _average;
     private List<Node> _nodes;
     private MapWidgetSubmitText sceneMarkerSubmit = null;
+    private MapWidgetSelectionBox easingSelectionBox;
 
     public ConfigureAnimationNodeDialog(List<AnimationNode> nodes) {
         this.setBackgroundColor(MapColorPalette.COLOR_GREEN);
@@ -89,6 +93,23 @@ public class ConfigureAnimationNodeDialog extends MapWidgetMenu {
         return this._nodes.stream().map(n -> n.node).collect(Collectors.toList());
     }
 
+    /**
+     * Modified method to add the label to the scroller instead of the
+     * default behavior of adding it to the dialog itself.
+     * @param x
+     * @param y
+     * @param text
+     */
+    @Override
+    public void addLabel(int x, int y, String text) {
+        MapWidgetText label = new MapWidgetText();
+        label.setFont(MapFont.TINY);
+        label.setText(text);
+        label.setPosition(x, y);
+        label.setColor(MapColorPalette.getSpecular(this.labelColor, 0.5f));
+        _scroller.addContainerWidget(label);
+    }
+
     @Override
     public void onAttached() {
         super.onAttached();
@@ -96,17 +117,22 @@ public class ConfigureAnimationNodeDialog extends MapWidgetMenu {
         // Note: relative to view widget
         // Adjust own bounds to be relative to where parent is at
         this.setBounds(5 - this.parent.getX(), 15 - this.parent.getY(), 105, 88);
+
+        // Initialize scroller
+        this._scroller.setBounds(0, 4, getWidth(), getHeight() - 8);
+        this._scroller.setScrollPadding(20);
+        this.addWidget(this._scroller);
         
         int slider_width = 72;
         int x_offset = 31;
-        int y_offset = 4;
+        int y_offset = 1;
         int y_step = 10;
         int mtmpx = x_offset - 25;
         final int mtmpx_step = 12;
 
         // Assign a scene marker to this node, so the animation can be played from this node onwards
         // Clicking will open an anvil dialog to enter a marker name - or empty to clear it
-        MapWidgetSceneBlinkyButton sceneMarkerButton = this.addWidget(new MapWidgetSceneBlinkyButton());
+        MapWidgetSceneBlinkyButton sceneMarkerButton = _scroller.addContainerWidget(new MapWidgetSceneBlinkyButton());
         sceneMarkerButton.setTooltip("Scene marker").setPosition(mtmpx, y_offset);
         sceneMarkerSubmit = this.addWidget(new MapWidgetSubmitText() {
             @Override
@@ -129,7 +155,7 @@ public class ConfigureAnimationNodeDialog extends MapWidgetMenu {
 
         // Activate/de-activate the node - checkbox or slider?
         mtmpx += mtmpx_step;
-        this.addWidget(new MapWidgetBlinkyButton() {
+        _scroller.addContainerWidget(new MapWidgetBlinkyButton() {
             @Override
             public void onAttached() {
                 super.onAttached();
@@ -159,14 +185,14 @@ public class ConfigureAnimationNodeDialog extends MapWidgetMenu {
                             num_active++;
                         }
                     }
-                    return num_active >= (_nodes.size()>>1);
+                    return num_active >= (_nodes.size() >> 1);
                 }
             }
         }.setPosition(mtmpx, y_offset));
 
         // Select a range of animation frames from the currently selected node
         mtmpx += mtmpx_step;
-        this.addWidget(new MapWidgetBlinkyButton() {
+        _scroller.addContainerWidget(new MapWidgetBlinkyButton() {
             @Override
             public void onClick() {
                 onMultiSelect();
@@ -176,7 +202,7 @@ public class ConfigureAnimationNodeDialog extends MapWidgetMenu {
 
         // Change the position of one or a group of nodes, moving it up/down
         mtmpx += mtmpx_step;
-        this.addWidget(new MapWidgetBlinkyButton() {
+        _scroller.addContainerWidget(new MapWidgetBlinkyButton() {
             @Override
             public void onClick() {
                 onReorder();
@@ -186,7 +212,7 @@ public class ConfigureAnimationNodeDialog extends MapWidgetMenu {
 
         // Copy selected nodes to the clipboard of the player
         mtmpx += mtmpx_step;
-        this.addWidget(new MapWidgetBlinkyButton() {
+        _scroller.addContainerWidget(new MapWidgetBlinkyButton() {
             @Override
             public void onActivate() {
                 this.onClick(); // Disable extinquish sfx
@@ -201,7 +227,7 @@ public class ConfigureAnimationNodeDialog extends MapWidgetMenu {
 
         // Paste clipboard contents of the player below the selected nodes
         mtmpx += mtmpx_step;
-        this.addWidget(new MapWidgetBlinkyButton() {
+        _scroller.addContainerWidget(new MapWidgetBlinkyButton() {
             @Override
             public void onAttached() {
                 super.onAttached();
@@ -229,7 +255,7 @@ public class ConfigureAnimationNodeDialog extends MapWidgetMenu {
 
         // Duplicate node below this one node
         mtmpx += mtmpx_step;
-        MapWidget duplicateButton = this.addWidget(new MapWidgetBlinkyButton() {
+        MapWidget duplicateButton = _scroller.addContainerWidget(new MapWidgetBlinkyButton() {
             @Override
             public void onActivate() {
                 this.onClick(); // Disable extinquish sfx
@@ -244,7 +270,7 @@ public class ConfigureAnimationNodeDialog extends MapWidgetMenu {
 
         // Delete the node
         mtmpx += mtmpx_step;
-        this.addWidget(new MapWidgetBlinkyButton() {
+        _scroller.addContainerWidget(new MapWidgetBlinkyButton() {
             @Override
             public void onClick() {
                 onDelete();
@@ -254,7 +280,70 @@ public class ConfigureAnimationNodeDialog extends MapWidgetMenu {
 
         y_offset += 12;
 
-        this.addWidget(new MapWidgetNumberBox() { // Delta Time
+        // Has to be saved in a variable so it can be updated from the animation ease dialog
+        easingSelectionBox = _scroller.addContainerWidget(new MapWidgetSelectionBox() { // Easing
+            private final MapWidgetTooltip tooltip = new MapWidgetTooltip();
+
+            @Override
+            public void onAttached() {
+                super.onAttached();
+                Arrays.stream(AnimationEasing.EasingType.values())
+                        .map(Enum::name)
+                        .forEach(this::addItem);
+
+                // Average just selects first easing, because taking the average doesn't help the user
+                int index = AnimationEasing.EasingType.getEasingType(getAverage().getEasing()).ordinal();
+
+                this.setSelectedIndex(index);
+                this.setFont(MapFont.TINY);
+
+                onSelectedItemChanged(); // Call manually to set correct tooltip text
+            }
+
+            @Override
+            public void onFocus() {
+                super.onFocus();
+                this.addWidget(this.tooltip);
+            }
+
+            @Override
+            public void onBlur() {
+                super.onBlur();
+                this.removeWidget(this.tooltip);
+            }
+
+            @Override
+            public void onSelectedItemChanged() {
+                AnimationEasing.EasingType selected = AnimationEasing.EasingType.valueOf(this.getSelectedItem());
+
+                if (selected.isPreset()) { // Only update when it's a preset
+                    tooltip.setText("Enter [space] to view");
+                    updateEasing(selected.getEasing(), false);
+                } else {
+                    tooltip.setText("Enter [space] to edit");
+                }
+            }
+
+            @Override
+            public void onKeyPressed(MapKeyEvent event) {
+                if (event.getKey() == Key.UP) {
+                    // Force the duplicate button to be focused
+                    duplicateButton.focus();
+                } else {
+                    super.onKeyPressed(event);
+                }
+
+                if (event.getKey() == Key.ENTER) {
+                    openAnimationEaseDialog();
+                }
+            }
+        });
+        easingSelectionBox.setBounds(x_offset, y_offset, slider_width, 9);
+
+        addLabel(5, y_offset + 3, "Easing");
+        y_offset += y_step;
+
+        _scroller.addContainerWidget(new MapWidgetNumberBox() { // Delta Time
             @Override
             public void onAttached() {
                 super.onAttached();
@@ -270,21 +359,11 @@ public class ConfigureAnimationNodeDialog extends MapWidgetMenu {
             public String getAcceptedPropertyName() {
                 return "Delta Time";
             }
-
-            @Override
-            public void onKeyPressed(MapKeyEvent event) {
-                if (event.getKey() == Key.UP) {
-                    // Force the duplicate button to be focused
-                    duplicateButton.focus();
-                } else {
-                    super.onKeyPressed(event);
-                }
-            }
         }).setBounds(x_offset, y_offset, slider_width, 9);
         addLabel(5, y_offset + 3, "Delta T");
         y_offset += y_step;
 
-        MapWidget posXWidget = this.addWidget(new MapWidgetNumberBox() { // Position X
+        MapWidget posXWidget = _scroller.addContainerWidget(new MapWidgetNumberBox() { // Position X
             @Override
             public void onAttached() {
                 super.onAttached();
@@ -304,7 +383,7 @@ public class ConfigureAnimationNodeDialog extends MapWidgetMenu {
         addLabel(5, y_offset + 3, "Pos.X");
         y_offset += y_step;
 
-        this.addWidget(new MapWidgetNumberBox() { // Position Y
+        _scroller.addContainerWidget(new MapWidgetNumberBox() { // Position Y
             @Override
             public void onAttached() {
                 super.onAttached();
@@ -324,7 +403,7 @@ public class ConfigureAnimationNodeDialog extends MapWidgetMenu {
         addLabel(5, y_offset + 3, "Pos.Y");
         y_offset += y_step;
 
-        this.addWidget(new MapWidgetNumberBox() { // Position Z
+        _scroller.addContainerWidget(new MapWidgetNumberBox() { // Position Z
             @Override
             public void onAttached() {
                 super.onAttached();
@@ -344,7 +423,7 @@ public class ConfigureAnimationNodeDialog extends MapWidgetMenu {
         addLabel(5, y_offset + 3, "Pos.Z");
         y_offset += y_step;
 
-        this.addWidget(new MapWidgetNumberBox() { // Rotation X
+        _scroller.addContainerWidget(new MapWidgetNumberBox() { // Rotation X
             @Override
             public void onAttached() {
                 super.onAttached();
@@ -365,7 +444,7 @@ public class ConfigureAnimationNodeDialog extends MapWidgetMenu {
         addLabel(5, y_offset + 3, "Pitch");
         y_offset += y_step;
 
-        this.addWidget(new MapWidgetNumberBox() { // Rotation Y
+        _scroller.addContainerWidget(new MapWidgetNumberBox() { // Rotation Y
             @Override
             public void onAttached() {
                 super.onAttached();
@@ -386,7 +465,7 @@ public class ConfigureAnimationNodeDialog extends MapWidgetMenu {
         addLabel(5, y_offset + 3, "Yaw");
         y_offset += y_step;
 
-        this.addWidget(new MapWidgetNumberBox() { // Rotation Z
+        _scroller.addContainerWidget(new MapWidgetNumberBox() { // Rotation Z
             @Override
             public void onAttached() {
                 super.onAttached();
@@ -405,13 +484,12 @@ public class ConfigureAnimationNodeDialog extends MapWidgetMenu {
             }
         }).setBounds(x_offset, y_offset, slider_width, 9);
         addLabel(5, y_offset + 3, "Roll");
-        y_offset += y_step;
 
         // Focus the widget we had focused last time the menu was open
         // If -1, select pos x by default
         int initialFocusedIndex = attachment.getEditorOption("animNodeSelectedOption", -1);
-        if (initialFocusedIndex >= 0 && initialFocusedIndex < this.getWidgetCount()) {
-            this.getWidget(initialFocusedIndex).focus();
+        if (initialFocusedIndex >= 0 && initialFocusedIndex < _scroller.getContainer().getWidgetCount()) {
+            _scroller.getContainer().getWidget(initialFocusedIndex).focus();
         } else {
             posXWidget.focus();
         }
@@ -423,11 +501,15 @@ public class ConfigureAnimationNodeDialog extends MapWidgetMenu {
 
         // Key press may have altered focused widget
         if (display != null) {
-            int index = getWidgets().indexOf(display.getFocusedWidget());
+            int index = _scroller.getContainer().getWidgets().indexOf(display.getFocusedWidget());
             if (index != -1) {
                 attachment.setEditorOption("animNodeSelectedOption", -1, index);
             }
         }
+    }
+
+    private void openAnimationEaseDialog() {
+        this.addWidget(new ConfigureAnimationEaseDialog()).setAttachment(attachment);
     }
 
     private void updateNode(ChangeMode mode, double new_value) {
@@ -448,7 +530,30 @@ public class ConfigureAnimationNodeDialog extends MapWidgetMenu {
         this.onChanged();
     }
 
-    private static enum ChangeMode {
+    private void updateEasing(AnimationEasing newEasing, boolean shouldRefresh) {
+        for (Node node : this._nodes) {
+            node.updateEasing(newEasing);
+        }
+        this.onChanged();
+
+        if (shouldRefresh)
+            refreshEasingSelectionBox();
+    }
+
+    /**
+     * Sets the selected index of the easing selection box to the easing type found by using the 2 points.
+     * If no type was found, it uses {@link AnimationEasing.EasingType#CUSTOM}.
+     */
+    private void refreshEasingSelectionBox() {
+        if (easingSelectionBox == null) {
+            return;
+        }
+
+        AnimationEasing.EasingType type = AnimationEasing.EasingType.getEasingType(_nodes.get(0).node.getEasing());
+        easingSelectionBox.setSelectedIndex(type.ordinal());
+    }
+
+    private enum ChangeMode {
         POS_X, POS_Y, POS_Z,
         ROT_X, ROT_Y, ROT_Z,
         DURATION, ACTIVE
@@ -465,6 +570,10 @@ public class ConfigureAnimationNodeDialog extends MapWidgetMenu {
 
         public void updateScene(String newSceneName) {
             this.node = this.node.setSceneMarker(newSceneName);
+        }
+
+        public void updateEasing(AnimationEasing newEasing) {
+            this.node = this.node.setEasing(newEasing);
         }
 
         public void update(ChangeMode mode, double new_value) {
@@ -503,7 +612,7 @@ public class ConfigureAnimationNodeDialog extends MapWidgetMenu {
                 }
             }
 
-            this.node = new AnimationNode(pos, rot, active, duration, this.node.getSceneMarker());
+            this.node = new AnimationNode(pos, rot, active, duration, this.node.getSceneMarker(), this.node.getEasing());
         }
     }
 
@@ -527,4 +636,184 @@ public class ConfigureAnimationNodeDialog extends MapWidgetMenu {
             }
         }
     }
+
+    private class ConfigureAnimationEaseDialog extends MapWidgetMenu {
+
+        // We need to save the number boxes in variables because they have a
+        // bidirectional association with the control points
+        private MapWidgetNumberBox p1x;
+        private MapWidgetNumberBox p1y;
+        private MapWidgetNumberBox p2x;
+        private MapWidgetNumberBox p2y;
+
+        public ConfigureAnimationEaseDialog() {
+            this.setBackgroundColor(MapColorPalette.COLOR_PURPLE);
+            labelColor = MapColorPalette.COLOR_PURPLE;
+        }
+
+        private void updatePoint1(double x, double y) {
+            p1x.setInitialValue(x);
+            p1y.setInitialValue(y);
+        }
+
+        private void updatePoint2(double x, double y) {
+            p2x.setInitialValue(x);
+            p2y.setInitialValue(y);
+        }
+
+        @Override
+        public void onAttached() {
+            super.onAttached();
+            this.setBounds(-6, 30, 120, 63);
+
+            final MapWidgetCubicBezier.MapWidgetControlPoint controlPoint1 = new MapWidgetCubicBezier.MapWidgetControlPoint() {
+                @Override
+                public void onValueChanged() {
+                    updatePoint1(x(), y());
+                    updateEasing(this.getBezierParent().getEasing(), true);
+                }
+            };
+            controlPoint1.setColor(MapColorPalette.COLOR_BLUE);
+
+            final MapWidgetCubicBezier.MapWidgetControlPoint controlPoint2 = new MapWidgetCubicBezier.MapWidgetControlPoint() {
+                @Override
+                public void onValueChanged() {
+                    updatePoint2(x(), y());
+                    updateEasing(this.getBezierParent().getEasing(), true);
+                }
+            };
+            controlPoint2.setColor(MapColorPalette.COLOR_RED);
+
+            final MapWidgetCubicBezier cubicBezier = this.addWidget(new MapWidgetCubicBezier(controlPoint1, controlPoint2));
+            cubicBezier.setBounds(3, 3, 57);
+
+            // Shows which number boxes change which point
+            addLabel(75, 6, "Point 1");
+            addLabel(75, 35, "Point 2");
+
+            // Point 1 x
+            p1x = this.addWidget(new MapWidgetNumberBox() {
+                @Override
+                public void onAttached() {
+                    super.onAttached();
+                    this.setIncrement(0.01);
+                    this.setRange(0.0, 1.0);
+                }
+
+                @Override
+                public void onValueChanged() {
+                    this.setInitialValue(MapWidgetCubicBezier.MapWidgetControlPoint.clampAndRound(this.getValue()));
+                    controlPoint1.setInitialPoint(
+                            (float) this.getValue(),
+                            controlPoint1.y()
+                    );
+                    updateEasing(cubicBezier.getEasing(), true);
+                }
+
+                @Override
+                public String getAcceptedPropertyName() {
+                    return "Point 1 X-coordinate";
+                }
+            });
+            p1x.setBounds(66, 12, 52, 9);
+            addLabel(62, 14, "x");
+
+            // Point 1 y
+            p1y = this.addWidget(new MapWidgetNumberBox() {
+                @Override
+                public void onAttached() {
+                    super.onAttached();
+                    this.setIncrement(0.01);
+                    this.setRange(0.0, 1.0);
+                }
+
+                @Override
+                public void onValueChanged() {
+                    this.setInitialValue(MapWidgetCubicBezier.MapWidgetControlPoint.clampAndRound(this.getValue()));
+                    controlPoint1.setInitialPoint(
+                            controlPoint1.x(),
+                            (float) this.getValue()
+                    );
+                    updateEasing(cubicBezier.getEasing(), true);
+                }
+
+                @Override
+                public String getAcceptedPropertyName() {
+                    return "Point 1 Y-coordinate";
+                }
+            });
+            p1y.setBounds(66, 22, 52, 9);
+            addLabel(62, 24, "y");
+
+            // Point 2 x
+            p2x = this.addWidget(new MapWidgetNumberBox() {
+                @Override
+                public void onAttached() {
+                    super.onAttached();
+                    this.setIncrement(0.01);
+                    this.setRange(0.0, 1.0);
+                }
+
+                @Override
+                public void onValueChanged() {
+                    this.setInitialValue(MapWidgetCubicBezier.MapWidgetControlPoint.clampAndRound(this.getValue()));
+                    controlPoint2.setInitialPoint(
+                            (float) this.getValue(),
+                            controlPoint2.y()
+                    );
+                    updateEasing(cubicBezier.getEasing(), true);
+                }
+
+                @Override
+                public String getAcceptedPropertyName() {
+                    return "Point 2 X-coordinate";
+                }
+            });
+            p2x.setBounds(66, 41, 52, 9);
+            addLabel(62, 43, "x");
+
+            // Point 2 y
+            p2y = this.addWidget(new MapWidgetNumberBox() {
+                @Override
+                public void onAttached() {
+                    super.onAttached();
+                    this.setIncrement(0.01);
+                    this.setRange(0.0, 1.0);
+                }
+
+                @Override
+                public void onValueChanged() {
+                    this.setInitialValue(MapWidgetCubicBezier.MapWidgetControlPoint.clampAndRound(this.getValue()));
+                    controlPoint2.setInitialPoint(
+                            controlPoint2.x(),
+                            (float) this.getValue()
+                    );
+                    updateEasing(cubicBezier.getEasing(), true);
+                }
+
+                @Override
+                public String getAcceptedPropertyName() {
+                    return "Point 2 Y-coordinate";
+                }
+            });
+            p2y.setBounds(66, 51, 52, 9);
+            addLabel(62, 53, "y");
+
+            // Set values of number boxes directly to prevent overflowing digits
+            AnimationEasing easing = _nodes.get(0).node.getEasing();
+
+            // Initialize the graph directly.
+            // setInitialPoint() does not invoke onValueChanged().
+            controlPoint1.setInitialPoint(easing.getX1(), easing.getY1());
+            controlPoint2.setInitialPoint(easing.getX2(), easing.getY2());
+
+            // Initialize the number boxes without invoking their change callbacks.
+            p1x.setInitialValue(easing.getX1());
+            p1y.setInitialValue(easing.getY1());
+            p2x.setInitialValue(easing.getX2());
+            p2y.setInitialValue(easing.getY2());
+        }
+
+    }
 }
+

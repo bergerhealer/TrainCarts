@@ -165,8 +165,9 @@ public class MapWidgetSelectionBox extends MapWidget {
 
     @Override
     public void onBoundsChanged() {
-        nav_left.setPosition(0, 0);
-        nav_right.setPosition(this.getWidth() - nav_right.getWidth(), 0);
+        int y_offset = (this.getHeight()-nav_left.getHeight())>>1;
+        nav_left.setPosition(0, y_offset);
+        nav_right.setPosition(this.getWidth() - nav_right.getWidth(), y_offset);
     }
 
     @Override
