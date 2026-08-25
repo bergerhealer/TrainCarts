@@ -7,6 +7,9 @@ import com.bergerkiller.bukkit.common.map.MapPlayerInput;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
 import com.bergerkiller.bukkit.tc.attachments.animation.AnimationEasing;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+
 /**
  * Displays a cubic bezier graph editor.
  * Height and width must be the same value.
@@ -200,8 +203,8 @@ public class MapWidgetCubicBezier extends MapWidget {
          * @param y Y coordinate
          */
         public void setInitialPoint(double x, double y) {
-            this.normalizedX = clamp01(x);
-            this.normalizedY = clamp01(y);
+            this.normalizedX = clampAndRound(x);
+            this.normalizedY = clampAndRound(y);
 
             int px = Math.toIntExact(Math.max(-1, Math.min(
                     getBezierParent().getInnerWidth(),
@@ -263,6 +266,18 @@ public class MapWidgetCubicBezier extends MapWidget {
         }
 
         @Override
+        public void onKeyPressed(MapKeyEvent event) {
+            boolean wasActivated = isActivated();
+            super.onKeyPressed(event);
+
+            if (this.isActivated() == wasActivated &&
+                    this.isActivated() &&
+                    (event.getKey() == MapPlayerInput.Key.ENTER)) {
+                deactivate();
+            }
+        }
+
+        @Override
         public void onKey(MapKeyEvent event) {
             if (!isActivated()) {
                 return;
@@ -282,9 +297,8 @@ public class MapWidgetCubicBezier extends MapWidget {
 
             setPosition(x, y);
 
-            this.normalizedX = clamp01((x + 1.0) / getBezierParent().getInnerWidth());
-
-            this.normalizedY = clamp01(1.0 - ((y + 1.0) / getBezierParent().getInnerHeight()));
+            this.normalizedX = clampAndRound((x + 1.0) / getBezierParent().getInnerWidth());
+            this.normalizedY = clampAndRound(1.0 - ((y + 1.0) / getBezierParent().getInnerHeight()));
 
             getBezierParent().invalidate();
             onValueChanged();
@@ -310,8 +324,11 @@ public class MapWidgetCubicBezier extends MapWidget {
             }
         }
 
-        private double clamp01(double value) {
-            return Math.max(0.0f, Math.min(1.0f, value));
+        private double clampAndRound(double value) {
+            double clamped = Math.max(0.0f, Math.min(1.0f, value));
+            BigDecimal bd = BigDecimal.valueOf(clamped);
+            bd = bd.setScale(2, RoundingMode.HALF_UP);
+            return bd.doubleValue();
         }
     }
 
