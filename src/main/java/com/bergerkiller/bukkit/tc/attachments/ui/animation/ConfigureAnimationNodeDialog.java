@@ -702,9 +702,10 @@ public class ConfigureAnimationNodeDialog extends MapWidgetMenu {
 
                 @Override
                 public void onValueChanged() {
-                    cubicBezier.getControlPoint1().setInitialPoint(
+                    this.setInitialValue(MapWidgetCubicBezier.MapWidgetControlPoint.clampAndRound(this.getValue()));
+                    controlPoint1.setInitialPoint(
                             (float) this.getValue(),
-                            cubicBezier.getControlPoint1().y()
+                            controlPoint1.y()
                     );
                     updateEasing(cubicBezier.getEasing(), true);
                 }
@@ -728,8 +729,9 @@ public class ConfigureAnimationNodeDialog extends MapWidgetMenu {
 
                 @Override
                 public void onValueChanged() {
-                    cubicBezier.getControlPoint1().setInitialPoint(
-                            cubicBezier.getControlPoint1().x(),
+                    this.setInitialValue(MapWidgetCubicBezier.MapWidgetControlPoint.clampAndRound(this.getValue()));
+                    controlPoint1.setInitialPoint(
+                            controlPoint1.x(),
                             (float) this.getValue()
                     );
                     updateEasing(cubicBezier.getEasing(), true);
@@ -754,9 +756,10 @@ public class ConfigureAnimationNodeDialog extends MapWidgetMenu {
 
                 @Override
                 public void onValueChanged() {
-                    cubicBezier.getControlPoint2().setInitialPoint(
+                    this.setInitialValue(MapWidgetCubicBezier.MapWidgetControlPoint.clampAndRound(this.getValue()));
+                    controlPoint2.setInitialPoint(
                             (float) this.getValue(),
-                            cubicBezier.getControlPoint2().y()
+                            controlPoint2.y()
                     );
                     updateEasing(cubicBezier.getEasing(), true);
                 }
@@ -780,8 +783,9 @@ public class ConfigureAnimationNodeDialog extends MapWidgetMenu {
 
                 @Override
                 public void onValueChanged() {
-                    cubicBezier.getControlPoint2().setInitialPoint(
-                            cubicBezier.getControlPoint2().x(),
+                    this.setInitialValue(MapWidgetCubicBezier.MapWidgetControlPoint.clampAndRound(this.getValue()));
+                    controlPoint2.setInitialPoint(
+                            controlPoint2.x(),
                             (float) this.getValue()
                     );
                     updateEasing(cubicBezier.getEasing(), true);

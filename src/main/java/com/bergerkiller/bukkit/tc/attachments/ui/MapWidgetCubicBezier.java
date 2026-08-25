@@ -332,7 +332,7 @@ public class MapWidgetCubicBezier extends MapWidget {
          * @param value value to clamp and round
          * @return the value clamped between 0.0 and 1.0 and rounded to 2 decimals
          */
-        private double clampAndRound(double value) {
+        public static double clampAndRound(double value) {
             double clamped = Math.max(0.0f, Math.min(1.0f, value));
             BigDecimal bd = BigDecimal.valueOf(clamped);
             bd = bd.setScale(2, RoundingMode.HALF_UP);
