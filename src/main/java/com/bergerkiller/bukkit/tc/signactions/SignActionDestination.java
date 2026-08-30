@@ -44,7 +44,10 @@ public class SignActionDestination extends TrainCartsSignAction {
         if (!prop.hasOwnership(player)) {
             Localization.EDIT_NOTOWNED.message(player);
         } else {
-            String dest = info.getLine(2);
+            String dest = info.getLine(2).trim();
+            if (dest.isEmpty()) {
+                dest = info.getLine(3).trim();
+            }
             prop.setDestination(dest);
             Localization.SELECT_DESTINATION.message(player, dest);
         }
