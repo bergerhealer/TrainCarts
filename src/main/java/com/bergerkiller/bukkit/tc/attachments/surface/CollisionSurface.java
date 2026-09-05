@@ -18,6 +18,38 @@ public interface CollisionSurface {
         }
 
         @Override
+        public boolean isSimulated() {
+            return false;
+        }
+
+        @Override
+        public boolean isShulkerGrid() {
+            return false;
+        }
+
+        @Override
+        public void setSimulated(boolean simulated) {
+        }
+
+        @Override
+        public void setUseShulkerGrid(boolean useShulkers) {
+        }
+
+        @Override
+        public OrientedBoundingBox getShape() {
+            return null;
+        }
+
+        @Override
+        public String getDebugName() {
+            return "";
+        }
+
+        @Override
+        public void setDebugName(String name) {
+        }
+
+        @Override
         public void setShape(OrientedBoundingBox surface) {
         }
 
@@ -35,6 +67,63 @@ public interface CollisionSurface {
      * @return Update counter state value
      */
     int getUpdateCounter();
+
+    /**
+     * Gets whether this surface is simulated using the {@link PlayerCollisionSolver}. If this is the case, the player movement
+     * controller is used to simulate player walking server-side. If false, then this surface is either no longer present, or
+     * it is simulated using static shulkers instead.
+     *
+     * @return True if simulated
+     */
+    boolean isSimulated();
+
+    /**
+     * Gets whether this surface is presently rendered onto the the "shulker grid". This is a 2D grid on each axis of the player
+     * where shulker boxes are spawned to restrict movement and provide a walking surface. This only occurs while this
+     * surface is stationary and {@link #setUseShulkerGrid(boolean)} is set to true.
+     *
+     * @return True if this surface is rendered onto a shulker grid
+     */
+    boolean isShulkerGrid();
+
+    /**
+     * Sets whether this surface is simulated server-side. When set to true and the surface is not stationary or
+     * using shulkers is disabled, the player movement will be server-side controlled and simulated.
+     *
+     * @param simulated True if simulated
+     */
+    void setSimulated(boolean simulated);
+
+    /**
+     * Sets whether this surface should be represented as shulker boxes on a grid when not in motion
+     *
+     * @param useShulkers True to spawn shulkers when stationary
+     */
+    void setUseShulkerGrid(boolean useShulkers);
+
+    /**
+     * Gets the surface shape this surface is set to. Returns null when this surface is removed, such
+     * as {@link #DISABLED}.
+     * Do not modify this returned shape.
+     *
+     * @return OrientedBoundingBox
+     */
+    OrientedBoundingBox getShape();
+
+    /**
+     * Gets the name set using {@link #setDebugName(String)}. This is used for debugging purposes only.
+     * Returns null if none was set.
+     *
+     * @return Debug name, or null if not set
+     */
+    String getDebugName();
+
+    /**
+     * Assigns this surface a unique name, so that it can more easily be debugged.
+     *
+     * @param name Debug name to set
+     */
+    void setDebugName(String name);
 
     /**
      * Sets the surface shape, represented as an oriented bounding box.

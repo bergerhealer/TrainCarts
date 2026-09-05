@@ -17,6 +17,7 @@ import org.bukkit.ChatColor;
 import org.bukkit.util.Vector;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 /**
@@ -24,8 +25,9 @@ import java.util.List;
  * size of this plane can be adjusted. When players are detected falling
  * through this plane, they are teleported upwards.
  */
-public class CartAttachmentPlatformPlane extends CartAttachmentPlatform {
+public class CartAttachmentPlatformSurfacePlane extends CartAttachmentPlatform {
     private final OrientedBoundingBox bbox = new OrientedBoundingBox();
+    private PlatformMode platformMode = PlatformMode.SIMULATED_WITH_SHULKER_GRID;
     private final List<PlayerSurface> playerSurfaces = new ArrayList<>();
     private Plane plane = null; // Null if not spawned
 
@@ -33,20 +35,8 @@ public class CartAttachmentPlatformPlane extends CartAttachmentPlatform {
     public void onLoad(ConfigurationNode config) {
         Vector3 size = LogicUtil.fixNull(this.getConfiguredPosition().size, DEFAULT_SIZE);
         bbox.setSize(new Vector(size.x, 0.0, size.z));
-    }
-
-    @Override
-    public boolean checkCanReload(ConfigurationNode config) {
-        if (!super.checkCanReload(config)) {
-            return false;
-        }
-
-        // Switches between attachment implementation class
-        if (readPlatformMode(config) != PlatformMode.PLANE) {
-            return false;
-        }
-
-        return true;
+        platformMode = readPlatformMode(config);
+        playerSurfaces.forEach(this::applySettings);
     }
 
     @Override
@@ -57,6 +47,7 @@ public class CartAttachmentPlatformPlane extends CartAttachmentPlatform {
 
         PlayerSurface ps = new PlayerSurface(viewer, viewer.createCollisionSurface());
         ps.surface.setShape(bbox);
+        applySettings(ps);
         playerSurfaces.add(ps);
     }
 
@@ -74,6 +65,17 @@ public class CartAttachmentPlatformPlane extends CartAttachmentPlatform {
                 return false;
             }
         });
+    }
+
+    private void applySettings(PlayerSurface surface) {
+        Iterator<String> namesIter = getNames().iterator();
+        if (namesIter.hasNext()) {
+            surface.surface.setDebugName(namesIter.next());
+        } else {
+            surface.surface.setDebugName(null);
+        }
+        surface.surface.setSimulated(platformMode.isSimulated());
+        surface.surface.setUseShulkerGrid(platformMode.isSpawningShulkerGrid());
     }
 
     public void setPlaneColor(ChatColor color) {
