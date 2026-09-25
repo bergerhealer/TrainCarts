@@ -12,9 +12,12 @@ import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.bukkit.common.wrappers.ItemDisplayMode;
 import com.bergerkiller.bukkit.common.wrappers.RelativeFlags;
+import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.attachments.VirtualDisplayItemEntity;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import com.bergerkiller.bukkit.tc.attachments.particle.VirtualBoundingBox;
+import com.bergerkiller.bukkit.tc.attachments.surface.CollisionSurface;
+import com.bergerkiller.bukkit.tc.attachments.surface.OBBSurfaceTransition;
 import com.bergerkiller.bukkit.tc.commands.annotations.CommandTargetTrain;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroupStore;
@@ -25,6 +28,7 @@ import com.bergerkiller.generated.net.minecraft.network.protocol.game.Clientboun
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Chunk;
+import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.command.CommandSender;
@@ -63,6 +67,32 @@ import org.incendo.cloud.annotations.Flag;
  * others update an item like a debug stick.
  */
 public class DebugCommands {
+
+    @CommandRequiresPermission(Permission.DEBUG_COMMAND_DEBUG)
+    @Command("train debug surface capture")
+    @CommandDescription("Shows the unit-test code to reproduce a surface the player is looking at")
+    private void commandDebugCaptureSurface(
+            final TrainCarts trainCarts,
+            final Player player
+    ) {
+        AttachmentViewer viewer = trainCarts.getAttachmentViewer(player);
+        CollisionSurface surface = viewer.debugFindCollisionSurface();
+        OrientedBoundingBox shape = surface.getShape();
+        if (shape == null) {
+            player.sendMessage(ChatColor.RED + "Not looking at any surface");
+            return;
+        }
+
+        OBBSurfaceTransition<?> transition = new OBBSurfaceTransition<String>(shape, shape);
+        StringBuilder str = new StringBuilder("Surface details that ").append(player.getName()).append(" is looking at:\n    ");
+        transition.printDebugCreate(str, "    ");
+        trainCarts.getLogger().info(str.toString());
+        player.sendMessage(ChatColor.YELLOW + "Surface details have been logged to console");
+
+        shape.getVertices().forEach(v -> {
+            Util.spawnDustParticle(v.toLocation(player.getWorld()), Color.RED);
+        });
+    }
 
     @CommandRequiresPermission(Permission.DEBUG_COMMAND_DEBUG)
     @Command("train debug event vehicle_enter [enabled]")

@@ -52,6 +52,9 @@ final class Shulker implements StationaryCollisionElement {
         this.shulkerTracker = shulkerTracker;
     }
 
+    /** Whether the shulker is spawned as visible. Can be set to false for debug purposes. */
+    private static final boolean INVISIBLE_SHULKERS = true;
+
     private static final DataWatcher SHULKER_MOUNT_METADATA = DataWatcher.Prototype.build()
             .setClientByteDefault(EntityHandle.DATA_FLAGS, 0)
             .setClientByteDefault(ArmorStandHandle.DATA_ARMORSTAND_FLAGS, 0)
@@ -67,8 +70,8 @@ final class Shulker implements StationaryCollisionElement {
         DataWatcher.Prototype SHULKER_METADATA_PROTOTYPE = DataWatcher.Prototype.build()
                 .setClientByteDefault(EntityHandle.DATA_FLAGS, 0)
                 .setClientDefault(ShulkerHandle.DATA_FACE_DIRECTION, BlockFace.SOUTH)
-                .setByte(EntityHandle.DATA_FLAGS, EntityHandle.DATA_FLAG_FLYING)
-                //.setByte(EntityHandle.DATA_FLAGS, EntityHandle.DATA_FLAG_INVISIBLE)
+                .setFlag(EntityHandle.DATA_FLAGS, EntityHandle.DATA_FLAG_FLYING, true)
+                .setFlag(EntityHandle.DATA_FLAGS, EntityHandle.DATA_FLAG_INVISIBLE, INVISIBLE_SHULKERS)
                 .create();
 
         for (BlockFace face : FaceUtil.BLOCK_SIDES) {
