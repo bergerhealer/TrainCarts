@@ -562,7 +562,7 @@ public class TeamProvider implements LibraryComponent {
                 } else if (!pendingRemove.isEmpty()) {
                     // Remove the set of entities for this viewer
                     ClientboundSetPlayerTeamPacketHandle packet = team.createPacket(ClientboundSetPlayerTeamPacketHandle.METHOD_LEAVE);
-                    packet.setPlayers(pendingRemove);
+                    packet.setPlayers(new ArrayList<>(pendingRemove));
                     pendingRemove = Collections.emptySet();
                     viewer.send(packet);
                 }
@@ -579,13 +579,13 @@ public class TeamProvider implements LibraryComponent {
 
                     // We are sending all entities for a team for the first time. Create the team with these entities.
                     ClientboundSetPlayerTeamPacketHandle packet = team.createPacket(ClientboundSetPlayerTeamPacketHandle.METHOD_ADD);
-                    packet.setPlayers(pendingAdd);
+                    packet.setPlayers(new ArrayList<>(pendingAdd));
                     pendingAdd = Collections.emptySet();
                     viewer.send(packet);
                 } else {
                     // Add the set of entities for this viewer
                     ClientboundSetPlayerTeamPacketHandle packet = team.createPacket(ClientboundSetPlayerTeamPacketHandle.METHOD_JOIN);
-                    packet.setPlayers(pendingAdd);
+                    packet.setPlayers(new ArrayList<>(pendingAdd));
                     pendingAdd = Collections.emptySet();
                     viewer.send(packet);
                 }

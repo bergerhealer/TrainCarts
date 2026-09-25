@@ -787,6 +787,12 @@ public class TrainCarts extends PluginBase {
         }
     }
 
+    protected void loadAndSaveItemParserConstantsToConfig(World world) {
+        if (TCConfig.loadItemParsersAndSaveConfig(world, config.getNode("itemShortcuts"))) {
+            config.save();
+        }
+    }
+
     public void loadConfig() {
         loadConfig(false);
     }
@@ -857,6 +863,10 @@ public class TrainCarts extends PluginBase {
 
     @Override
     public void enable() {
+        if (!Common.hasCapability("Common:RecipeUtil:FuelBurnTimeRequiresWorld")) {
+            throw new RuntimeException("BKCommonLib is too old! Please update BKCommonLib!");
+        }
+
         // For good measure
         plugin = this;
 

@@ -9,11 +9,11 @@ import com.bergerkiller.bukkit.tc.InteractType;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
-import com.bergerkiller.bukkit.tc.controller.type.MinecartMemberChest;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.itemanimation.ItemAnimation;
 import com.bergerkiller.bukkit.tc.itemanimation.ItemAnimatedInventory;
 import org.bukkit.Material;
+import org.bukkit.World;
 import org.bukkit.block.*;
 import org.bukkit.inventory.*;
 
@@ -56,7 +56,7 @@ public class TransferSignUtil {
         }
     }
 
-    public static int depositInFurnace(TrainCarts traincarts, Inventory from, Furnace toFurnace, ItemParser parser, boolean isFuelPreferred) {
+    public static int depositInFurnace(TrainCarts traincarts, World world, Inventory from, Furnace toFurnace, ItemParser parser, boolean isFuelPreferred) {
         final Inventory to = toFurnace.getInventory();
         List<ItemParser> heatables = new ArrayList<>();
         List<ItemParser> fuels = new ArrayList<>();
@@ -85,7 +85,7 @@ public class TransferSignUtil {
             // Is the parser fuel or heatable?
             ItemStack parseritem = parser.getItemStack(1);
             boolean heatable = RecipeUtil.isHeatableItem(parseritem);
-            boolean fuel = RecipeUtil.isFuelItem(parseritem);
+            boolean fuel = RecipeUtil.isFuelItem(world, parseritem);
             if (heatable && fuel) {
                 if (isFuelPreferred) {
                     fuels.add(parser);
@@ -136,9 +136,9 @@ public class TransferSignUtil {
                 //===================================================
                 int fuelPerItem;
                 if (fuel.getType() == Material.AIR) {
-                    fuelPerItem = RecipeUtil.getFuelTime(p.getItemStack(1));
+                    fuelPerItem = RecipeUtil.getFuelBurnTime(world, p.getItemStack(1));
                 } else {
-                    fuelPerItem = RecipeUtil.getFuelTime(fuel.toBukkit());
+                    fuelPerItem = RecipeUtil.getFuelBurnTime(world, fuel.toBukkit());
                 }
                 //====================================================
                 if (fuelPerItem == 0) continue;
@@ -397,7 +397,7 @@ public class TransferSignUtil {
 
         // Depositing into a furnace or other type of inventory?
         if (toHolder instanceof Furnace) {
-            return depositInFurnace(traincarts, from, (Furnace) toHolder, itemParser, isFuelPreferred);
+            return depositInFurnace(traincarts, ((Furnace) toHolder).getWorld(), from, (Furnace) toHolder, itemParser, isFuelPreferred);
         } else {
             return ItemUtil.transfer(from, to, itemParser, itemParser.getAmount());
         }

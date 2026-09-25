@@ -8,7 +8,12 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 
+import com.bergerkiller.bukkit.common.MaterialBooleanProperty;
+import com.bergerkiller.bukkit.common.utils.CommonUtil;
+import com.bergerkiller.bukkit.common.utils.RecipeUtil;
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 
 import static com.bergerkiller.bukkit.common.utils.MaterialUtil.getMaterial;
@@ -27,6 +32,11 @@ import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.tc.attachments.animation.Animation;
 import com.bergerkiller.bukkit.tc.pathfinding.PathProvider;
 import com.bergerkiller.bukkit.tc.utils.ConfiguredWorldSet;
+import org.bukkit.World;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
+import org.bukkit.event.Listener;
+import org.bukkit.event.world.WorldLoadEvent;
 
 /**
  * Stores all the settings specified in the TrainCarts config.yml.
@@ -509,6 +519,27 @@ public class TCConfig {
         config.setHeader("itemShortcuts", "\nSeveral shortcuts you can use on signs to set the items");
         ConfigurationNode itemshort = config.getNode("itemShortcuts");
 
+        // If run as part of a config reload, and worlds are already loaded as a result, initialize right away
+        // Otherwise, run delayed and if there's changes, apply to config then.
+        if (!Bukkit.getWorlds().isEmpty()) {
+            loadItemParsersAndSaveConfig(Bukkit.getWorlds().iterator().next(), itemshort); // Ignore return type, we always re-save.
+        } else {
+            // Install a listener that waits for a WorldLoadEvent (for the first world)
+            // Then operate on that for context.
+            final Listener listener = new Listener() {
+                final AtomicBoolean hasRun = new AtomicBoolean(false);
+
+                @EventHandler(priority = EventPriority.LOWEST)
+                public void onWorldLoad(WorldLoadEvent event) {
+                    CommonUtil.nextTick(() -> CommonUtil.unregisterListener(this));
+                    if (hasRun.compareAndSet(false, true)) {
+                        traincarts.loadAndSaveItemParserConstantsToConfig(event.getWorld());
+                    }
+                }
+            };
+            traincarts.register(listener);
+        }
+
         /*
          * Signs created before Minecraft 1.8 with (for example) "[train]" will have the brackets stripped.
          * TrainCarts will not recognize these causing trains to ignore all "old" signs in the world.
@@ -571,35 +602,6 @@ public class TCConfig {
         config.addHeader("trainsCheckSignFacing", "activate signs. In both cases the behavior can be controlled with a :direction rule on the first line of the sign");
         trainsCheckSignFacing = config.get("trainsCheckSignFacing", true);
 
-        parsers.clear();
-
-        // ================= Defaults ===============
-        if (!itemshort.contains("fuel")) {
-            itemshort.set("fuel", MaterialUtil.ISFUEL.toString());
-        }
-        if (!itemshort.contains("heatable")) {
-            itemshort.set("heatable", MaterialUtil.ISHEATABLE.toString());
-        }
-        if (!itemshort.contains("armor")) {
-            itemshort.set("armor", MaterialUtil.ISARMOR.toString());
-        }
-        if (!itemshort.contains("sword")) {
-            itemshort.set("sword", MaterialUtil.ISSWORD.toString());
-        }
-        if (!itemshort.contains("boots")) {
-            itemshort.set("boots", MaterialUtil.ISBOOTS.toString());
-        }
-        if (!itemshort.contains("leggings")) {
-            itemshort.set("leggings", MaterialUtil.ISLEGGINGS.toString());
-        }
-        if (!itemshort.contains("chestplate")) {
-            itemshort.set("chestplate", MaterialUtil.ISCHESTPLATE.toString());
-        }
-        if (!itemshort.contains("helmet")) {
-            itemshort.set("helmet", MaterialUtil.ISHELMET.toString());
-        }
-        // ===========================================
-
         // Default animations that can be applied to the root node
         defaultAnimations.clear();
         config.setHeader("defaultAnimations", "\nDefault attachment animations that can be applied to the base of all trains");
@@ -633,10 +635,6 @@ public class TCConfig {
         for (ConfigurationNode animationNode : config.getNode("defaultAnimations").getNodes()) {
             Animation defaultAnimation = Animation.loadFromConfig(animationNode);
             defaultAnimations.put(defaultAnimation.getOptions().getName(), defaultAnimation);
-        }
-
-        for (Map.Entry<String, String> entry : itemshort.getValues(String.class).entrySet()) {
-            putParsers(entry.getKey(), Util.getParsers(entry.getValue()));
         }
 
         // Whether images can be loaded outside of the /images subdirectory
@@ -739,6 +737,63 @@ public class TCConfig {
             cartLimits.addHeader("maxCartsPerTrain", "A value of -1 disables this limit, allowing any length (default)");
             maxCartsPerTrain = cartLimits.get("maxCartsPerTrain", -1);
         }
+    }
+
+    /**
+     * Loads the "item parser" shortcuts. Caller should save the config to file if changes occurred.
+     *
+     * @param world The world to base the item context on (required since 26.3)
+     * @return True if the config was changed
+     */
+    protected static boolean loadItemParsersAndSaveConfig(World world, ConfigurationNode itemParserConfig) {
+        boolean changed = false;
+
+        // ================= Defaults ===============
+        if (!itemParserConfig.contains("fuel")) {
+            itemParserConfig.set("fuel", (new MaterialBooleanProperty() {
+                @Override
+                public Boolean get(Material material) {
+                    return RecipeUtil.isFuelItem(world, material);
+                }
+            }).toString());
+            changed = true;
+        }
+        if (!itemParserConfig.contains("heatable")) {
+            itemParserConfig.set("heatable", MaterialUtil.ISHEATABLE.toString());
+            changed = true;
+        }
+        if (!itemParserConfig.contains("armor")) {
+            itemParserConfig.set("armor", MaterialUtil.ISARMOR.toString());
+            changed = true;
+        }
+        if (!itemParserConfig.contains("sword")) {
+            itemParserConfig.set("sword", MaterialUtil.ISSWORD.toString());
+            changed = true;
+        }
+        if (!itemParserConfig.contains("boots")) {
+            itemParserConfig.set("boots", MaterialUtil.ISBOOTS.toString());
+            changed = true;
+        }
+        if (!itemParserConfig.contains("leggings")) {
+            itemParserConfig.set("leggings", MaterialUtil.ISLEGGINGS.toString());
+            changed = true;
+        }
+        if (!itemParserConfig.contains("chestplate")) {
+            itemParserConfig.set("chestplate", MaterialUtil.ISCHESTPLATE.toString());
+            changed = true;
+        }
+        if (!itemParserConfig.contains("helmet")) {
+            itemParserConfig.set("helmet", MaterialUtil.ISHELMET.toString());
+            changed = true;
+        }
+        // ===========================================
+
+        parsers.clear();
+        for (Map.Entry<String, String> entry : itemParserConfig.getValues(String.class).entrySet()) {
+            putParsers(entry.getKey(), Util.getParsers(entry.getValue()));
+        }
+
+        return changed;
     }
 
     public static void putParsers(String key, ItemParser[] parsersArr) {
