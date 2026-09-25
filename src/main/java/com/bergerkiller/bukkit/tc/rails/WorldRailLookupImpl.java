@@ -412,6 +412,14 @@ final class WorldRailLookupImpl implements WorldRailLookup {
         forAllBuckets(RailLookup.CachedRailPiece::redetectSignActions);
     }
 
+    @Override
+    public void redetectRailsAtBlock(IntVector3 blockCoordinates) {
+        Bucket bucket = cache.get(blockCoordinates);
+        if (bucket != null) {
+            bucket.recalculateRailsAtPosition();
+        }
+    }
+
     private void forAllBuckets(Consumer<Bucket> callback) {
         for (Bucket bucket : cacheValues) {
             for (Bucket next = bucket; next != null; next = next.next) {
@@ -672,8 +680,7 @@ final class WorldRailLookupImpl implements WorldRailLookup {
             super(WorldRailLookupImpl.this, offlineBlock, block, type);
             this.signs = RailLookup.MISSING_RAILS_NO_SIGNS;
             this.rail_life = RailLookup.lifeTimer;
-            this.rails_at_position_life = 0; // Needs to be calculated
-            this.rails_at_position = NO_RAILS_AT_POSITION;
+            this.recalculateRailsAtPosition(); // Needs to be calculated
         }
 
         /**
@@ -816,6 +823,15 @@ final class WorldRailLookupImpl implements WorldRailLookup {
                     curr.next = next.next;
                 }
             }
+        }
+
+        /**
+         * Orders this bucket to forget what rails can be found from this block. The next time
+         * {@link #getRailsAtPosition()} is called, it is computed fresh.
+         */
+        public void recalculateRailsAtPosition() {
+            rails_at_position_life = 0;
+            rails_at_position = NO_RAILS_AT_POSITION;
         }
 
         /**

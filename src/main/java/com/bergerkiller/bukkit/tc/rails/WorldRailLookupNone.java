@@ -115,6 +115,10 @@ final class WorldRailLookupNone implements WorldRailLookup {
     }
 
     @Override
+    public void redetectRailsAtBlock(IntVector3 blockCoordinates) {
+    }
+
+    @Override
     public void storeDetectorRegions(IntVector3 coordinates, DetectorRegion[] regions) {
         throw new ClosedException();
     }

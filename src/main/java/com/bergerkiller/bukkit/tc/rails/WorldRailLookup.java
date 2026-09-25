@@ -227,6 +227,15 @@ public interface WorldRailLookup {
     void redetectSignActions();
 
     /**
+     * Resets any stored cached information about what rails can be found at particular
+     * block coordinates. Should be called by rail-providing plugins when the rails at a
+     * block change significantly to avoid trains getting stuck.
+     *
+     * @param blockCoordinates Block coordinates
+     */
+    void redetectRailsAtBlock(IntVector3 blockCoordinates);
+
+    /**
      * Sets/stores the Detector Regions that should be activated at particular rail block
      * coordinates.
      *

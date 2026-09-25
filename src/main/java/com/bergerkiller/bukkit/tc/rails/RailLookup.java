@@ -187,6 +187,17 @@ public final class RailLookup {
     }
 
     /**
+     * Resets any stored cached information about what rails can be found at particular
+     * block coordinates. Should be called by rail-providing plugins when the rails at a
+     * block change significantly to avoid trains getting stuck.
+     *
+     * @param blockCoordinates Block coordinates
+     */
+    public static void redetectRailsAtBlock(OfflineBlock blockCoordinates) {
+        forWorld(blockCoordinates.getLoadedWorld()).redetectRailsAtBlock(blockCoordinates.getPosition());
+    }
+
+    /**
      * Forces all cached rail information about the specified Rail Type to be unloaded. In the event
      * persistent metadata is tied to it, like members, the data is lost. Members should refresh
      * this information as needed.
