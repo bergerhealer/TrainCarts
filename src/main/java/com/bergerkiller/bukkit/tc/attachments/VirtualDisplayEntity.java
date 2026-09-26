@@ -27,7 +27,6 @@ import org.bukkit.ChatColor;
 import org.bukkit.entity.EntityType;
 import org.bukkit.util.Vector;
 
-import java.util.Optional;
 import java.util.UUID;
 import java.util.function.IntFunction;
 
@@ -292,20 +291,18 @@ public abstract class VirtualDisplayEntity extends VirtualSpawnableObject
                     0.0f, 0.0f, false));
         } else {
             // Perform a relative movement update
-            ClientboundMoveEntityPacketHandle.PosHandle packet = syncPositionLogicAlwaysCreate(
-                    id -> ClientboundMoveEntityPacketHandle.PosHandle.createNew(id,
-                            dx, dy, dz,
-                            false));
+            ClientboundMoveEntityPacketHandle.PositionChange change = ClientboundMoveEntityPacketHandle.PositionChange.encodeLinearChange(
+                    dx, dy, dz
+            );
+            MathUtil.addToVector(syncPos, change.getDeltaX(), change.getDeltaY(), change.getDeltaZ());
 
-            MathUtil.addToVector(syncPos, packet.getDeltaX(), packet.getDeltaY(), packet.getDeltaZ());
+            syncPositionLogic(id -> ClientboundMoveEntityPacketHandle.PosHandle.createNew(id,
+                    change,
+                    false));
         }
 
         // Send metadata changes to update the orientation
         syncMeta();
-    }
-
-    private <T extends PacketHandle> T syncPositionLogicAlwaysCreate(IntFunction<T> packetCreator) {
-        return syncPositionLogic(packetCreator).orElseGet(() -> packetCreator.apply(displayEntityId));
     }
 
     /**
@@ -316,7 +313,7 @@ public abstract class VirtualDisplayEntity extends VirtualSpawnableObject
      * @param packetCreator Callback to create the packet to send, with as input the entity id
      *                      to sync
      */
-    private <T extends PacketHandle> Optional<T> syncPositionLogic(IntFunction<T> packetCreator) {
+    private <T extends PacketHandle> void syncPositionLogic(IntFunction<T> packetCreator) {
         T packetForNewClients = null;
         T packetForOldClients = null;
         for (AttachmentViewer viewer : getViewers()) {
@@ -331,13 +328,6 @@ public abstract class VirtualDisplayEntity extends VirtualSpawnableObject
                 }
                 viewer.send(packetForOldClients);
             }
-        }
-        if (packetForNewClients != null) {
-            return Optional.of(packetForNewClients);
-        } else if (packetForOldClients != null) {
-            return Optional.of(packetForOldClients);
-        } else {
-            return Optional.empty();
         }
     }
 

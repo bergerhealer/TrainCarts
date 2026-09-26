@@ -318,13 +318,15 @@ public class MovingSchematic extends VirtualSpawnableObject {
                         0.0f, 0.0f, false));
             } else {
                 // Perform a relative movement update
-                ClientboundMoveEntityPacketHandle.PosHandle packet = ClientboundMoveEntityPacketHandle.PosHandle.createNew(
-                        mountEntityId,
-                        dx, dy, dz,
-                        false);
+                ClientboundMoveEntityPacketHandle.PositionChange change = ClientboundMoveEntityPacketHandle.PositionChange.encodeLinearChange(
+                        dx, dy, dz
+                );
+                MathUtil.addToVector(syncPos, change.getDeltaX(), change.getDeltaY(), change.getDeltaZ());
 
-                MathUtil.addToVector(syncPos, packet.getDeltaX(), packet.getDeltaY(), packet.getDeltaZ());
-                broadcast(packet);
+                broadcast(ClientboundMoveEntityPacketHandle.PosHandle.createNew(
+                        mountEntityId,
+                        change,
+                        false));
             }
          }
      }
