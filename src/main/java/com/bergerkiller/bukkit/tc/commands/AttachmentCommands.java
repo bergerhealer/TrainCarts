@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.tc.commands;
 
+import com.bergerkiller.bukkit.common.inventory.CommonItemMaterials;
 import com.bergerkiller.bukkit.common.inventory.CommonItemStack;
 import com.bergerkiller.bukkit.common.map.MapDisplay;
 import com.bergerkiller.bukkit.common.wrappers.Brightness;
@@ -31,7 +32,7 @@ public class AttachmentCommands {
     private void commandGiveAttachmentEditor(
             final Player sender
     ) {
-        CommonItemStack item = CommonItemStack.of(MapDisplay.createMapItem(AttachmentEditor.class))
+        CommonItemStack item = MapDisplay.createMapCommonItem(AttachmentEditor.class, CommonItemMaterials.Maps.BURIED_MINESHAFT)
                 .setCustomNameMessage("Traincarts Attachments Editor")
                 .setFilledMapColor(0xFF0000);
         sender.getInventory().addItem(item.toBukkit());

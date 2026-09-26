@@ -863,7 +863,7 @@ public class TrainCarts extends PluginBase {
 
     @Override
     public void enable() {
-        if (!Common.hasCapability("Common:RecipeUtil:FuelBurnTimeRequiresWorld")) {
+        if (!Common.hasCapability("Common:MapDisplay:CustomItemType")) {
             throw new RuntimeException("BKCommonLib is too old! Please update BKCommonLib!");
         }
 

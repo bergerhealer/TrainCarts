@@ -1,5 +1,7 @@
 package com.bergerkiller.bukkit.tc;
 
+import com.bergerkiller.bukkit.common.wrappers.HumanHandRole;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ServerboundSwingPacketHandle;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Player;
 
@@ -30,6 +32,7 @@ class TCInteractionPacketListener implements PacketListener {
             PacketType.IN_USE_ITEM,
             PacketType.IN_USE_ITEM_ON,
             PacketType.IN_SWING,
+            PacketType.IN_PUNCH,
             PacketType.IN_PLAYER_ACTION
     };
 
@@ -78,9 +81,15 @@ class TCInteractionPacketListener implements PacketListener {
         boolean isAttackClick = false;
         if (event.getType() == PacketType.IN_PLAYER_ACTION) {
             isAttackClick = true;
+        } else if (event.getType() == PacketType.IN_PUNCH) {
+            if (mainPacketListener.isAttackSuppressed(event.getPlayer())) {
+                event.setCancelled(true);
+                return;
+            }
+            isAttackClick = true;
         } else if (event.getType() == PacketType.IN_SWING) {
-            HumanHand hand = PacketType.IN_SWING.getHand(event.getPacket(), event.getPlayer());
-            if (hand == HumanHand.getOffHand(event.getPlayer())) {
+            ServerboundSwingPacketHandle packet = ServerboundSwingPacketHandle.createHandle(event.getPacket().getHandle());
+            if (packet.getHandRole() == HumanHandRole.OFF) {
                 if (mainPacketListener.isAttackSuppressed(event.getPlayer())) {
                     event.setCancelled(true);
                     return;
