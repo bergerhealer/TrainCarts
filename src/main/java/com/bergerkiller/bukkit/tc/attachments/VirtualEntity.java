@@ -11,6 +11,7 @@ import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundMoveEntityPacketHandle;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundMoveMinecartPacketHandle;
 import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
 import com.bergerkiller.generated.net.minecraft.world.entity.vehicle.minecart.NewMinecartBehaviorHandle;
@@ -675,26 +676,33 @@ public class VirtualEntity extends VirtualSpawnableObject {
 
         if (moved && rotated) {
             // Position and rotation changed
+            ClientboundMoveEntityPacketHandle.PositionChange change = ClientboundMoveEntityPacketHandle.PositionChange.encodeLinearChange(
+                    dx, dy, dz
+            );
+
             PosRotHandle packet = PosRotHandle.createNew(
                     this.entityId,
-                    dx, dy, dz,
+                    change,
                     this.liveYaw,
                     this.livePitch,
                     false);
 
             this.syncYaw = packet.getYaw();
             this.syncPitch = packet.getPitch();
-            MathUtil.addToVector(this.syncAbsPos, packet.getDeltaX(), packet.getDeltaY(), packet.getDeltaZ());
+            MathUtil.addToVector(this.syncAbsPos, change.getDeltaX(), change.getDeltaY(), change.getDeltaZ());
+
             broadcast(packet);
         } else if (moved) {
             // Only position changed
-            PosHandle packet = PosHandle.createNew(
-                    this.entityId,
-                    dx, dy, dz,
-                    false);
+            ClientboundMoveEntityPacketHandle.PositionChange change = ClientboundMoveEntityPacketHandle.PositionChange.encodeLinearChange(
+                    dx, dy, dz
+            );
+            MathUtil.addToVector(this.syncAbsPos, change.getDeltaX(), change.getDeltaY(), change.getDeltaZ());
 
-            MathUtil.addToVector(this.syncAbsPos, packet.getDeltaX(), packet.getDeltaY(), packet.getDeltaZ());
-            broadcast(packet);
+            broadcast(PosHandle.createNew(
+                    this.entityId,
+                    change,
+                    false));
         } else if (rotated) {
             // Only rotation changed
             for (AttachmentViewer viewer : this.getViewers()) {
