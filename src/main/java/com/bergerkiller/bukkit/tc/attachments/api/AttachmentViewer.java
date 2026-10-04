@@ -407,6 +407,21 @@ public interface AttachmentViewer extends TrainCarts.Provider {
     }
 
     /**
+     * Takes the Player's Eye location and resolves the first collision found. This is used in debug surface
+     * commands to dump details about surfaces.
+     *
+     * @return CollisionSurface that was hit first in the sweep, or {@link CollisionSurface#DISABLED} if none are in view of the Player
+     */
+    default CollisionSurface debugFindCollisionSurface() {
+        TrainCarts plugin = getTrainCarts();
+        if (plugin.isEnabled() && isConnected()) {
+            return plugin.getAttachmentViewer(getPlayer()).debugFindCollisionSurface();
+        } else {
+            return CollisionSurface.DISABLED;
+        }
+    }
+
+    /**
      * Iterates all stationary collision surfaces using a range of absolute block coordinates
      * that intersect them. These surfaces are created when {@link #createCollisionSurface()} is called
      * but the surface does not move. These spawn actual surfaces the player can walk on. Use this method
