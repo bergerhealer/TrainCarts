@@ -19,7 +19,7 @@ import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
  * Two VirtualEntity instances which are swapped around to work around the
  * camera glitch at pitch 180. Only spawns to a single viewer.
  */
-class PitchSwappedEntity<E extends VirtualEntity> {
+public class PitchSwappedEntity<E extends VirtualEntity> {
     private static final float MIN_PITCH = EntityTrackerEntryStateHandle.getRotationFromProtocol(-128); // Closest to -180
     private static final float MAX_PITCH = EntityTrackerEntryStateHandle.getRotationFromProtocol(127); // Closest to 180
 
