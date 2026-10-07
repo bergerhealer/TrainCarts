@@ -35,6 +35,7 @@ public class FirstPersonEyePositionDialog extends MapWidgetMenu {
     @Override
     public void onAttached() {
         super.onAttached();
+        suppressDummyPreviewInEditedSeats();
 
         isLoadingWidgets = true;
 
@@ -138,11 +139,16 @@ public class FirstPersonEyePositionDialog extends MapWidgetMenu {
 
     @Override
     public void onDetached() {
-        super.onDetached();
-
         // Stop previewing the eye
         previewEye(0);
         showArrowPreview(false);
+
+        super.onDetached();
+    }
+
+    @Override
+    public void onTick() {
+        suppressDummyPreviewInEditedSeats();
     }
 
     private void previewEye(int numTicks) {
@@ -241,6 +247,19 @@ public class FirstPersonEyePositionDialog extends MapWidgetMenu {
                         ((CartAttachmentSeat) liveAttachment).debug.showEyeArrow(player, numTicks);
                     }
                 }
+            }
+        }
+    }
+
+    private void suppressDummyPreviewInEditedSeats() {
+        // Only suppress while configured first-person view mode is not third-person
+        if (attachment.getConfig().get("firstPersonViewMode", FirstPersonViewMode.DYNAMIC) == FirstPersonViewMode.THIRD_P) {
+            return;
+        }
+
+        for (Attachment liveAttachment : this.attachment.getAttachments()) {
+            if (liveAttachment instanceof CartAttachmentSeat) {
+                ((CartAttachmentSeat) liveAttachment).suppressDummyPreviewForTicks(3);
             }
         }
     }

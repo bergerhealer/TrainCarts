@@ -26,6 +26,7 @@ import com.bergerkiller.bukkit.common.map.widgets.MapWidgetText;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.math.Quaternion;
 import com.bergerkiller.bukkit.common.resources.SoundEffect;
+import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
@@ -307,6 +308,8 @@ public class CartAttachmentSeat extends CartAttachment {
     // If 0, the attachment is not focused and no dummy player should be displayed.
     private static final int FOCUS_DEBOUNCE_TICKS = 40; //2s
     private int _focusDebounceTimer = 0;
+    // Server tick time until which focus will not show a dummy player preview
+    private int _dummyPreviewSuppressedUntilTick = Integer.MIN_VALUE;
 
     // Displays an item where the seat is at, but only to people in third-person
     // Also shown to first-person mode viewers, if their mode is THIRD_P
@@ -846,7 +849,7 @@ public class CartAttachmentSeat extends CartAttachment {
 
     @Override
     public void onFocus() {
-        if (this._focusDebounceTimer == 0) {
+        if (this._focusDebounceTimer == 0 && !isDummyPreviewSuppressed()) {
             showDummyPlayer();
         }
         this._focusDebounceTimer = FOCUS_DEBOUNCE_TICKS;
@@ -865,6 +868,9 @@ public class CartAttachmentSeat extends CartAttachment {
      * Shows the dummy player, if no entity is in the seat yet
      */
     private void showDummyPlayer() {
+        if (isDummyPreviewSuppressed()) {
+            return;
+        }
         if (!seated.isDummyPlayer()) {
             seated.setShowDummyPlayer(true);
             if (seated.isEmpty()) {
@@ -889,6 +895,28 @@ public class CartAttachmentSeat extends CartAttachment {
             }
             seated.setShowDummyPlayer(false);
         }
+    }
+
+    /**
+     * Suppresses the focus dummy preview for a period of time.
+     * Can be called repeatedly to keep suppressing while a menu is open.
+     *
+     * @param numTicks Number of ticks to suppress the dummy preview
+     */
+    public void suppressDummyPreviewForTicks(int numTicks) {
+        if (numTicks <= 0) {
+            return;
+        }
+        int tickTime = CommonUtil.getServerTicks() + numTicks;
+        if (tickTime > this._dummyPreviewSuppressedUntilTick) {
+            this._dummyPreviewSuppressedUntilTick = tickTime;
+        }
+        this._focusDebounceTimer = 0;
+        hideDummyPlayer();
+    }
+
+    private boolean isDummyPreviewSuppressed() {
+        return CommonUtil.getServerTicks() < this._dummyPreviewSuppressedUntilTick;
     }
 
     /**
