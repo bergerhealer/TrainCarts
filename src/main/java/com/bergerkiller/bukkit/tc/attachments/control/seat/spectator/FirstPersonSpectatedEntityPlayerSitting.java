@@ -32,12 +32,13 @@ class FirstPersonSpectatedEntityPlayerSitting extends FirstPersonSpectatedEntity
     // 0 mounts if mounted directly in the parent vehicle.
     private VirtualEntity[] fakeMounts = NO_FAKE_MOUNTS;
     private final SpectatedFakePlayer fakePlayer;
+    private final boolean isHeadMode;
 
     public FirstPersonSpectatedEntityPlayerSitting(CartAttachmentSeat seat, FirstPersonViewSpectator view, AttachmentViewer player) {
         super(seat, view, player);
-        if (view.getLiveMode() == FirstPersonViewMode.HEAD) {
+        this.isHeadMode = (view.getLiveMode() == FirstPersonViewMode.HEAD);
+        if (isHeadMode) {
             SpectatedFakePlayerHead headPlayer = new SpectatedFakePlayerHead(player, seat.getManager());
-            headPlayer.setHeadOffsetToSittingDefault();
             this.fakePlayer = headPlayer;
         } else {
             this.fakePlayer = new SpectatedFakePlayer(player, seat.getManager());
@@ -45,16 +46,16 @@ class FirstPersonSpectatedEntityPlayerSitting extends FirstPersonSpectatedEntity
         this.fakePlayer.setUseMinecartInterpolation(seat.isMinecartInterpolation());
     }
 
-    private Matrix4x4 toBodyTransform(Matrix4x4 eyeTransform) {
-        Matrix4x4 bodyTransform = eyeTransform.clone();
-        bodyTransform.translate(0.0, -VirtualEntity.PLAYER_SIT_BUTT_EYE_HEIGHT, 0.0);
-        return bodyTransform;
+    private Matrix4x4 getSyncTransform(Matrix4x4 eyeTransform) {
+        // Keep sitting spectator sync in eye space for both default and head mode.
+        // The fake mount applies the seated vertical offsets already.
+        return eyeTransform;
     }
 
     @Override
     public void start(Matrix4x4 eyeTransform) {
-        Matrix4x4 bodyTransform = toBodyTransform(eyeTransform);
-        fakePlayer.start(bodyTransform, seat.calcMotion());
+        Matrix4x4 syncTransform = getSyncTransform(eyeTransform);
+        fakePlayer.start(syncTransform, seat.calcMotion());
 
         // Spawn an invisible holder entity inside which the fake player sits
         // Or, depending on configuration, just mount it in the vehicle directly
@@ -65,7 +66,7 @@ class FirstPersonSpectatedEntityPlayerSitting extends FirstPersonSpectatedEntity
             !ClientboundSetPassengersPacketHandle.T.isAvailable()
         ) {
             // Player must be put into the seat so the eye position is at the baseTransform
-            prepareFakeMounts(bodyTransform);
+            prepareFakeMounts(syncTransform);
         } else {
             // Player is put into a vehicle, we don't really care
             mountInVehicle();
@@ -146,12 +147,12 @@ class FirstPersonSpectatedEntityPlayerSitting extends FirstPersonSpectatedEntity
 
     @Override
     public void updatePosition(Matrix4x4 eyeTransform) {
-        Matrix4x4 bodyTransform = toBodyTransform(eyeTransform);
-        this.fakePlayer.updatePosition(bodyTransform);
+        Matrix4x4 syncTransform = getSyncTransform(eyeTransform);
+        this.fakePlayer.updatePosition(syncTransform);
 
         // Move the vehicle itself, which moves the fake player around
         for (VirtualEntity fakeMount : fakeMounts) {
-            fakeMount.updatePosition(bodyTransform);
+            fakeMount.updatePosition(syncTransform);
         }
     }
 

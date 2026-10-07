@@ -668,10 +668,13 @@ public class VirtualEntity extends VirtualSpawnableObject {
 
         // When trying to imitate the minecart's update rate, perform less delta movement than reality
         if (this.minecartInterpolation) {
-            final double FACTOR = 3.0 / 5.0;
-            dx *= FACTOR;
-            dy *= FACTOR;
-            dz *= FACTOR;
+            // Players already use a different interpolation model on the client that
+            // matches minecart movement timing better. Applying the generic 3/5 factor
+            // causes standing fake players to visibly lag behind.
+            final double factor = (this.entityType == EntityType.PLAYER) ? 1.0 : (3.0 / 5.0);
+            dx *= factor;
+            dy *= factor;
+            dz *= factor;
         }
 
         if (moved && rotated) {

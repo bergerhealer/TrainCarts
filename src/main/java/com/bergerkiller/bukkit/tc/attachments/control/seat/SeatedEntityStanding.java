@@ -132,6 +132,7 @@ class SeatedEntityStanding extends SeatedEntityNormal {
 
     @Override
     public void syncPosition(boolean absolute) {
+        super.syncPosition(absolute);
     }
 
     @Override

@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.tc.attachments.control.seat.spectator;
 
 import org.bukkit.entity.EntityType;
+import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity;
@@ -29,11 +30,16 @@ class FirstPersonSpectatedEntityPlayerStanding extends FirstPersonSpectatedEntit
             this.fakePlayer = new SpectatedFakePlayer(player, seat.getManager());
         }
         this.fakePlayer.setUseMinecartInterpolation(seat.isMinecartInterpolation());
+        this.fakePlayer.setForceAbsoluteSync(true);
     }
 
     private Matrix4x4 toBodyTransform(Matrix4x4 eyeTransform) {
-        Matrix4x4 bodyTransform = eyeTransform.clone();
-        bodyTransform.translate(0.0, -VirtualEntity.PLAYER_STANDING_EYE_HEIGHT, 0.0);
+        Vector pos = eyeTransform.toVector();
+        pos.setY(pos.getY() - VirtualEntity.PLAYER_STANDING_EYE_HEIGHT);
+
+        Matrix4x4 bodyTransform = new Matrix4x4();
+        bodyTransform.translate(pos);
+        bodyTransform.rotate(eyeTransform.getRotation());
         return bodyTransform;
     }
 
@@ -50,11 +56,13 @@ class FirstPersonSpectatedEntityPlayerStanding extends FirstPersonSpectatedEntit
     @Override
     public void updatePosition(Matrix4x4 eyeTransform) {
         this.fakePlayer.updatePosition(toBodyTransform(eyeTransform));
+        // Keep cadence equal to regular standing seat display logic: sync every tick.
+        this.fakePlayer.syncPosition(true);
     }
 
     @Override
     public void syncPosition(boolean absolute) {
-        this.fakePlayer.syncPosition(absolute);
+        // Already synchronized in updatePosition() every tick.
     }
 
     @Override

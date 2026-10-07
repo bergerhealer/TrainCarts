@@ -29,6 +29,7 @@ public class SpectatedFakePlayer {
     private BlindRespawn blindRespawn = null;
     private int[] mountedEntityIds = NO_MOUNTS;
     private boolean useMinecartInterpolation = false;
+    private boolean forceAbsoluteSync = false;
     private double offsetX = 0.0;
     private double offsetY = 0.0;
     private double offsetZ = 0.0;
@@ -51,6 +52,10 @@ public class SpectatedFakePlayer {
         this.offsetX = x;
         this.offsetY = y;
         this.offsetZ = z;
+    }
+
+    public void setForceAbsoluteSync(boolean forceAbsoluteSync) {
+        this.forceAbsoluteSync = forceAbsoluteSync;
     }
 
     public void start(Matrix4x4 transform, Vector motion) {
@@ -156,6 +161,9 @@ public class SpectatedFakePlayer {
 
     public void syncPosition(boolean absolute) {
         checkStarted();
+        if (forceAbsoluteSync) {
+            absolute = true;
+        }
 
         fakePlayer.syncPosition(absolute);
         if (blindRespawn != null) {
