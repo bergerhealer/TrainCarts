@@ -3,7 +3,6 @@ package com.bergerkiller.bukkit.tc.controller.player;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentManager;
-import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 
 /**
  * Variant of {@link SpectatedFakePlayer} that synchronizes head position from
@@ -14,11 +13,11 @@ public class SpectatedFakePlayerHead extends SpectatedFakePlayer {
     private double headOffsetY = 0.0;
     private double headOffsetZ = 0.0;
 
-    public SpectatedFakePlayerHead(AttachmentViewer player) {
+    public SpectatedFakePlayerHead(TrainCartsAttachmentViewer player) {
         this(player, null);
     }
 
-    public SpectatedFakePlayerHead(AttachmentViewer player, AttachmentManager manager) {
+    public SpectatedFakePlayerHead(TrainCartsAttachmentViewer player, AttachmentManager manager) {
         super(player, manager);
     }
 

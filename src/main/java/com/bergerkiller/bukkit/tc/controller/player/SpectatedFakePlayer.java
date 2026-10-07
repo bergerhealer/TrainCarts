@@ -7,7 +7,6 @@ import com.bergerkiller.bukkit.tc.attachments.FakePlayerSpawner;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity.SyncMode;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentManager;
-import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.SeatedEntityHead;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.spectator.PitchSwappedEntity;
 import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
@@ -23,7 +22,7 @@ import org.bukkit.util.Vector;
 public class SpectatedFakePlayer {
     private static final int[] NO_MOUNTS = new int[0];
 
-    private final AttachmentViewer player;
+    private final TrainCartsAttachmentViewer player;
     private final AttachmentManager manager;
     private PitchSwappedEntity<FakeVirtualPlayer> fakePlayer = null;
     private BlindRespawn blindRespawn = null;
@@ -35,13 +34,14 @@ public class SpectatedFakePlayer {
     private double offsetZ = 0.0;
     private ItemStack skullItem = null;
 
-    public SpectatedFakePlayer(AttachmentViewer player) {
+    public SpectatedFakePlayer(TrainCartsAttachmentViewer player) {
         this(player, null);
     }
 
-    public SpectatedFakePlayer(AttachmentViewer player, AttachmentManager manager) {
+    public SpectatedFakePlayer(TrainCartsAttachmentViewer player, AttachmentManager manager) {
         this.player = player;
         this.manager = manager;
+        this.player.onSpectatedFakePlayerCreated(this);
     }
 
     public void setUseMinecartInterpolation(boolean useMinecartInterpolation) {
@@ -88,6 +88,7 @@ public class SpectatedFakePlayer {
 
         this.blindRespawn = new BlindRespawn(manager);
         this.blindRespawn.spawn(syncTransform, motion);
+        this.player.onSpectatedFakePlayerActive(this, true);
     }
 
     public void stop() {
@@ -102,6 +103,7 @@ public class SpectatedFakePlayer {
         }
         mountedEntityIds = NO_MOUNTS;
         skullItem = null;
+        this.player.onSpectatedFakePlayerActive(this, false);
     }
 
     public void mountSingle(int mountEntityId) {
@@ -253,7 +255,7 @@ public class SpectatedFakePlayer {
         }
 
         @Override
-        protected void sendSpawnPackets(AttachmentViewer viewer, Vector motion) {
+        protected void sendSpawnPackets(com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer viewer, Vector motion) {
             FakePlayerSpawner.FakePlayerPosition orientation = FakePlayerSpawner.FakePlayerPosition.create(
                     this.getPosX(), this.getPosY(), this.getPosZ(),
                     (float) this.getYawPitchRoll().getY(),

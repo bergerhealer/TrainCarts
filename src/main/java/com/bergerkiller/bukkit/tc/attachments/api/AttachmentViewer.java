@@ -9,6 +9,9 @@ import com.bergerkiller.bukkit.common.protocol.PacketType;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.surface.StationaryCollisionElement;
 import com.bergerkiller.bukkit.tc.attachments.surface.CollisionSurface;
+import com.bergerkiller.bukkit.tc.controller.player.SpectatedFakePlayer;
+import com.bergerkiller.bukkit.tc.controller.player.SpectatedFakePlayerHead;
+import com.bergerkiller.bukkit.tc.controller.player.TrainCartsAttachmentViewer;
 import com.bergerkiller.bukkit.tc.controller.player.network.PlayerClientSynchronizer;
 import com.bergerkiller.bukkit.tc.controller.player.network.PlayerPacketListener;
 import com.bergerkiller.bukkit.common.math.Quaternion;
@@ -221,6 +224,64 @@ public interface AttachmentViewer extends TrainCarts.Provider {
         TrainCarts trainCarts = getTrainCarts();
         return trainCarts.getPlayerPacketListenerProvider().create(
                         getPlayer(), packetListener, packetTypes);
+    }
+
+    /**
+     * Creates a spectated fake player controller that can spawn a fake player,
+     * spectate it and synchronize movement.
+     *
+     * @return Spectated fake player controller
+     */
+    default SpectatedFakePlayer createSpectatedFakePlayer() {
+        return createSpectatedFakePlayer(null);
+    }
+
+    /**
+     * Creates a spectated fake player controller that can spawn a fake player,
+     * spectate it and synchronize movement.
+     *
+     * @param manager Optional attachment manager used for spawning virtual entities
+     * @return Spectated fake player controller
+     */
+    default SpectatedFakePlayer createSpectatedFakePlayer(AttachmentManager manager) {
+        final TrainCarts plugin = getTrainCarts();
+        if (plugin == null || !plugin.isEnabled() || !isConnected()) {
+            throw new IllegalStateException("Player is not connected");
+        }
+
+        final AttachmentViewer viewer = plugin.getAttachmentViewer(getPlayer());
+        if (viewer instanceof TrainCartsAttachmentViewer) {
+            return ((TrainCartsAttachmentViewer) viewer).createSpectatedFakePlayer(manager);
+        }
+        throw new IllegalStateException("TrainCartsAttachmentViewer unavailable");
+    }
+
+    /**
+     * Creates a head-only spectated fake player controller.
+     *
+     * @return Head-only spectated fake player controller
+     */
+    default SpectatedFakePlayerHead createSpectatedFakePlayerHead() {
+        return createSpectatedFakePlayerHead(null);
+    }
+
+    /**
+     * Creates a head-only spectated fake player controller.
+     *
+     * @param manager Optional attachment manager used for spawning virtual entities
+     * @return Head-only spectated fake player controller
+     */
+    default SpectatedFakePlayerHead createSpectatedFakePlayerHead(AttachmentManager manager) {
+        final TrainCarts plugin = getTrainCarts();
+        if (plugin == null || !plugin.isEnabled() || !isConnected()) {
+            throw new IllegalStateException("Player is not connected");
+        }
+
+        final AttachmentViewer viewer = plugin.getAttachmentViewer(getPlayer());
+        if (viewer instanceof TrainCartsAttachmentViewer) {
+            return ((TrainCartsAttachmentViewer) viewer).createSpectatedFakePlayerHead(manager);
+        }
+        throw new IllegalStateException("TrainCartsAttachmentViewer unavailable");
     }
 
     /**

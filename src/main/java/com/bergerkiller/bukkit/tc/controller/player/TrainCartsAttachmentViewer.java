@@ -17,6 +17,9 @@ import com.bergerkiller.generated.net.minecraft.network.protocol.PacketHandle;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
+import java.util.Collections;
+import java.util.IdentityHashMap;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
@@ -42,6 +45,8 @@ public final class TrainCartsAttachmentViewer implements AttachmentViewer {
     private final Object activeMovementControllerLock;
     private volatile MovementControllerTicket activeMovementController;
     CollisionSurfaceTracker collisionSurfaceTracker;
+    private final Set<SpectatedFakePlayer> spectatedFakePlayersCreated;
+    private final Set<SpectatedFakePlayer> spectatedFakePlayersActive;
 
     TrainCartsAttachmentViewer(TrainCarts plugin, Player player, PlayerGameInfo playerGameInfo, PacketQueue packetQueue) {
         this.plugin = plugin;
@@ -57,6 +62,8 @@ public final class TrainCartsAttachmentViewer implements AttachmentViewer {
         this.activeMovementControllerLock = new MovementControllerTicket();
         this.activeMovementController = new MovementControllerTicket();
         this.collisionSurfaceTracker = null;
+        this.spectatedFakePlayersCreated = Collections.newSetFromMap(new IdentityHashMap<>());
+        this.spectatedFakePlayersActive = Collections.newSetFromMap(new IdentityHashMap<>());
     }
 
     PacketQueue getPacketQueue() {
@@ -183,6 +190,55 @@ public final class TrainCartsAttachmentViewer implements AttachmentViewer {
                     minX, minY, minZ, maxX, maxY, maxZ,
                     action
             );
+        }
+    }
+
+    @Override
+    public SpectatedFakePlayer createSpectatedFakePlayer() {
+        return new SpectatedFakePlayer(this);
+    }
+
+    @Override
+    public SpectatedFakePlayer createSpectatedFakePlayer(com.bergerkiller.bukkit.tc.attachments.api.AttachmentManager manager) {
+        return new SpectatedFakePlayer(this, manager);
+    }
+
+    @Override
+    public SpectatedFakePlayerHead createSpectatedFakePlayerHead() {
+        return new SpectatedFakePlayerHead(this);
+    }
+
+    @Override
+    public SpectatedFakePlayerHead createSpectatedFakePlayerHead(com.bergerkiller.bukkit.tc.attachments.api.AttachmentManager manager) {
+        return new SpectatedFakePlayerHead(this, manager);
+    }
+
+    void onSpectatedFakePlayerCreated(SpectatedFakePlayer fakePlayer) {
+        synchronized (this.spectatedFakePlayersCreated) {
+            this.spectatedFakePlayersCreated.add(fakePlayer);
+        }
+    }
+
+    void onSpectatedFakePlayerActive(SpectatedFakePlayer fakePlayer, boolean active) {
+        synchronized (this.spectatedFakePlayersCreated) {
+            if (active) {
+                this.spectatedFakePlayersActive.add(fakePlayer);
+            } else {
+                this.spectatedFakePlayersActive.remove(fakePlayer);
+            }
+        }
+    }
+
+    void stopTrackedSpectatedFakePlayers() {
+        final SpectatedFakePlayer[] activePlayers;
+        synchronized (this.spectatedFakePlayersCreated) {
+            activePlayers = this.spectatedFakePlayersActive.toArray(new SpectatedFakePlayer[0]);
+            this.spectatedFakePlayersActive.clear();
+            this.spectatedFakePlayersCreated.clear();
+        }
+
+        for (SpectatedFakePlayer fakePlayer : activePlayers) {
+            fakePlayer.stop();
         }
     }
 

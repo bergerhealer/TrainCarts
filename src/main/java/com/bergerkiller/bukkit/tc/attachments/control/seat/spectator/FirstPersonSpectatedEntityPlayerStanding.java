@@ -23,11 +23,11 @@ class FirstPersonSpectatedEntityPlayerStanding extends FirstPersonSpectatedEntit
     public FirstPersonSpectatedEntityPlayerStanding(CartAttachmentSeat seat, FirstPersonViewSpectator view, AttachmentViewer player) {
         super(seat, view, player);
         if (view.getLiveMode() == FirstPersonViewMode.HEAD) {
-            SpectatedFakePlayerHead headPlayer = new SpectatedFakePlayerHead(player, seat.getManager());
+            SpectatedFakePlayerHead headPlayer = player.createSpectatedFakePlayerHead(seat.getManager());
             headPlayer.setHeadOffsetToStandingDefault();
             this.fakePlayer = headPlayer;
         } else {
-            this.fakePlayer = new SpectatedFakePlayer(player, seat.getManager());
+            this.fakePlayer = player.createSpectatedFakePlayer(seat.getManager());
         }
         this.fakePlayer.setUseMinecartInterpolation(seat.isMinecartInterpolation());
         this.fakePlayer.setForceAbsoluteSync(true);

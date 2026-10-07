@@ -38,10 +38,10 @@ class FirstPersonSpectatedEntityPlayerSitting extends FirstPersonSpectatedEntity
         super(seat, view, player);
         this.isHeadMode = (view.getLiveMode() == FirstPersonViewMode.HEAD);
         if (isHeadMode) {
-            SpectatedFakePlayerHead headPlayer = new SpectatedFakePlayerHead(player, seat.getManager());
+            SpectatedFakePlayerHead headPlayer = player.createSpectatedFakePlayerHead(seat.getManager());
             this.fakePlayer = headPlayer;
         } else {
-            this.fakePlayer = new SpectatedFakePlayer(player, seat.getManager());
+            this.fakePlayer = player.createSpectatedFakePlayer(seat.getManager());
         }
         this.fakePlayer.setUseMinecartInterpolation(seat.isMinecartInterpolation());
     }
