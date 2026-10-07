@@ -1,8 +1,12 @@
 package com.bergerkiller.bukkit.tc.controller.player;
 
 import com.bergerkiller.bukkit.common.controller.VehicleMountController;
+import com.bergerkiller.bukkit.common.events.PacketReceiveEvent;
+import com.bergerkiller.bukkit.common.events.PacketSendEvent;
 import com.bergerkiller.bukkit.common.math.Quaternion;
+import com.bergerkiller.bukkit.common.protocol.PacketListener;
 import com.bergerkiller.bukkit.common.protocol.CommonPacket;
+import com.bergerkiller.bukkit.common.protocol.PacketType;
 import com.bergerkiller.bukkit.common.protocol.PlayerGameInfo;
 import com.bergerkiller.bukkit.common.utils.PlayerUtil;
 import com.bergerkiller.bukkit.tc.TrainCarts;
@@ -12,6 +16,7 @@ import com.bergerkiller.bukkit.tc.attachments.surface.CollisionSurfaceTracker;
 import com.bergerkiller.bukkit.tc.attachments.surface.StationaryCollisionElement;
 import com.bergerkiller.bukkit.tc.controller.player.network.PacketQueue;
 import com.bergerkiller.bukkit.tc.controller.player.network.PlayerClientSynchronizer;
+import com.bergerkiller.bukkit.tc.controller.player.network.PlayerPacketListener;
 import com.bergerkiller.bukkit.tc.controller.player.pmc.PlayerMovementController;
 import com.bergerkiller.generated.net.minecraft.network.protocol.PacketHandle;
 import org.bukkit.entity.Player;
@@ -45,6 +50,9 @@ public final class TrainCartsAttachmentViewer implements AttachmentViewer {
     private final Object activeMovementControllerLock;
     private volatile MovementControllerTicket activeMovementController;
     CollisionSurfaceTracker collisionSurfaceTracker;
+    private final Object viewRotationTrackingLock;
+    private volatile ViewRotationTracker activeViewRotationTracker;
+    private volatile PlayerPacketListener<ViewRotationPacketListener> viewRotationPacketListener;
     private final Set<SpectatedFakePlayer> spectatedFakePlayersCreated;
     private final Set<SpectatedFakePlayer> spectatedFakePlayersActive;
 
@@ -62,6 +70,9 @@ public final class TrainCartsAttachmentViewer implements AttachmentViewer {
         this.activeMovementControllerLock = new MovementControllerTicket();
         this.activeMovementController = new MovementControllerTicket();
         this.collisionSurfaceTracker = null;
+        this.viewRotationTrackingLock = new Object();
+        this.activeViewRotationTracker = null;
+        this.viewRotationPacketListener = null;
         this.spectatedFakePlayersCreated = Collections.newSetFromMap(new IdentityHashMap<>());
         this.spectatedFakePlayersActive = Collections.newSetFromMap(new IdentityHashMap<>());
     }
@@ -213,6 +224,33 @@ public final class TrainCartsAttachmentViewer implements AttachmentViewer {
         return new SpectatedFakePlayerHead(this, manager);
     }
 
+    @Override
+    public ViewRotationTracker startViewRotationTracking() {
+        synchronized (viewRotationTrackingLock) {
+            if (activeViewRotationTracker != null) {
+                activeViewRotationTracker.markStoppedByReplacement();
+            }
+            ViewRotationTracker tracker = new ViewRotationTracker(this, new ViewRotationTracker.TrackerControl() {
+                @Override
+                public void enable(ViewRotationTracker tracker) {
+                    enableViewRotationTracking(tracker);
+                }
+
+                @Override
+                public void stop(ViewRotationTracker tracker) {
+                    stopViewRotationTracking(tracker);
+                }
+            });
+            tracker.reset();
+            activeViewRotationTracker = tracker;
+            if (viewRotationPacketListener == null) {
+                viewRotationPacketListener = createPacketListener(new ViewRotationPacketListener(),
+                        PacketType.IN_POSITION_LOOK, PacketType.IN_POSITION, PacketType.IN_LOOK);
+            }
+            return tracker;
+        }
+    }
+
     void onSpectatedFakePlayerCreated(SpectatedFakePlayer fakePlayer) {
         synchronized (this.spectatedFakePlayersCreated) {
             this.spectatedFakePlayersCreated.add(fakePlayer);
@@ -239,6 +277,60 @@ public final class TrainCartsAttachmentViewer implements AttachmentViewer {
 
         for (SpectatedFakePlayer fakePlayer : activePlayers) {
             fakePlayer.stop();
+        }
+    }
+
+    void stopViewRotationTracking() {
+        synchronized (viewRotationTrackingLock) {
+            if (activeViewRotationTracker != null) {
+                activeViewRotationTracker.markStoppedByReplacement();
+                activeViewRotationTracker = null;
+            }
+            PlayerPacketListener<ViewRotationPacketListener> listener = viewRotationPacketListener;
+            viewRotationPacketListener = null;
+            if (listener != null) {
+                listener.terminate();
+            }
+        }
+    }
+
+    private void enableViewRotationTracking(ViewRotationTracker tracker) {
+        synchronized (viewRotationTrackingLock) {
+            if (tracker != activeViewRotationTracker) {
+                return;
+            }
+            if (viewRotationPacketListener != null) {
+                viewRotationPacketListener.enable();
+            }
+        }
+    }
+
+    private void stopViewRotationTracking(ViewRotationTracker tracker) {
+        final PlayerPacketListener<ViewRotationPacketListener> listener;
+        synchronized (viewRotationTrackingLock) {
+            if (tracker != activeViewRotationTracker) {
+                return;
+            }
+            activeViewRotationTracker = null;
+            listener = viewRotationPacketListener;
+            viewRotationPacketListener = null;
+        }
+        if (listener != null) {
+            this.getClientSynchronizer().synchronize(listener::terminate);
+        }
+    }
+
+    private final class ViewRotationPacketListener implements PacketListener {
+        @Override
+        public void onPacketReceive(PacketReceiveEvent event) {
+            ViewRotationTracker tracker = activeViewRotationTracker;
+            if (tracker != null) {
+                tracker.onPacketReceive(event);
+            }
+        }
+
+        @Override
+        public void onPacketSend(PacketSendEvent event) {
         }
     }
 

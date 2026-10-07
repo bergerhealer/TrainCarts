@@ -12,6 +12,7 @@ import com.bergerkiller.bukkit.tc.attachments.surface.CollisionSurface;
 import com.bergerkiller.bukkit.tc.controller.player.SpectatedFakePlayer;
 import com.bergerkiller.bukkit.tc.controller.player.SpectatedFakePlayerHead;
 import com.bergerkiller.bukkit.tc.controller.player.TrainCartsAttachmentViewer;
+import com.bergerkiller.bukkit.tc.controller.player.ViewRotationTracker;
 import com.bergerkiller.bukkit.tc.controller.player.network.PlayerClientSynchronizer;
 import com.bergerkiller.bukkit.tc.controller.player.network.PlayerPacketListener;
 import com.bergerkiller.bukkit.common.math.Quaternion;
@@ -280,6 +281,25 @@ public interface AttachmentViewer extends TrainCarts.Provider {
         final AttachmentViewer viewer = plugin.getAttachmentViewer(getPlayer());
         if (viewer instanceof TrainCartsAttachmentViewer) {
             return ((TrainCartsAttachmentViewer) viewer).createSpectatedFakePlayerHead(manager);
+        }
+        throw new IllegalStateException("TrainCartsAttachmentViewer unavailable");
+    }
+
+    /**
+     * Starts a new view rotation tracking session that captures incoming yaw/pitch changes
+     * from the player. If another session was active before, it is replaced.
+     *
+     * @return New active view rotation tracker session
+     */
+    default ViewRotationTracker startViewRotationTracking() {
+        final TrainCarts plugin = getTrainCarts();
+        if (plugin == null || !plugin.isEnabled() || !isConnected()) {
+            throw new IllegalStateException("Player is not connected");
+        }
+
+        final AttachmentViewer viewer = plugin.getAttachmentViewer(getPlayer());
+        if (viewer instanceof TrainCartsAttachmentViewer) {
+            return ((TrainCartsAttachmentViewer) viewer).startViewRotationTracking();
         }
         throw new IllegalStateException("TrainCartsAttachmentViewer unavailable");
     }
