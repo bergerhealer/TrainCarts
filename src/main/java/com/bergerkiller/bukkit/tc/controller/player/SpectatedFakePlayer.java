@@ -2,6 +2,7 @@ package com.bergerkiller.bukkit.tc.controller.player;
 
 import com.bergerkiller.bukkit.common.controller.VehicleMountController;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
+import com.bergerkiller.bukkit.common.wrappers.RelativeFlags;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.attachments.FakePlayerSpawner;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity;
@@ -9,7 +10,11 @@ import com.bergerkiller.bukkit.tc.attachments.VirtualEntity.SyncMode;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentManager;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.SeatedEntityHead;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.spectator.PitchSwappedEntity;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundPlayerPositionPacketHandle;
+import com.bergerkiller.generated.net.minecraft.server.level.ServerPlayerHandle;
 import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
+import com.bergerkiller.generated.net.minecraft.world.entity.LivingEntityHandle;
+import com.bergerkiller.generated.net.minecraft.world.entity.decoration.ArmorStandHandle;
 import org.bukkit.entity.EntityType;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
@@ -21,14 +26,18 @@ import org.bukkit.util.Vector;
  */
 public class SpectatedFakePlayer {
     private static final int[] NO_MOUNTS = new int[0];
+    private static final double GHOST_Y_OFFSET = 64.0;
 
     private final TrainCartsAttachmentViewer player;
     private final AttachmentManager manager;
     private PitchSwappedEntity<FakeVirtualPlayer> fakePlayer = null;
     private BlindRespawn blindRespawn = null;
+    private VirtualEntity playerMount = null;
     private int[] mountedEntityIds = NO_MOUNTS;
     private boolean useMinecartInterpolation = false;
     private boolean forceAbsoluteSync = false;
+    private boolean holdRealPlayerOffscreen = false;
+    private Runnable onRealPlayerPositionSynchronized = null;
     private double offsetX = 0.0;
     private double offsetY = 0.0;
     private double offsetZ = 0.0;
@@ -58,12 +67,57 @@ public class SpectatedFakePlayer {
         this.forceAbsoluteSync = forceAbsoluteSync;
     }
 
+    /**
+     * Sets whether the real player is mounted onto an invisible off-screen seat while spectating
+     * this fake player, so incoming look packets can be tracked reliably. Disabled by default.
+     *
+     * @param holdRealPlayerOffscreen True to use an off-screen seat for the real player
+     */
+    public void setHoldRealPlayerOffscreen(boolean holdRealPlayerOffscreen) {
+        this.holdRealPlayerOffscreen = holdRealPlayerOffscreen;
+    }
+
+    /**
+     * Sets a callback run after the real player has been synchronized to the off-screen seat
+     * position. Used to enable look packet tracking after the client has acknowledged teleport.
+     *
+     * @param callback Callback to run, null to disable
+     */
+    public void setOnRealPlayerPositionSynchronized(Runnable callback) {
+        this.onRealPlayerPositionSynchronized = callback;
+    }
+
+    /**
+     * Gets the Y-position correction that should be applied to incoming player position packets
+     * while this fake player is active.
+     *
+     * @return Y correction amount
+     */
+    public double getRealPlayerPositionYCorrection() {
+        return holdRealPlayerOffscreen ? GHOST_Y_OFFSET : 0.0;
+    }
+
+    /**
+     * Gets the Y-position correction for handling player packets when the player is put in ghost mode.
+     *
+     * @return Ghost mode Y-position correction
+     */
+    public static double getGhostPositionYCorrection() {
+        return GHOST_Y_OFFSET;
+    }
+
+    /**
+     * Applies the standard ghost mode offset to an off-screen mount entity.
+     *
+     * @param entity Entity to configure
+     */
+    public static void applyGhostModeOffset(VirtualEntity entity) {
+        entity.setRelativeOffset(0.0, GHOST_Y_OFFSET, 0.0);
+    }
+
     public void start(Matrix4x4 transform, Vector motion) {
         if (fakePlayer != null) {
             stop();
-        }
-        if (manager == null) {
-            throw new IllegalStateException("No AttachmentManager configured");
         }
         Matrix4x4 syncTransform = transformForSync(transform);
 
@@ -88,10 +142,12 @@ public class SpectatedFakePlayer {
 
         this.blindRespawn = new BlindRespawn(manager);
         this.blindRespawn.spawn(syncTransform, motion);
+        this.startRealPlayerMount(syncTransform);
         this.player.onSpectatedFakePlayerActive(this, true);
     }
 
     public void stop() {
+        stopRealPlayerMount();
         if (blindRespawn != null) {
             blindRespawn.despawn();
             blindRespawn = null;
@@ -159,6 +215,9 @@ public class SpectatedFakePlayer {
         }
 
         fakePlayer.updatePosition(syncTransform);
+        if (playerMount != null) {
+            playerMount.updatePosition(syncTransform);
+        }
     }
 
     public void syncPosition(boolean absolute) {
@@ -170,6 +229,9 @@ public class SpectatedFakePlayer {
         fakePlayer.syncPosition(absolute);
         if (blindRespawn != null) {
             blindRespawn.syncPosition(absolute);
+        }
+        if (playerMount != null) {
+            playerMount.syncPosition(absolute);
         }
     }
 
@@ -190,6 +252,66 @@ public class SpectatedFakePlayer {
 
     protected boolean isHeadOnly() {
         return false;
+    }
+
+    private void startRealPlayerMount(Matrix4x4 syncTransform) {
+        if (!holdRealPlayerOffscreen) {
+            return;
+        }
+
+        if (playerMount == null) {
+            playerMount = new VirtualEntity(manager);
+            playerMount.setEntityType(EntityType.ARMOR_STAND);
+            playerMount.setSyncMode(SyncMode.SEAT);
+            applyGhostModeOffset(playerMount);
+            playerMount.getMetaData().set(EntityHandle.DATA_FLAGS, (byte) (EntityHandle.DATA_FLAG_INVISIBLE));
+            playerMount.getMetaData().set(LivingEntityHandle.DATA_HEALTH, 10.0F);
+            playerMount.getMetaData().set(ArmorStandHandle.DATA_ARMORSTAND_FLAGS, (byte) (
+                    ArmorStandHandle.DATA_FLAG_SET_MARKER |
+                            ArmorStandHandle.DATA_FLAG_NO_BASEPLATE |
+                            ArmorStandHandle.DATA_FLAG_IS_SMALL));
+        }
+
+        playerMount.updatePosition(syncTransform);
+        playerMount.syncPosition(true);
+        playerMount.spawn(player, new Vector());
+
+        final Runnable callback = onRealPlayerPositionSynchronized;
+        final Vector pos = playerMount.getSyncPos();
+        player.getClientSynchronizer().synchronize(teleportId -> ClientboundPlayerPositionPacketHandle.createNew(
+                pos.getX(), pos.getY(), pos.getZ(),
+                playerMount.getSyncYaw(), playerMount.getSyncPitch(),
+                0.0, 0.0, 0.0,
+                RelativeFlags.ABSOLUTE_POSITION,
+                teleportId), p -> {
+            if (callback != null) {
+                callback.run();
+            }
+        });
+        player.getVehicleMountController().mount(playerMount.getEntityId(), player.getEntityId());
+    }
+
+    private void stopRealPlayerMount() {
+        if (playerMount != null) {
+            player.getVehicleMountController().unmount(playerMount.getEntityId(), player.getEntityId());
+            playerMount.destroy(player);
+            playerMount = null;
+
+            // After unmounting, make sure the real player is restored to where the spectated
+            // fake player was, instead of being left up at the off-screen mount altitude.
+            VirtualEntity entity = (fakePlayer != null) ? fakePlayer.entity : null;
+            if (entity != null) {
+                Vector pos = entity.getSyncPos();
+                ServerPlayerHandle playerHandle = ServerPlayerHandle.fromBukkit(player.getPlayer());
+                playerHandle.setPositionRotation(pos.getX(), pos.getY(), pos.getZ(),
+                        entity.getSyncYaw(), entity.getSyncPitch());
+                playerHandle.setFallDistance(0.0f);
+
+                player.send(ClientboundPlayerPositionPacketHandle.createAbsolute(
+                        pos.getX(), pos.getY(), pos.getZ(),
+                        entity.getSyncYaw(), entity.getSyncPitch()));
+            }
+        }
     }
 
     private class BlindRespawn {

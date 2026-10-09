@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.tc.attachments.control.seat;
 
 import com.bergerkiller.bukkit.common.wrappers.RelativeFlags;
+import com.bergerkiller.bukkit.tc.controller.player.SpectatedFakePlayer;
 import com.bergerkiller.bukkit.tc.controller.player.ViewRotationTracker;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundPlayerPositionPacketHandle;
 import com.bergerkiller.generated.net.minecraft.server.level.ServerPlayerHandle;
@@ -24,8 +25,6 @@ import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
  * move the camera around.
  */
 public class FirstPersonViewSpectator extends FirstPersonView {
-    /** The real (invisible) player is floating this high above the entity being spectated */
-    private static final double GHOST_Y_OFFSET = 64;
     // Vehicle entity id, -1 if not used
     private int vehicleEntityId = -1;
     // Controls all the spectating logic itself, depending on the type of view mode used
@@ -113,7 +112,7 @@ public class FirstPersonViewSpectator extends FirstPersonView {
 
         // Track incoming player look packets and correct spectator pitch where needed
         this._viewRotationTracker = viewer.startViewRotationTracking();
-        this._viewRotationTracker.setPositionYCorrection(GHOST_Y_OFFSET);
+        this._viewRotationTracker.setPositionYCorrection(SpectatedFakePlayer.getGhostPositionYCorrection());
         this._viewRotationTracker.setUsePitchAdjustment(true);
 
         // Mount the player itself off-screen on a mount somewhere
@@ -124,7 +123,7 @@ public class FirstPersonViewSpectator extends FirstPersonView {
             this._playerMount.setSyncMode(SyncMode.SEAT);
 
             // Put the Player somewhere high up there in the sky
-            this._playerMount.setRelativeOffset(0.0, GHOST_Y_OFFSET, 0.0);
+            SpectatedFakePlayer.applyGhostModeOffset(this._playerMount);
             this._playerMount.updatePosition(eyeTransform);
             this._playerMount.syncPosition(true);
             this._playerMount.getMetaData().set(EntityHandle.DATA_FLAGS, (byte) (EntityHandle.DATA_FLAG_INVISIBLE));
@@ -136,7 +135,7 @@ public class FirstPersonViewSpectator extends FirstPersonView {
             this._playerMount.spawn(viewer, new Vector());
 
             // Sync the player to be high up in the sky, and then begin intercepting player inputs
-            // This also gets rid of the GHOST_Y_OFFSET that the server receives from the player
+            // This also gets rid of the ghost-mode Y offset that the server receives from the player
             Vector pos = this._playerMount.getSyncPos();
             viewer.getClientSynchronizer().synchronize(teleportId -> ClientboundPlayerPositionPacketHandle.createNew(
                     pos.getX(), pos.getY(), pos.getZ(),
