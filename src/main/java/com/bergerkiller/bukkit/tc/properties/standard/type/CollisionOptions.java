@@ -161,6 +161,17 @@ public final class CollisionOptions {
     }
 
     /**
+     * Gets whether with these {@link #blockMode()} options, block collision for the
+     * cart is detected at all. If false, then the vehicle will not be interacting
+     * with the blocks around.
+     *
+     * @return True if block collision for the cart is enabled
+     */
+    public boolean isBlockCollisionEnabled() {
+        return this.blockMode == CollisionMode.DEFAULT;
+    }
+
+    /**
      * Checks whether collision with entities has any effect.
      * If collision with players, trains, mobs and other miscellaneous
      * entities is all set to {@link CollisionMode#CANCEL}, then

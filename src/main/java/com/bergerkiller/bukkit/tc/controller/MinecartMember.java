@@ -1908,7 +1908,7 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
         if (this.group != null) {
             CollisionOptions collision = this.group.getProperties().getCollision();
             setEntityCollisionEnabled(collision.collidesWithEntities());
-            setBlockCollisionEnabled(collision.blockMode() == CollisionMode.DEFAULT);
+            setBlockCollisionEnabled(collision.isBlockCollisionEnabled());
         }
     }
 

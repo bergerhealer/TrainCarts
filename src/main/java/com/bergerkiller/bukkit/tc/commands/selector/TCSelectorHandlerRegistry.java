@@ -10,6 +10,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import com.bergerkiller.bukkit.tc.CollisionMode;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
@@ -118,6 +119,9 @@ public class TCSelectorHandlerRegistry extends SelectorHandlerRegistry {
             } else {
                 return matchingEntities.anyMatch(e -> e instanceof Player);
             }
+        });
+        registerCondition("blockcollision", (sender, properties, condition) -> {
+            return condition.matchesBoolean(properties.getCollision().isBlockCollisionEnabled());
         });
     }
 
