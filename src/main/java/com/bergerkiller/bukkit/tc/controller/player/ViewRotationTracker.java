@@ -262,5 +262,10 @@ public class ViewRotationTracker {
         public static Rotation subtract(Rotation a, Rotation b) {
             return new Rotation(a.yaw - b.yaw, a.pitch - b.pitch);
         }
+
+        @Override
+        public String toString() {
+            return "Rotation{yaw=" + yaw + ", pitch=" + pitch + "}";
+        }
     }
 }

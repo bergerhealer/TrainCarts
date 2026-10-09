@@ -286,10 +286,8 @@ public final class TrainCartsAttachmentViewer implements AttachmentViewer {
                 activeViewRotationTracker.markStoppedByReplacement();
                 activeViewRotationTracker = null;
             }
-            PlayerPacketListener<ViewRotationPacketListener> listener = viewRotationPacketListener;
-            viewRotationPacketListener = null;
-            if (listener != null) {
-                listener.terminate();
+            if (viewRotationPacketListener != null) {
+                viewRotationPacketListener.disable();
             }
         }
     }
@@ -299,24 +297,25 @@ public final class TrainCartsAttachmentViewer implements AttachmentViewer {
             if (tracker != activeViewRotationTracker) {
                 return;
             }
-            if (viewRotationPacketListener != null) {
-                viewRotationPacketListener.enable();
+
+            PlayerPacketListener<?> listener = viewRotationPacketListener;
+            if (listener != null) {
+                listener.enable();
             }
         }
     }
 
     private void stopViewRotationTracking(ViewRotationTracker tracker) {
-        final PlayerPacketListener<ViewRotationPacketListener> listener;
         synchronized (viewRotationTrackingLock) {
             if (tracker != activeViewRotationTracker) {
                 return;
             }
             activeViewRotationTracker = null;
-            listener = viewRotationPacketListener;
-            viewRotationPacketListener = null;
-        }
-        if (listener != null) {
-            this.getClientSynchronizer().synchronize(listener::terminate);
+
+            PlayerPacketListener<?> listener = viewRotationPacketListener;
+            if (listener != null) {
+                listener.disable();
+            }
         }
     }
 
