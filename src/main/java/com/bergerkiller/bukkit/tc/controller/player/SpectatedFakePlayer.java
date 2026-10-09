@@ -1,15 +1,18 @@
 package com.bergerkiller.bukkit.tc.controller.player;
 
+import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.common.controller.VehicleMountController;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.wrappers.RelativeFlags;
 import com.bergerkiller.bukkit.tc.Util;
+import com.bergerkiller.bukkit.common.utils.ItemUtil;
 import com.bergerkiller.bukkit.tc.attachments.FakePlayerSpawner;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity.SyncMode;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentManager;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.SeatedEntityHead;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.spectator.PitchSwappedEntity;
+import com.bergerkiller.bukkit.common.utils.PlayerUtil;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundPlayerPositionPacketHandle;
 import com.bergerkiller.generated.net.minecraft.server.level.ServerPlayerHandle;
 import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
@@ -19,6 +22,9 @@ import org.bukkit.entity.EntityType;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.Vector;
+
+import java.util.EnumMap;
+import java.util.Objects;
 
 /**
  * Controls spawning a fake player, spectating it and synchronizing first-person
@@ -38,6 +44,8 @@ public class SpectatedFakePlayer {
     private boolean forceAbsoluteSync = false;
     private boolean holdRealPlayerOffscreen = false;
     private Runnable onRealPlayerPositionSynchronized = null;
+    private final EnumMap<EquipmentSlot, ItemStack> equipmentState = new EnumMap<>(EquipmentSlot.class);
+    private final Task equipmentUpdateTask;
     private double offsetX = 0.0;
     private double offsetY = 0.0;
     private double offsetZ = 0.0;
@@ -50,6 +58,12 @@ public class SpectatedFakePlayer {
     public SpectatedFakePlayer(TrainCartsAttachmentViewer player, AttachmentManager manager) {
         this.player = player;
         this.manager = manager;
+        this.equipmentUpdateTask = new Task(player.getTrainCarts()) {
+            @Override
+            public void run() {
+                updateMirroredEquipment();
+            }
+        };
         this.player.onSpectatedFakePlayerCreated(this);
     }
 
@@ -143,10 +157,15 @@ public class SpectatedFakePlayer {
         this.blindRespawn = new BlindRespawn(manager);
         this.blindRespawn.spawn(syncTransform, motion);
         this.startRealPlayerMount(syncTransform);
+        if (!isHeadOnly()) {
+            initializeMirroredEquipmentState();
+            equipmentUpdateTask.start(1, 1);
+        }
         this.player.onSpectatedFakePlayerActive(this, true);
     }
 
     public void stop() {
+        equipmentUpdateTask.stop();
         stopRealPlayerMount();
         if (blindRespawn != null) {
             blindRespawn.despawn();
@@ -159,6 +178,7 @@ public class SpectatedFakePlayer {
         }
         mountedEntityIds = NO_MOUNTS;
         skullItem = null;
+        equipmentState.clear();
         this.player.onSpectatedFakePlayerActive(this, false);
     }
 
@@ -312,6 +332,42 @@ public class SpectatedFakePlayer {
                         entity.getSyncYaw(), entity.getSyncPitch()));
             }
         }
+    }
+
+    private void initializeMirroredEquipmentState() {
+        if (fakePlayer == null) {
+            return;
+        }
+
+        int entityId = fakePlayer.entity.getEntityId();
+        for (EquipmentSlot slot : EquipmentSlot.values()) {
+            ItemStack item = PlayerUtil.getEquipment(player.getPlayer(), slot);
+            equipmentState.put(slot, item);
+            if (ItemUtil.isEmpty(item)) {
+                continue;
+            }
+            player.sendSilent(Util.createPlayerEquipmentPacket(entityId, slot, item));
+        }
+    }
+
+    private void updateMirroredEquipment() {
+        if (isHeadOnly() || fakePlayer == null || fakePlayer.entity == null || !player.isConnected()) {
+            return;
+        }
+        final int entityId = fakePlayer.entity.getEntityId();
+        for (EquipmentSlot slot : EquipmentSlot.values()) {
+            sendEquipmentIfChanged(entityId, slot, PlayerUtil.getEquipment(player.getPlayer(), slot));
+        }
+    }
+
+    private void sendEquipmentIfChanged(int entityId, EquipmentSlot slot, ItemStack item) {
+        ItemStack oldItem = equipmentState.get(slot);
+        if (Objects.equals(oldItem, item)) {
+            return;
+        }
+
+        equipmentState.put(slot, item);
+        player.sendSilent(Util.createPlayerEquipmentPacket(entityId, slot, item));
     }
 
     private class BlindRespawn {
