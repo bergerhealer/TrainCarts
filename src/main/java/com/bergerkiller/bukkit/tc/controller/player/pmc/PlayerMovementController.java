@@ -75,6 +75,7 @@ public abstract class PlayerMovementController implements AttachmentViewer.Movem
     @Override
     public final void stop() {
         stopped = true;
+        onStopped();
         type.remove(this);
         setFlightForced(false);
         if (wasFlyingBeforeControl != null) {
@@ -129,6 +130,13 @@ public abstract class PlayerMovementController implements AttachmentViewer.Movem
     }
 
     protected abstract void syncPosition(Vector position, Quaternion orientation);
+
+    /**
+     * Called when this movement controller is stopped.
+     * Can be overridden to release internal resources.
+     */
+    protected void onStopped() {
+    }
 
     protected void setFlightForced(boolean forced) {
         if (forced) {
@@ -483,6 +491,9 @@ public abstract class PlayerMovementController implements AttachmentViewer.Movem
                 PacketType.IN_CLIENT_TICK_END,
                 PacketType.IN_POSITION, PacketType.IN_POSITION_LOOK,
                 PacketType.IN_STEER_VEHICLE, PacketType.IN_ABILITIES, PacketType.IN_PLAYER_COMMAND);
+        public static final ControllerType SPECTATED = new ControllerType(PlayerMovementControllerSpectated::new,
+                PacketType.IN_CLIENT_TICK_END, PacketType.IN_POSITION_LOOK, PacketType.IN_LOOK,
+                PacketType.IN_STEER_VEHICLE);
 
         /**
          * Selects the most appropriate controller type to use for a certain player viewer.
@@ -491,11 +502,14 @@ public abstract class PlayerMovementController implements AttachmentViewer.Movem
          * @return ControllerType
          */
         public static ControllerType forViewer(AttachmentViewer viewer) {
-            if (HAS_INPUT_PACKET && viewer.evaluateGameVersion(">=", "1.21.2")) {
-                return MODERN;
-            } else {
-                return LEGACY;
-            }
+            return SPECTATED;
+
+            // Old predicted PMC logic
+            // if (HAS_INPUT_PACKET && viewer.evaluateGameVersion(">=", "1.21.2")) {
+            //     return MODERN;
+            // } else {
+            //     return LEGACY;
+            // }
         }
 
         public ControllerType(BiFunction<ControllerType, AttachmentViewer, ? extends PlayerMovementController> factory, PacketType... listenedPacketTypes) {
