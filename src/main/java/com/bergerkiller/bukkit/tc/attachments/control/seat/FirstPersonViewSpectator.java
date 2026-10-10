@@ -1,24 +1,20 @@
 package com.bergerkiller.bukkit.tc.attachments.control.seat;
 
 import com.bergerkiller.bukkit.common.wrappers.RelativeFlags;
+import com.bergerkiller.bukkit.tc.attachments.VirtualOffScreenMount;
 import com.bergerkiller.bukkit.tc.controller.player.SpectatedFakePlayer;
 import com.bergerkiller.bukkit.tc.controller.player.ViewRotationTracker;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundPlayerPositionPacketHandle;
 import com.bergerkiller.generated.net.minecraft.server.level.ServerPlayerHandle;
-import com.bergerkiller.generated.net.minecraft.world.entity.LivingEntityHandle;
-import com.bergerkiller.generated.net.minecraft.world.entity.decoration.ArmorStandHandle;
-import org.bukkit.entity.EntityType;
 import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.controller.VehicleMountController;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.math.Quaternion;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity;
-import com.bergerkiller.bukkit.tc.attachments.VirtualEntity.SyncMode;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentSeat;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.spectator.FirstPersonSpectatedEntity;
-import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
 
 /**
  * Makes the player spectate an Entity and then moves that Entity to
@@ -131,26 +127,17 @@ public class FirstPersonViewSpectator extends FirstPersonView {
 
         // Track incoming player look packets and correct spectator pitch where needed
         this._viewRotationTracker = viewer.startViewRotationTracking();
-        this._viewRotationTracker.setPositionYCorrection(SpectatedFakePlayer.getGhostPositionYCorrection());
+        this._viewRotationTracker.setSuppressPositionPackets(true);
         this._viewRotationTracker.setUsePitchAdjustment(true);
 
         // Mount the player itself off-screen on a mount somewhere
         // We want it to stay out of clickable range to prevent player d/c
         if (this._playerMount == null) {
-            this._playerMount = new VirtualEntity(seat.getManager());
-            this._playerMount.setEntityType(EntityType.ARMOR_STAND);
-            this._playerMount.setSyncMode(SyncMode.SEAT);
+            this._playerMount = new VirtualOffScreenMount(seat.getManager(), viewer.getPlayer().getWorld());
 
-            // Put the Player somewhere high up there in the sky
-            SpectatedFakePlayer.applyGhostModeOffset(this._playerMount);
+            // Put the Player somewhere high up there in the sky with safe Y positioning
             this._playerMount.updatePosition(eyeTransform);
             this._playerMount.syncPosition(true);
-            this._playerMount.getMetaData().set(EntityHandle.DATA_FLAGS, (byte) (EntityHandle.DATA_FLAG_INVISIBLE));
-            this._playerMount.getMetaData().set(LivingEntityHandle.DATA_HEALTH, 10.0F);
-            this._playerMount.getMetaData().set(ArmorStandHandle.DATA_ARMORSTAND_FLAGS, (byte) (
-                    ArmorStandHandle.DATA_FLAG_SET_MARKER |
-                            ArmorStandHandle.DATA_FLAG_NO_BASEPLATE |
-                            ArmorStandHandle.DATA_FLAG_IS_SMALL));
             this._playerMount.spawn(viewer, new Vector());
 
             // Sync the player to be high up in the sky, and then begin intercepting player inputs

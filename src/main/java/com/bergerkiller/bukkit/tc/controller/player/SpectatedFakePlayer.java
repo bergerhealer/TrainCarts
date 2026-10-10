@@ -9,6 +9,7 @@ import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
 import com.bergerkiller.bukkit.tc.attachments.FakePlayerSpawner;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity;
+import com.bergerkiller.bukkit.tc.attachments.VirtualOffScreenMount;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity.SyncMode;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentManager;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.SeatedEntityHead;
@@ -18,8 +19,6 @@ import com.bergerkiller.generated.net.minecraft.network.protocol.game.Clientboun
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundSetCameraPacketHandle;
 import com.bergerkiller.generated.net.minecraft.server.level.ServerPlayerHandle;
 import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
-import com.bergerkiller.generated.net.minecraft.world.entity.LivingEntityHandle;
-import com.bergerkiller.generated.net.minecraft.world.entity.decoration.ArmorStandHandle;
 import org.bukkit.entity.EntityType;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
@@ -34,7 +33,6 @@ import java.util.Objects;
  */
 public class SpectatedFakePlayer {
     private static final int[] NO_MOUNTS = new int[0];
-    private static final double GHOST_Y_OFFSET = 64.0;
 
     private final TrainCartsAttachmentViewer player;
     private final AttachmentManager manager;
@@ -44,7 +42,6 @@ public class SpectatedFakePlayer {
     private int[] mountedEntityIds = NO_MOUNTS;
     private boolean useMinecartInterpolation = false;
     private boolean forceAbsoluteSync = false;
-    private boolean holdRealPlayerOffscreen = false;
     /** If true, then when the fake player is spawned head is already aligned the right way (since 1.20.2) */
     private final boolean canSpawnWithoutHeadAnimation;
     private Runnable onRealPlayerPositionSynchronized = null;
@@ -91,14 +88,6 @@ public class SpectatedFakePlayer {
     /**
      * Sets whether the real player is mounted onto an invisible off-screen seat while spectating
      * this fake player, so incoming look packets can be tracked reliably. Disabled by default.
-     *
-     * @param holdRealPlayerOffscreen True to use an off-screen seat for the real player
-     */
-    public void setHoldRealPlayerOffscreen(boolean holdRealPlayerOffscreen) {
-        this.holdRealPlayerOffscreen = holdRealPlayerOffscreen;
-    }
-
-    /**
      * Sets a callback run after the real player has been synchronized to the off-screen seat
      * position. Used to enable look packet tracking after the client has acknowledged teleport.
      *
@@ -106,34 +95,6 @@ public class SpectatedFakePlayer {
      */
     public void setOnRealPlayerPositionSynchronized(Runnable callback) {
         this.onRealPlayerPositionSynchronized = callback;
-    }
-
-    /**
-     * Gets the Y-position correction that should be applied to incoming player position packets
-     * while this fake player is active.
-     *
-     * @return Y correction amount
-     */
-    public double getRealPlayerPositionYCorrection() {
-        return holdRealPlayerOffscreen ? GHOST_Y_OFFSET : 0.0;
-    }
-
-    /**
-     * Gets the Y-position correction for handling player packets when the player is put in ghost mode.
-     *
-     * @return Ghost mode Y-position correction
-     */
-    public static double getGhostPositionYCorrection() {
-        return GHOST_Y_OFFSET;
-    }
-
-    /**
-     * Applies the standard ghost mode offset to an off-screen mount entity.
-     *
-     * @param entity Entity to configure
-     */
-    public static void applyGhostModeOffset(VirtualEntity entity) {
-        entity.setRelativeOffset(0.0, GHOST_Y_OFFSET, 0.0);
     }
 
     public void start(Matrix4x4 transform, Vector motion) {
@@ -293,21 +254,8 @@ public class SpectatedFakePlayer {
     }
 
     private void startRealPlayerMount(Matrix4x4 syncTransform) {
-        if (!holdRealPlayerOffscreen) {
-            return;
-        }
-
         if (playerMount == null) {
-            playerMount = new VirtualEntity(manager);
-            playerMount.setEntityType(EntityType.ARMOR_STAND);
-            playerMount.setSyncMode(SyncMode.SEAT);
-            applyGhostModeOffset(playerMount);
-            playerMount.getMetaData().set(EntityHandle.DATA_FLAGS, (byte) (EntityHandle.DATA_FLAG_INVISIBLE));
-            playerMount.getMetaData().set(LivingEntityHandle.DATA_HEALTH, 10.0F);
-            playerMount.getMetaData().set(ArmorStandHandle.DATA_ARMORSTAND_FLAGS, (byte) (
-                    ArmorStandHandle.DATA_FLAG_SET_MARKER |
-                            ArmorStandHandle.DATA_FLAG_NO_BASEPLATE |
-                            ArmorStandHandle.DATA_FLAG_IS_SMALL));
+            playerMount = new VirtualOffScreenMount(manager, player.getPlayer().getWorld());
         }
 
         playerMount.updatePosition(syncTransform);

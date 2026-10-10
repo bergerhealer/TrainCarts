@@ -51,7 +51,6 @@ class PlayerMovementControllerSpectated extends PlayerMovementController {
         this.fakePlayer = viewer.createSpectatedFakePlayer();
         this.useClientTickEndPacket = HAS_CLIENT_TICK_END_PACKET && viewer.evaluateGameVersion(">=", "1.21.2");
         this.fakePlayer.setForceAbsoluteSync(true);
-        this.fakePlayer.setHoldRealPlayerOffscreen(true);
 
         wasForwardPressed = input.forwards();
         if (viewer.getPlayer().isSprinting()) {

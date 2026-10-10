@@ -27,7 +27,7 @@ public class ViewRotationTracker {
     private Rotation yawPitchDuringAdjustment = null;
     private float inFlightPitchCorrection = 0.0f;
     private int inFlightPitchCorrectionsCurrTick = -1;
-    private double positionYCorrection = 0.0;
+    private boolean suppressPositionPackets = false;
     private boolean usePitchAdjustment = true;
     private final TrackerControl control;
     private boolean stopped = false;
@@ -38,13 +38,13 @@ public class ViewRotationTracker {
     }
 
     /**
-     * Sets the Y-value offset that should be removed from incoming movement packets.
-     * Useful when the player is mounted at a fake offset while spectating.
+     * Sets whether incoming position packets should be suppressed.
+     * Useful when the player is in a mount and we don't want client position updates.
      *
-     * @param positionYCorrection Y correction to subtract from incoming packet Y values
+     * @param suppressPositionPackets True to suppress position packets
      */
-    public void setPositionYCorrection(double positionYCorrection) {
-        this.positionYCorrection = positionYCorrection;
+    public void setSuppressPositionPackets(boolean suppressPositionPackets) {
+        this.suppressPositionPackets = suppressPositionPackets;
     }
 
     /**
@@ -144,11 +144,12 @@ public class ViewRotationTracker {
             }
         }
         ServerboundMovePlayerPacketHandle p = ServerboundMovePlayerPacketHandle.createHandle(event.getPacket().getHandle());
-        if (positionYCorrection != 0.0 && event.getType() != PacketType.IN_LOOK) {
-            p.setY(p.getY() - positionYCorrection);
-        }
         if (event.getType() != PacketType.IN_POSITION) {
             detectLookChanges(new Rotation(p.getYaw(), p.getPitch()));
+        }
+        if (suppressPositionPackets && event.getType() != PacketType.IN_LOOK) {
+            event.setCancelled(true);
+            return;
         }
     }
 
