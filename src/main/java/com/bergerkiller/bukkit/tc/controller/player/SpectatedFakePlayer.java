@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.tc.controller.player;
 
+import com.bergerkiller.bukkit.common.Common;
 import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.common.controller.VehicleMountController;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
@@ -43,6 +44,8 @@ public class SpectatedFakePlayer {
     private boolean useMinecartInterpolation = false;
     private boolean forceAbsoluteSync = false;
     private boolean holdRealPlayerOffscreen = false;
+    /** If true, then when the fake player is spawned head is already aligned the right way (since 1.20.2) */
+    private final boolean canSpawnWithoutHeadAnimation;
     private Runnable onRealPlayerPositionSynchronized = null;
     private final EnumMap<EquipmentSlot, ItemStack> equipmentState = new EnumMap<>(EquipmentSlot.class);
     private final Task equipmentUpdateTask;
@@ -64,6 +67,9 @@ public class SpectatedFakePlayer {
                 updateMirroredEquipment();
             }
         };
+        this.canSpawnWithoutHeadAnimation = Common.hasCapability("Common:PlayerYawAPIFixes")
+                && Common.evaluateMCVersion(">=", "1.20.2")
+                && player.evaluateGameVersion(">=", "1.20.2");
         this.player.onSpectatedFakePlayerCreated(this);
     }
 
@@ -137,9 +143,9 @@ public class SpectatedFakePlayer {
 
         this.skullItem = isHeadOnly() ? SeatedEntityHead.createSkullItem(player.getPlayer()) : null;
         this.fakePlayer = PitchSwappedEntity.create(player,
-                new FakeVirtualPlayer(manager, FakePlayerSpawner.NO_NAMETAG),
-                new FakeVirtualPlayer(manager, FakePlayerSpawner.NO_NAMETAG_SECONDARY),
-                new FakeVirtualPlayer(manager, FakePlayerSpawner.NO_NAMETAG_TERTIARY));
+                new FakeVirtualPlayer(manager, FakePlayerSpawner.NO_NAMETAG, !isHeadOnly() && canSpawnWithoutHeadAnimation),
+                new FakeVirtualPlayer(manager, FakePlayerSpawner.NO_NAMETAG_SECONDARY, false),
+                new FakeVirtualPlayer(manager, FakePlayerSpawner.NO_NAMETAG_TERTIARY, false));
         this.fakePlayer.beforeSwap(swapped -> {
             if (blindRespawn == null) {
                 if (isHeadOnly()) {
@@ -154,8 +160,19 @@ public class SpectatedFakePlayer {
         });
         this.fakePlayer.spawn(syncTransform, motion);
 
-        this.blindRespawn = new BlindRespawn(manager);
-        this.blindRespawn.spawn(syncTransform, motion);
+        if (canSpawnWithoutHeadAnimation) {
+            // No head animation occurs in newer versions, spawn visible and spectate immediately
+            if (isHeadOnly()) {
+                player.sendSilent(Util.createPlayerEquipmentPacket(
+                        fakePlayer.entity.getEntityId(), EquipmentSlot.HEAD, skullItem));
+            }
+            fakePlayer.spectate();
+        } else {
+            // Use BlindRespawn workaround to avoid head animation glitch
+            this.blindRespawn = new BlindRespawn(manager, isHeadOnly());
+            this.blindRespawn.spawn(syncTransform, motion);
+        }
+
         this.startRealPlayerMount(syncTransform);
         if (!isHeadOnly()) {
             initializeMirroredEquipmentState();
@@ -374,12 +391,12 @@ public class SpectatedFakePlayer {
         public final VirtualEntity spectated;
         public final long timeout;
 
-        public BlindRespawn(AttachmentManager manager) {
+        public BlindRespawn(AttachmentManager manager, boolean isHead) {
             this.spectated = new VirtualEntity(manager);
             this.spectated.setEntityType(EntityType.VILLAGER);
             this.spectated.setSyncMode(SyncMode.NORMAL);
             this.spectated.setUseMinecartInterpolation(useMinecartInterpolation);
-            this.spectated.setRelativeOffset(0.0, -VirtualEntity.PLAYER_STANDING_EYE_HEIGHT, 0.0);
+            this.spectated.setRelativeOffset(0.0, isHead ? -VirtualEntity.PLAYER_STANDING_EYE_HEIGHT : 0.0, 0.0);
             this.spectated.getMetaData().set(EntityHandle.DATA_FLAGS, (byte) (EntityHandle.DATA_FLAG_INVISIBLE));
             this.spectated.getMetaData().set(EntityHandle.DATA_NO_GRAVITY, true);
             this.timeout = System.currentTimeMillis() + (6 * 50);
@@ -409,11 +426,17 @@ public class SpectatedFakePlayer {
 
     private class FakeVirtualPlayer extends VirtualEntity {
         private final FakePlayerSpawner fakePlayerSpawner;
+        private final boolean initiallyVisible;
         private int mountedVehicleId = -1;
 
         public FakeVirtualPlayer(AttachmentManager manager, FakePlayerSpawner fakePlayerSpawner) {
+            this(manager, fakePlayerSpawner, false);
+        }
+
+        public FakeVirtualPlayer(AttachmentManager manager, FakePlayerSpawner fakePlayerSpawner, boolean initiallyVisible) {
             super(manager);
             this.fakePlayerSpawner = fakePlayerSpawner;
+            this.initiallyVisible = initiallyVisible;
             this.setEntityType(EntityType.PLAYER);
             this.setSyncMode(SyncMode.NORMAL);
             this.setUseMinecartInterpolation(useMinecartInterpolation);
@@ -442,7 +465,7 @@ public class SpectatedFakePlayer {
 
             addViewerWithoutSpawning(viewer);
             fakePlayerSpawner.spawnPlayer(viewer, viewer.getPlayer(), this.getEntityId(), orientation, meta -> {
-                meta.setFlag(EntityHandle.DATA_FLAGS, EntityHandle.DATA_FLAG_INVISIBLE, true);
+                meta.setFlag(EntityHandle.DATA_FLAGS, EntityHandle.DATA_FLAG_INVISIBLE, !initiallyVisible);
                 meta.set(EntityHandle.DATA_NO_GRAVITY, true);
                 FakeVirtualPlayer.this.metaData = meta;
             });

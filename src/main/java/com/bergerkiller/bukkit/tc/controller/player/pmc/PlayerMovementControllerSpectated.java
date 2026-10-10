@@ -135,7 +135,7 @@ class PlayerMovementControllerSpectated extends PlayerMovementController {
                 }
                 input = currInput;
                 if (translateVehicleSteer) {
-                    PacketUtil.receivePacket(player, input.createSteerPacket());
+                    event.setPacket(input.createSteerPacket());
                 }
             }
         } else if (type == PacketType.IN_CLIENT_TICK_END) {
@@ -167,6 +167,7 @@ class PlayerMovementControllerSpectated extends PlayerMovementController {
                 player.getEyeLocation().getYaw(),
                 player.getEyeLocation().getPitch());
         lastLookRotation = initialRotation;
+        requestedOrientation = Quaternion.fromYawPitchRoll(initialRotation.pitch, initialRotation.yaw, 0.0);
         acceptLookPackets = false;
 
         fakePlayer.start(createFakePlayerTransform(), new Vector());

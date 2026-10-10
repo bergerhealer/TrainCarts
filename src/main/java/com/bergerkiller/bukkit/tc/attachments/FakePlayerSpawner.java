@@ -11,6 +11,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.function.Consumer;
 
+import com.bergerkiller.bukkit.common.Common;
 import org.bukkit.ChatColor;
 import org.bukkit.GameMode;
 import org.bukkit.entity.Player;
@@ -83,7 +84,10 @@ public enum FakePlayerSpawner {
 
     // After this number of ticks temporary player list entries are removed from viewer's tab view
     private static final int TAB_LIST_CLEANUP_DELAY = 5;
-    
+
+    // BKCL 2.0.5+ required for this API
+    private static final boolean CAN_SET_HEAD_YAW = Common.hasCapability("Common:PlayerYawAPIFixes");
+
     private final String _playerName;
     private final ChatText _teamName;
     private final boolean _hideNametag;
@@ -130,13 +134,20 @@ public enum FakePlayerSpawner {
             fakePlayerSpawnPacket.setPosZ(position.getZ());
             fakePlayerSpawnPacket.setYaw(position.getYaw());
             fakePlayerSpawnPacket.setPitch(position.getPitch());
+            if (CAN_SET_HEAD_YAW) {
+                setHeadYawBKCL(fakePlayerSpawnPacket, position.getHeadYaw());
+            }
         }, metaFunction);
 
-        // Also synchronize the head rotation for this player
+        // Also synchronize the head rotation for this player (not required pre-1.20.2)
         CommonPacket headPacket = PacketType.OUT_ENTITY_HEAD_ROTATION.newInstance();
         headPacket.write(PacketType.OUT_ENTITY_HEAD_ROTATION.entityId, entityId);
         headPacket.write(PacketType.OUT_ENTITY_HEAD_ROTATION.headYaw, position.getHeadYaw());
         viewer.send(headPacket);
+    }
+
+    private static void setHeadYawBKCL(ClientboundAddPlayerPacketHandle packet, float headYaw) {
+        packet.setHeadYaw(headYaw);
     }
 
     /**
