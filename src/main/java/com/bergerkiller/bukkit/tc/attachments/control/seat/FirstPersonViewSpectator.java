@@ -103,10 +103,29 @@ public class FirstPersonViewSpectator extends FirstPersonView {
             _input.startLocked();
         }
 
+        // Compute the 2D rotation delta needed to transform seat orientation to player's actual look
+        org.bukkit.entity.Player player = viewer.getPlayer();
+        float playerYaw = player.getEyeLocation().getYaw();
+        float playerPitch = player.getEyeLocation().getPitch();
+
         // Position used to compute where the eye/camera view is at
         Matrix4x4 eyeTransform = this.getEyeTransform();
 
-        // Start spectator mode
+        // Get seat's yaw/pitch from its quaternion orientation
+        HeadRotation seatHeadRot = HeadRotation.compute(eyeTransform);
+
+        // Compute the direct 2D delta from seat angles to player angles
+        float deltaYaw = playerYaw - seatHeadRot.yaw;
+        float deltaPitch = playerPitch - seatHeadRot.pitch;
+
+        // Apply the delta to the input BEFORE spawning the spectated entity
+        // This way the entity spawns with the correct rotation from the start
+        _input.addInputRotation(new SpectatorInput.YawPitch(deltaYaw, deltaPitch));
+
+        // Recompute eyeTransform NOW that the delta is applied to the input
+        eyeTransform = this.getEyeTransform();
+
+        // Start spectator mode with the corrected rotation
         this._spectatedEntity = FirstPersonSpectatedEntity.create(seat, this, viewer);
         this._spectatedEntity.start(eyeTransform);
 
@@ -142,7 +161,10 @@ public class FirstPersonViewSpectator extends FirstPersonView {
                     this._playerMount.getSyncYaw(), this._playerMount.getSyncPitch(),
                     0.0, 0.0, 0.0,
                     RelativeFlags.ABSOLUTE_POSITION,
-                    teleportId), p -> _viewRotationTracker.enable());
+                    teleportId), p -> {
+                // Enable tracking after player is synced
+                _viewRotationTracker.enable();
+            });
 
             // Mount the player. Happens after the position sync.
             viewer.getVehicleMountController().mount(this._playerMount.getEntityId(), viewer.getEntityId());

@@ -56,6 +56,19 @@ public class ViewRotationTracker {
         this.usePitchAdjustment = usePitchAdjustment;
     }
 
+    /**
+     * Seeds the tracker with an initial rotation to establish a baseline.
+     * This ensures the first look packet properly computes a delta from this starting point.
+     *
+     * @param yaw Initial yaw angle
+     * @param pitch Initial pitch angle
+     */
+    public void seedInitialRotation(float yaw, float pitch) {
+        synchronized (stateLock) {
+            lastRotation = new Rotation(yaw, pitch);
+        }
+    }
+
     void reset() {
         synchronized (stateLock) {
             pendingRotation = Rotation.ZERO;
