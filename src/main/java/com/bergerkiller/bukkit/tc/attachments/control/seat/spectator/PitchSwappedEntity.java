@@ -12,6 +12,7 @@ import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.FirstPersonView.HeadRotation;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundSetCameraPacketHandle;
 import com.bergerkiller.generated.net.minecraft.server.level.EntityTrackerEntryStateHandle;
 import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
 
@@ -92,7 +93,8 @@ public class PitchSwappedEntity<E extends VirtualEntity> {
     public void destroy() {
         if (spectating) {
             spectating = false;
-            vmc.stopSpectating(entity.getEntityId());
+            // Send camera packet to stop spectating by having the player spectate themselves
+            viewer.send(ClientboundSetCameraPacketHandle.createNew(viewer.getEntityId()));
         }
         entity.destroy(viewer);
         entityAlt.destroy(viewer);
@@ -100,12 +102,15 @@ public class PitchSwappedEntity<E extends VirtualEntity> {
     }
 
     public void spectate() {
-        vmc.startSpectating(this.entity.getEntityId());
+        // Send camera packet through AttachmentViewer to ensure it's bundled with other packets
+        viewer.send(ClientboundSetCameraPacketHandle.createNew(this.entity.getEntityId()));
         spectating = true;
     }
 
     public void spectateFrom(int previousEntityId) {
-        vmc.swapSpectating(previousEntityId, this.entity.getEntityId());
+        // Send camera packet through AttachmentViewer instead of using vmc.swapSpectating
+        // This ensures the packet is bundled properly during the synchronization window
+        viewer.send(ClientboundSetCameraPacketHandle.createNew(this.entity.getEntityId()));
         spectating = true;
     }
 
@@ -129,7 +134,7 @@ public class PitchSwappedEntity<E extends VirtualEntity> {
         if (Util.isProtocolRotationGlitched(entity.getSyncPitch(), headRot.pitch)) {
             // Spectate other entity
             if (spectating) {
-                vmc.swapSpectating(entity.getEntityId(), entityAlt.getEntityId());
+                viewer.send(ClientboundSetCameraPacketHandle.createNew(entityAlt.getEntityId()));
             }
 
             // Perform any needed logic first
@@ -156,7 +161,7 @@ public class PitchSwappedEntity<E extends VirtualEntity> {
         } else if (isCameraFlipped(headRot, headRotFlipped)) {
             // Spectate other entity
             if (spectating) {
-                vmc.swapSpectating(entity.getEntityId(), entityAltFlip.getEntityId());
+                viewer.send(ClientboundSetCameraPacketHandle.createNew(entityAltFlip.getEntityId()));
             }
 
             // Perform any needed logic first

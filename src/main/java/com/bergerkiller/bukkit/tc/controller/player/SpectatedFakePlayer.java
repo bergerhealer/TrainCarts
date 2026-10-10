@@ -15,6 +15,7 @@ import com.bergerkiller.bukkit.tc.attachments.control.seat.SeatedEntityHead;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.spectator.PitchSwappedEntity;
 import com.bergerkiller.bukkit.common.utils.PlayerUtil;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundPlayerPositionPacketHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundSetCameraPacketHandle;
 import com.bergerkiller.generated.net.minecraft.server.level.ServerPlayerHandle;
 import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
 import com.bergerkiller.generated.net.minecraft.world.entity.LivingEntityHandle;
@@ -407,11 +408,13 @@ public class SpectatedFakePlayer {
             spectated.syncPosition(true);
             spectated.spawn(player, motion);
             spectated.forceSyncRotation();
-            player.getVehicleMountController().startSpectating(spectated.getEntityId());
+            // Send camera packet through AttachmentViewer to ensure it's bundled properly
+            player.send(ClientboundSetCameraPacketHandle.createNew(spectated.getEntityId()));
         }
 
         public void despawn() {
-            player.getVehicleMountController().stopSpectating(spectated.getEntityId());
+            // Send camera packet to stop spectating by having the player spectate themselves
+            player.send(ClientboundSetCameraPacketHandle.createNew(player.getEntityId()));
             spectated.destroy(player);
         }
 
