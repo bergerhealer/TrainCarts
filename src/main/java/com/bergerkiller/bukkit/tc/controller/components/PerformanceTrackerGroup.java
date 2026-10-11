@@ -57,7 +57,7 @@ public final class PerformanceTrackerGroup {
      */
     public void appendStatsMessage(StringBuilder str) {
         this.computeStats();
-        str.append(ChatColor.GREEN).append("Average MsPt: ");
+        str.append("Average MsPt: ");
         appendMsPtPercentage(str, this.cachedAverageMsptPercentage);
         str.append(ChatColor.GREEN).append(" (");
         appendMsPtPercentage(str, this.cachedPeakMsptPercentage);

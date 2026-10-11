@@ -65,6 +65,7 @@ public class TrainCommands {
             final TrainProperties properties
     ) {
         MessageBuilder message = new MessageBuilder();
+        MinecartGroup group = properties.getHolder();
 
         if (sender instanceof Player && !properties.isOwner((Player) sender)) {
             if (!properties.hasOwners()) {
@@ -74,6 +75,12 @@ public class TrainCommands {
         }
 
         StandardProperties.TRAIN_NAME_FORMAT.appendNameInfo(message, properties, "Train name: ");
+
+        // Performance stats (MsPt %)
+        if (group != null) {
+            message.newLine().yellow(group.getPerformanceTracker().getStatsMessage());
+        }
+
         StandardProperties.SLOWDOWN.appendSlowdownInfo(message.newLine(), properties);
         StandardProperties.COLLISION.appendCollisionInfo(message.newLine(), properties);
 
@@ -106,11 +113,7 @@ public class TrainCommands {
         Commands.info(message, properties);
 
         // Loaded message
-        MinecartGroup group = properties.getHolder();
-        if (group != null) {
-            // Performance stats
-            message.newLine().append(group.getPerformanceTracker().getStatsMessage());
-        } else {
+        if (group == null) {
             message.newLine().red("This train is unloaded! To keep it loaded, use:");
             message.newLine().yellow("   /train keepchunksloaded true");
         }

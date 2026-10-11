@@ -846,7 +846,7 @@ public class GlobalCommands {
             text = group.getListSummary();
         } else {
             text = ChatText.fromMessage(ChatColor.RED.toString() + ChatColor.UNDERLINE + name);
-            text.setHoverText(ChatColor.BLUE + name + "\n" +ChatColor.RED + "Not loaded");
+            text.setHoverText(ChatColor.WHITE + name + "\n" +ChatColor.RED + "Not loaded");
         }
 
         String safeEditName = StringUtil.stripChatStyle(name);

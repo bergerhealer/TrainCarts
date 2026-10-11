@@ -326,7 +326,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
         StringBuilder hoverTextContent = new StringBuilder();
 
         // Name itself (might be hard to see what item is hovered)
-        hoverTextContent.append(ChatColor.BLUE ).append(trainName);
+        hoverTextContent.append(ChatColor.WHITE).append(trainName);
 
         // Location of the head of the train
         {
@@ -341,7 +341,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
         }
 
         // Performance stats
-        hoverTextContent.append('\n');
+        hoverTextContent.append('\n').append(ChatColor.GREEN);
         getPerformanceTracker().appendStatsMessage(hoverTextContent);
 
         text.setHoverText(hoverTextContent.toString());
