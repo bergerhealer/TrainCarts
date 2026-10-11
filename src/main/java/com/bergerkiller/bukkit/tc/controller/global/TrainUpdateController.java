@@ -39,7 +39,7 @@ public class TrainUpdateController implements LibraryComponent {
     private int tickUpdateNow = 0; // forces update ticks
     private boolean ticking = true; // whether train tick updates are enabled
     private double realtimeFactor = 1.0; // Factor to correct for server lag this current tick
-    private TrainUpdateTask updateTask = null;
+    private TrainUpdateGroupsTask updateGroupsTask = null;
     private TrainNetworkSyncTask networkSyncTask = null;
     private TrainFullSyncTask fullSyncTask = null; // Only 1.8 - 1.10.2
     private AttachmentUpdateTransformHelper updateTransformHelper;
@@ -85,11 +85,11 @@ public class TrainUpdateController implements LibraryComponent {
 
     @Override
     public void enable() {
-        this.updateTask = new TrainUpdateTask(this.plugin);
+        this.updateGroupsTask = new TrainUpdateGroupsTask(plugin);
         this.networkSyncTask = new TrainNetworkSyncTask();
 
         if (Common.evaluateMCVersion(">=", "1.11")) {
-            this.updateTask.start(1, 1);
+            this.updateGroupsTask.start(1, 1);
             this.networkSyncTask.start(1, 1);
         } else {
             // Bukkit tasks are bugged here. They do not run after one another consistently,
@@ -114,8 +114,8 @@ public class TrainUpdateController implements LibraryComponent {
 
     @Override
     public void disable() {
-        Task.stop(this.updateTask);
-        this.updateTask = null;
+        Task.stop(this.updateGroupsTask);
+        this.updateGroupsTask = null;
         Task.stop(this.networkSyncTask);
         this.networkSyncTask = null;
         Task.stop(this.fullSyncTask);
@@ -210,11 +210,11 @@ public class TrainUpdateController implements LibraryComponent {
         plugin.handle(ex);
     }
 
-    private class TrainUpdateTask extends Task {
+    private class TrainUpdateGroupsTask extends Task {
         int ctr = 0;
         long lastTick = Long.MAX_VALUE;
 
-        public TrainUpdateTask(JavaPlugin plugin) {
+        public TrainUpdateGroupsTask(JavaPlugin plugin) {
             super(plugin);
         }
 
@@ -241,8 +241,28 @@ public class TrainUpdateController implements LibraryComponent {
                 ticking = false;
             }
 
-            // For all Minecart that were not ticked, tick them ourselves
-            MinecartGroupStore.doFixedTick(plugin);
+            // Actually update all the groups
+            updateGroups();
+        }
+
+        public void updateGroups() {
+            try (ImplicitlySharedSet<MinecartGroup> groupsCopy = MinecartGroupStore.getGroups().clone()) {
+                try {
+                    for (MinecartGroup group : groupsCopy) {
+                        // Tick the train
+                        group.onTick();
+
+                        // Perform post-tick physics for all Minecarts in the train
+                        for (MinecartMember<?> member : group) {
+                            if (!member.isUnloaded()) {
+                                member.getEntity().doPostTick();
+                            }
+                        }
+                    }
+                } catch (Throwable t) {
+                    plugin.handle(t);
+                }
+            }
         }
     }
 
@@ -288,7 +308,7 @@ public class TrainUpdateController implements LibraryComponent {
 
         @Override
         public void run() {
-            updateTask.run();
+            updateGroupsTask.run();
             networkSyncTask.run();
         }
     }

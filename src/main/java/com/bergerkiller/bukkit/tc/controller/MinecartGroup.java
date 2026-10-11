@@ -3,6 +3,7 @@ package com.bergerkiller.bukkit.tc.controller;
 import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.bases.mutable.VectorAbstract;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
+import com.bergerkiller.bukkit.common.controller.Tickable;
 import com.bergerkiller.bukkit.common.entity.CommonEntity;
 import com.bergerkiller.bukkit.common.entity.type.CommonMinecart;
 import com.bergerkiller.bukkit.common.inventory.ItemParser;
@@ -76,7 +77,7 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 
-public class MinecartGroup extends MinecartGroupStore implements IPropertiesHolder, AnimationController, TrainStatusProvider, TrainCarts.Provider {
+public class MinecartGroup extends MinecartGroupStore implements IPropertiesHolder, AnimationController, TrainStatusProvider, TrainCarts.Provider, Tickable {
     private static final long serialVersionUID = 3;
     private static final LongHashSet chunksBuffer = new LongHashSet(50);
     private final TrainCarts traincarts;
@@ -1829,7 +1830,8 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
         }
     }
 
-    protected void doPhysics(TrainCarts plugin) {
+    @Override
+    public void onTick() {
         // NOP if unloaded
         // This should never happen, so remove the group as a precaution
         // Somehow it got re-added again.
@@ -1896,7 +1898,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
         }
 
         // If physics disabled this tick, cut off here.
-        if (!plugin.getTrainUpdateController().isTicking()) {
+        if (!traincarts.getTrainUpdateController().isTicking()) {
             return;
         }
 
@@ -1904,7 +1906,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
             double totalforce = this.getAverageForce();
             double speedlimit = this.getProperties().getSpeedLimit();
             double realtimeFactor = this.getProperties().hasRealtimePhysics()
-                    ? plugin.getTrainUpdateController().getRealtimeFactor() : 1.0;
+                    ? traincarts.getTrainUpdateController().getRealtimeFactor() : 1.0;
 
             if ((realtimeFactor*totalforce) > 0.4 && (realtimeFactor*speedlimit) > 0.4) {
                 this.updateStepCount = (int) Math.ceil((realtimeFactor*speedlimit) / 0.4);
@@ -1958,8 +1960,8 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
             //this group is gone
         } catch (Throwable t) {
             final TrainProperties p = getProperties();
-            plugin.log(Level.SEVERE, "Failed to perform physics on train '" + p.getTrainName() + "' at " + p.getLocation() + ":");
-            plugin.handle(t);
+            traincarts.log(Level.SEVERE, "Failed to perform physics on train '" + p.getTrainName() + "' at " + p.getLocation() + ":");
+            traincarts.handle(t);
         }
     }
 

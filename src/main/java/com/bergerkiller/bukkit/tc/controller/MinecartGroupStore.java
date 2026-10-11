@@ -27,32 +27,6 @@ public class MinecartGroupStore extends ArrayList<MinecartMember<?>> {
     private static long lastMaxPerWorldLogTimestamp = 0;
 
     /**
-     * Called onPhysics for all Minecart entities who didn't get ticked in the previous run.
-     * This is a sort of hack against the bugged issues on some server implementations.
-     *
-     * @param plugin Main TrainCarts plugin instance initiating this
-     */
-    public static void doFixedTick(TrainCarts plugin) {
-        try (ImplicitlySharedSet<MinecartGroup> groups_copy = groups.clone()) {
-            try {
-                for (MinecartGroup group : groups_copy) {
-                    // Tick the train
-                    group.doPhysics(plugin);
-
-                    // Perform post-tick physics for all Minecarts in the train
-                    for (MinecartMember<?> member : group) {
-                        if (!member.isUnloaded()) {
-                            member.getEntity().doPostTick();
-                        }
-                    }
-                }
-            } catch (Throwable t) {
-                plugin.handle(t);
-            }
-        }
-    }
-
-    /**
      * Executes the Entity doPostTick() on all trains.
      * This ensures minecart entities are moved to the correct chunk they are in.
      */
