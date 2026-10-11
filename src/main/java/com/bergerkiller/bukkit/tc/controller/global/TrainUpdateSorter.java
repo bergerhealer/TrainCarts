@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.tc.controller.global;
 
+import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.entity.CommonEntity;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
@@ -7,6 +8,7 @@ import org.bukkit.World;
 import org.bukkit.util.Vector;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -70,7 +72,15 @@ final class TrainUpdateSorter {
     }
 
     private static void sortGroupsByProximity(List<UpdatedGroup> groups) {
-        //TODO: Implement this
+        if (groups.size() <= 2) {
+            return;
+        }
+
+        // Used hilbert curve algorithm to sort them (hilbert key computed previously)
+        IntVector3 s;
+        groups.sort(Comparator
+                .comparingLong((UpdatedGroup group) -> group.hilbertKey)
+                .thenComparing(group -> group.centroid));
     }
 
     /**
@@ -106,7 +116,9 @@ final class TrainUpdateSorter {
         /** Marked whenever this group was found during iteration */
         Object marker;
         /** Center position the group last had during sync() */
-        Vector centroid;
+        IntVector3 centroid;
+        /** Hilbert curve key of the centroid */
+        long hilbertKey;
 
         UpdatedGroup(MinecartGroup group) {
             this.group = group;
@@ -129,7 +141,42 @@ final class TrainUpdateSorter {
             if (groupCount > 0) {
                 centroid.multiply(1.0 / groupCount);
             }
-            this.centroid = centroid;
+            this.centroid = IntVector3.blockOf(centroid);
+            this.hilbertKey = computeHilbertKey(this.centroid.x, this.centroid.z);
+        }
+
+        /**
+         * This computes a hilbert key for a hilbert curve so that the items can be easily sorted
+         * by that after.
+         *
+         * @param blockX Block X coordinate (centroid)
+         * @param blockZ Block Z coordinate (centroid)
+         * @return Hilbert key
+         */
+        private static long computeHilbertKey(int blockX, int blockZ) {
+            long x = (blockX ^ 0x80000000) & 0xFFFFFFFFL;
+            long y = (blockZ ^ 0x80000000) & 0xFFFFFFFFL;
+            long key = 0L;
+            final long MASK = 0x7FFFFFFFL;
+            for (int level = 30; level >= 0; --level) {
+                long rx = (x >>> level) & 1L;
+                long ry = (y >>> level) & 1L;
+
+                key |= (((rx << 1) | (rx ^ ry)) << (level << 1));
+
+                if (ry == 0) {
+                    if (rx != 0) {
+                        x ^= MASK;
+                        y ^= MASK;
+                    }
+
+                    long t = x;
+                    x = y;
+                    y = t;
+                }
+            }
+
+            return key;
         }
     }
 }
