@@ -3,11 +3,8 @@ package com.bergerkiller.bukkit.tc.commands;
 import com.bergerkiller.bukkit.common.Common;
 import com.bergerkiller.bukkit.common.MessageBuilder;
 import com.bergerkiller.bukkit.common.Task;
-import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.cloud.parsers.SoundEffectParser;
-import com.bergerkiller.bukkit.common.entity.CommonEntity;
 import com.bergerkiller.bukkit.common.internal.CommonPlugin;
-import com.bergerkiller.bukkit.common.inventory.CommonItemStack;
 import com.bergerkiller.bukkit.common.map.MapDisplay;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
@@ -65,6 +62,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class GlobalCommands {
 
@@ -720,6 +719,8 @@ public class GlobalCommands {
     }
 
     public static void listTrains(TrainCarts plugin, CommandSender sender, String filter) {
+        // This message builder is used so that it limits the number of train names listed on one line.
+        // It measures the displayed text width of the added text, we repurpose that algorithm.
         MessageBuilder builder = new MessageBuilder();
         builder.setSeparator(" / ");
 
@@ -794,19 +795,42 @@ public class GlobalCommands {
 
         //builder.send(sender);
 
-        // Turn the train names into clickable items, which when clicked, run /train edit [trainname]
-        for (String line : builder.lines()) {
-            String[] trainNames = line.split(Pattern.quote(" / "));
+        // Map the message builder text, into a list of sub-lists to send, encoded with ChatText
+        // to contain the full details.
+        final String pattern = Pattern.quote(" / ");
+        List<String[]> trainNameLists = Stream.of(builder.lines())
+                .map(line ->  line.split(pattern))
+                .collect(Collectors.toList());
 
+        // Get total train count
+        final int totalTrainCount = trainNameLists.stream().mapToInt(s -> s.length).sum();
+
+        // Turn the train names into clickable items, which when clicked, run /train edit [trainname]
+        // Each item has a hover text installed as well.
+        // Limit how many we list so the chat doesn't become unreadable. Also, because users typically
+        // sort important items to the beginning of the list.
+        final int LIST_LIMIT = 50;
+        int totalItemIndex = 0;
+        for (String[] subTrainNames : trainNameLists) {
             // Rebuild a new line with clickable items and hover display details
             ChatText combined = ChatText.empty();
-            for (int i = 0; i < trainNames.length; i++) {
+            for (int i = 0; i < subTrainNames.length; i++) {
+                if (++totalItemIndex > LIST_LIMIT) {
+                    combined.append(ChatColor.WHITE + " / " + (totalTrainCount - LIST_LIMIT) + " more...");
+                    break;
+                }
+
                 if (i > 0) {
                     combined.append(ChatColor.WHITE + " / ");
                 }
-                combined.append(listFormatTrainName(trainNames[i]));
+                combined.append(listFormatTrainName(subTrainNames[i]));
             }
+
             combined.sendTo(sender);
+
+            if (totalItemIndex > LIST_LIMIT) {
+                break;
+            }
         }
     }
 
@@ -817,17 +841,12 @@ public class GlobalCommands {
         }
 
         ChatText text;
-        if (properties.isLoaded() && !properties.isEmpty()) {
-            CommonEntity<?> head = properties.getHolder().head().getEntity();
-            String worldName = head.getWorld().getName();
-            IntVector3 block = head.loc.block();
-            text = ChatText.fromMessage(ChatColor.GREEN.toString() + ChatColor.UNDERLINE + name);
-            text.setHoverText(ChatColor.GREEN + "Loaded in world " + ChatColor.YELLOW + worldName +
-                              ChatColor.GREEN + " at " +
-                              ChatColor.WHITE + block.x + "/" + block.y + "/" + block.z);
+        MinecartGroup group;
+        if ((group = properties.getHolder()) != null && !properties.isEmpty() && !group.isEmpty()) {
+            text = group.getListSummary();
         } else {
             text = ChatText.fromMessage(ChatColor.RED.toString() + ChatColor.UNDERLINE + name);
-            text.setHoverText(ChatColor.RED + "Not loaded");
+            text.setHoverText(ChatColor.BLUE + name + "\n" +ChatColor.RED + "Not loaded");
         }
 
         String safeEditName = StringUtil.stripChatStyle(name);

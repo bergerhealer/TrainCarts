@@ -13,9 +13,11 @@ import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
+import com.bergerkiller.bukkit.common.wrappers.ChatText;
 import com.bergerkiller.bukkit.common.wrappers.LongHashSet;
 import com.bergerkiller.bukkit.common.wrappers.LongHashSet.LongIterator;
 import com.bergerkiller.bukkit.tc.actions.MemberActionLaunchDirection;
+import com.bergerkiller.bukkit.tc.controller.components.PerformanceTrackerGroup;
 import com.bergerkiller.bukkit.tc.controller.components.SignTracker;
 import com.bergerkiller.bukkit.tc.exception.GroupUnloadedException;
 import com.bergerkiller.bukkit.tc.exception.MemberMissingException;
@@ -55,6 +57,7 @@ import com.bergerkiller.bukkit.tc.utils.ChunkArea;
 import com.bergerkiller.bukkit.tc.utils.TrackWalkingPoint;
 import com.bergerkiller.generated.net.minecraft.world.level.chunk.LevelChunkHandle;
 
+import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -88,7 +91,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
     private final ActionTrackerGroup actionTracker = new ActionTrackerGroup(this);
     private final ObstacleTracker obstacleTracker = new ObstacleTracker(this);
     private final AttachmentControllerGroup attachmentController = new AttachmentControllerGroup(this);
-    protected long lastSync = Long.MIN_VALUE;
+    private final PerformanceTrackerGroup performanceTracker = new PerformanceTrackerGroup();
     private TrainProperties prop = null;
     private boolean breakPhysics = false;
     private int teleportImmunityTick = 0;
@@ -299,6 +302,50 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
      */
     public AttachmentControllerGroup getAttachments() {
         return this.attachmentController;
+    }
+
+    /**
+     * Gets the performance tracker that keeps track of the update ({@link #onTick()} time durations
+     * of this group.
+     *
+     * @return Performance Tracker
+     */
+    public PerformanceTrackerGroup getPerformanceTracker() {
+        return performanceTracker;
+    }
+
+    /**
+     * Creates the information summary displayed when players hover over an item in the train
+     * list command.
+     *
+     * @return List summary detailing some information and stats about this group
+     */
+    public ChatText getListSummary() {
+        String trainName = getProperties().getTrainName();
+        ChatText text = ChatText.fromMessage(ChatColor.GREEN.toString() + ChatColor.UNDERLINE + trainName);
+        StringBuilder hoverTextContent = new StringBuilder();
+
+        // Name itself (might be hard to see what item is hovered)
+        hoverTextContent.append(ChatColor.BLUE ).append(trainName);
+
+        // Location of the head of the train
+        {
+            CommonEntity<?> head = head().getEntity();
+            String worldName = head.getWorld().getName();
+            IntVector3 block = head.loc.block();
+
+            hoverTextContent.append('\n').append(ChatColor.GREEN).append("Loaded in world ")
+                    .append(ChatColor.YELLOW).append(worldName)
+                    .append(ChatColor.GREEN).append(" at ")
+                    .append(ChatColor.WHITE).append(block.x).append("/").append(block.y).append("/").append(block.z);
+        }
+
+        // Performance stats
+        hoverTextContent.append('\n');
+        getPerformanceTracker().appendStatsMessage(hoverTextContent);
+
+        text.setHoverText(hoverTextContent.toString());
+        return text;
     }
 
     public MinecartMember<?> head(int index) {

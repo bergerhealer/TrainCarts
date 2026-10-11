@@ -256,14 +256,19 @@ public class TrainUpdateController implements LibraryComponent {
 
             // Tick all the trains in order by world and then in optimal order from each other
             updateSorter.forEachGroup(group -> {
-                // Tick the train
-                group.onTick();
+                long startTime = System.nanoTime();
+                try {
+                    // Tick the train
+                    group.onTick();
 
-                // Perform post-tick physics for all Minecarts in the train
-                for (MinecartMember<?> member : group) {
-                    if (!member.isUnloaded()) {
-                        member.getEntity().doPostTick();
+                    // Perform post-tick physics for all Minecarts in the train
+                    for (MinecartMember<?> member : group) {
+                        if (!member.isUnloaded()) {
+                            member.getEntity().doPostTick();
+                        }
                     }
+                } finally {
+                    group.getPerformanceTracker().pushTickTimes(System.nanoTime() - startTime);
                 }
             });
         }

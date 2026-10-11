@@ -8,6 +8,7 @@ import java.util.Locale;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import org.bukkit.command.CommandSender;
 
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
@@ -103,6 +104,25 @@ class TCSelectorSortLimitFilter {
                     double t1d = findDistanceSquaredTo(t1, senderBounds, -1.0);
                     double t2d = findDistanceSquaredTo(t2, senderBounds, -1.0);
                     return Double.compare(t2d, t1d);
+                });
+            }
+        },
+        /** Sorts trains with the highest average MsPt to the front of the results */
+        MSPT() {
+            @Override
+            public Stream<TrainProperties> modify(BoundingRange.Axis senderBounds, Stream<TrainProperties> stream) {
+                return stream.sorted((t1, t2) -> {
+                    MinecartGroup g1 = t1.getHolder();
+                    MinecartGroup g2 = t2.getHolder();
+
+                    // Sort unloaded trains to the back (no mspt value)
+                    if (g1 == null || g2 == null) {
+                        return (g1 == null) ? ((g2 == null) ? 0 : 1) : -1;
+                    }
+
+                    // Sort the group with the higher MsPt to the front
+                    return Double.compare(g2.getPerformanceTracker().getAverageMsptPercentage(),
+                            g1.getPerformanceTracker().getAverageMsptPercentage());
                 });
             }
         };

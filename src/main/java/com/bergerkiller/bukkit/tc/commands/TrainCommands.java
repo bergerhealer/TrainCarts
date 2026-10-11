@@ -107,7 +107,10 @@ public class TrainCommands {
 
         // Loaded message
         MinecartGroup group = properties.getHolder();
-        if (group == null) {
+        if (group != null) {
+            // Performance stats
+            message.newLine().append(group.getPerformanceTracker().getStatsMessage());
+        } else {
             message.newLine().red("This train is unloaded! To keep it loaded, use:");
             message.newLine().yellow("   /train keepchunksloaded true");
         }

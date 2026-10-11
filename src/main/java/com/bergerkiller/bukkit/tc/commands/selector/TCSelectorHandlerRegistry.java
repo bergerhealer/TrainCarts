@@ -123,6 +123,11 @@ public class TCSelectorHandlerRegistry extends SelectorHandlerRegistry {
         registerCondition("blockcollision", (sender, properties, condition) -> {
             return condition.matchesBoolean(properties.getCollision().isBlockCollisionEnabled());
         });
+        registerCondition("mspt", (sender, properties, condition) -> {
+            MinecartGroup group = properties.getHolder();
+            double msptPercentage = group == null ? 0.0 : group.getPerformanceTracker().getAverageMsptPercentage();
+            return condition.matchesNumber(msptPercentage);
+        });
     }
 
     /**
