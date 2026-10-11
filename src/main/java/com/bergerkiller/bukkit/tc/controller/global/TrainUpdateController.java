@@ -43,6 +43,7 @@ public class TrainUpdateController implements LibraryComponent {
     private TrainNetworkSyncTask networkSyncTask = null;
     private TrainFullSyncTask fullSyncTask = null; // Only 1.8 - 1.10.2
     private AttachmentUpdateTransformHelper updateTransformHelper;
+    private final TrainUpdateSorter updateSorter = new TrainUpdateSorter();
 
     public TrainUpdateController(TrainCarts plugin) {
         this.plugin = plugin;
@@ -242,27 +243,29 @@ public class TrainUpdateController implements LibraryComponent {
             }
 
             // Actually update all the groups
-            updateGroups();
+            try {
+                updateGroups();
+            } catch (Throwable t) {
+                plugin.handle(t);
+            }
         }
 
         public void updateGroups() {
-            try (ImplicitlySharedSet<MinecartGroup> groupsCopy = MinecartGroupStore.getGroups().clone()) {
-                try {
-                    for (MinecartGroup group : groupsCopy) {
-                        // Tick the train
-                        group.onTick();
+            // Synchronize the update sorter
+            updateSorter.sync(MinecartGroupStore.getGroups().cloneAsIterable());
 
-                        // Perform post-tick physics for all Minecarts in the train
-                        for (MinecartMember<?> member : group) {
-                            if (!member.isUnloaded()) {
-                                member.getEntity().doPostTick();
-                            }
-                        }
+            // Tick all the trains in order by world and then in optimal order from each other
+            updateSorter.forEachGroup(group -> {
+                // Tick the train
+                group.onTick();
+
+                // Perform post-tick physics for all Minecarts in the train
+                for (MinecartMember<?> member : group) {
+                    if (!member.isUnloaded()) {
+                        member.getEntity().doPostTick();
                     }
-                } catch (Throwable t) {
-                    plugin.handle(t);
                 }
-            }
+            });
         }
     }
 
