@@ -1,4 +1,4 @@
-package com.bergerkiller.bukkit.tc;
+package com.bergerkiller.bukkit.tc.controller.player;
 
 import com.bergerkiller.bukkit.common.Common;
 import com.bergerkiller.bukkit.common.Task;
@@ -16,7 +16,12 @@ import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.common.wrappers.HumanHand;
 import com.bergerkiller.bukkit.common.wrappers.HumanHandRole;
+import com.bergerkiller.bukkit.tc.TCConfig;
+import com.bergerkiller.bukkit.tc.TCSeatChangeListener;
+import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
+import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroupStore;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
@@ -50,8 +55,9 @@ import org.bukkit.util.Vector;
  *     <lI>Handles the 'sneak' toggling by clients, to differentiate vehicle-exits as player-initiated or not</lI>
  *     <li>Handles clicks with blocks that were meant for the train occupying that space</li>
  * </ul>
+ * Includes utility methods that can be called to fake/initiate interactions done by players.
  */
-class TCPacketListener implements PacketListener {
+public class TrainCartsPlayerInteractionHandler implements PacketListener {
     public static final int ATTACK_SUPPRESS_DURATION = 250; // 250ms
     public static final PacketType[] LISTENED_TYPES = new PacketType[] {
             /** Normal entity click interaction handling / sneak handling */
@@ -71,7 +77,7 @@ class TCPacketListener implements PacketListener {
     private final TrainCarts traincarts;
     private final Map<Player, Long> lastHitTime = new HashMap<Player, Long>();
 
-    public TCPacketListener(TrainCarts traincarts) {
+    public TrainCartsPlayerInteractionHandler(TrainCarts traincarts) {
         this.traincarts = traincarts;
     }
 
@@ -138,6 +144,21 @@ class TCPacketListener implements PacketListener {
     public void onPacketReceive(PacketReceiveEvent event) {
         CommonPacket packet = event.getPacket();
         Player player = event.getPlayer();
+
+        // If in spectator fake player mode, handle the same packets there. Usually cancels
+        // the original packet while handling something itself.
+        {
+            AttachmentViewer viewer = traincarts.getAttachmentViewer(player);
+            if (viewer instanceof TrainCartsAttachmentViewer) {
+                SpectatedFakePlayer clientActiveSFP = ((TrainCartsAttachmentViewer) viewer).getClientActiveSpectatedFakePlayer();
+                if (clientActiveSFP != null) {
+                    clientActiveSFP.handleReceivedPacket(event);
+                    if (event.isCancelled()) {
+                        return;
+                    }
+                }
+            }
+        }
 
         // If disabled, do nothing
         if (TCConfig.optimizeInteraction) {
@@ -289,7 +310,7 @@ class TCPacketListener implements PacketListener {
 
         // Store last hit when USE_ITEM is called, to avoid ENTITY_ANIMATION attack() being called incorrectly
         if (event.getType() == PacketType.IN_USE_ITEM_ON) {
-            suppressAttacksFor(event.getPlayer(), TCPacketListener.ATTACK_SUPPRESS_DURATION);
+            suppressAttacksFor(event.getPlayer(), TrainCartsPlayerInteractionHandler.ATTACK_SUPPRESS_DURATION);
         }
 
         // Ignore IN_BLOCK_DIG packets that are uninteresting to us

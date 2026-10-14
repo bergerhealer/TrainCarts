@@ -51,6 +51,7 @@ import com.bergerkiller.bukkit.tc.controller.global.TrainUpdateController;
 import com.bergerkiller.bukkit.tc.controller.player.TrainCartsAttachmentViewerMap;
 import com.bergerkiller.bukkit.tc.controller.player.network.PlayerClientSynchronizer;
 import com.bergerkiller.bukkit.tc.controller.player.network.PlayerPacketListener;
+import com.bergerkiller.bukkit.tc.controller.player.TrainCartsPlayerInteractionHandler;
 import com.bergerkiller.bukkit.tc.detector.DetectorRegion;
 import com.bergerkiller.bukkit.tc.itemanimation.ItemAnimation;
 import com.bergerkiller.bukkit.tc.locator.TrainLocator;
@@ -119,7 +120,7 @@ public class TrainCarts extends PluginBase {
     private final List<ChunkPreloadTask> chunkPreloadTasks = new ArrayList<>();
     private TCPropertyRegistry propertyRegistry;
     private TCListener listener;
-    private TCPacketListener packetListener;
+    private final TrainCartsPlayerInteractionHandler playerInteractionListener = new TrainCartsPlayerInteractionHandler(this);
     private TCSuppressSeatTeleportPacketListener suppressSeatTeleportPacketListener;
     private FileConfiguration config;
     private final SpawnSignManager spawnSignManager = new SpawnSignManager(this);
@@ -592,6 +593,17 @@ public class TrainCarts extends PluginBase {
     }
 
     /**
+     * Gets the main TrainCarts plugin player interaction listener. This listener listens to incoming packets
+     * from players and applies corrections to them. Also contains utility methods to initiate faked interactions
+     * as if players perform them.
+     *
+     * @return TrainCartsPlayerInteractionHandler
+     */
+    public TrainCartsPlayerInteractionHandler getPlayerInteractionListener() {
+        return playerInteractionListener;
+    }
+
+    /**
      * Gets the Economy manager
      *
      * @return
@@ -992,7 +1004,7 @@ public class TrainCarts extends PluginBase {
         });
 
         // Register listeners
-        this.register(packetListener = new TCPacketListener(this), TCPacketListener.LISTENED_TYPES);
+        this.register(playerInteractionListener, TrainCartsPlayerInteractionHandler.LISTENED_TYPES);
         this.register(listener = new TCListener(this));
         this.register(new TCSeatChangeListener());
         this.register(new TrainChestListener(this));
@@ -1123,10 +1135,9 @@ public class TrainCarts extends PluginBase {
         }
 
         //Unregister listeners
-        this.unregister(packetListener);
+        this.unregister(playerInteractionListener);
         smoothCoastersAPI.unregister();
         listener = null;
-        packetListener = null;
         smoothCoastersAPI = null;
 
         //Stop pending tasks for fake player list clearing

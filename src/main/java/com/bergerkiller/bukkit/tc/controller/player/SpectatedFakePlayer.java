@@ -3,8 +3,10 @@ package com.bergerkiller.bukkit.tc.controller.player;
 import com.bergerkiller.bukkit.common.Common;
 import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.common.controller.VehicleMountController;
+import com.bergerkiller.bukkit.common.events.PacketReceiveEvent;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.wrappers.RelativeFlags;
+import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
 import com.bergerkiller.bukkit.tc.attachments.FakePlayerSpawner;
@@ -34,6 +36,7 @@ import java.util.Objects;
 public class SpectatedFakePlayer {
     private static final int[] NO_MOUNTS = new int[0];
 
+    private final TrainCarts traincarts;
     private final TrainCartsAttachmentViewer player;
     private final AttachmentManager manager;
     private PitchSwappedEntity<FakeVirtualPlayer> fakePlayer = null;
@@ -58,6 +61,7 @@ public class SpectatedFakePlayer {
     }
 
     public SpectatedFakePlayer(TrainCartsAttachmentViewer player, AttachmentManager manager) {
+        this.traincarts = player.getTrainCarts();
         this.player = player;
         this.manager = manager;
         this.equipmentUpdateTask = new Task(player.getTrainCarts()) {
@@ -455,5 +459,16 @@ public class SpectatedFakePlayer {
                 FakeVirtualPlayer.this.metaData = meta;
             });
         }
+    }
+
+    /**
+     * Called while the client is in spectator mode to handle packets sent by the player. This handles the rewriting
+     * of those interaction packets into one that logically comes from the actual player, that the server can
+     * accept. Without this, the server would just receive click interactions with ghost entities or worse - the
+     * player itself, triggering a client disconnect.
+     *
+     * @param event PacketReceiveEvent
+     */
+    public void handleReceivedPacket(PacketReceiveEvent event) {
     }
 }
