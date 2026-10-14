@@ -22,9 +22,6 @@ import com.bergerkiller.generated.net.minecraft.network.protocol.PacketHandle;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
-import java.util.Collections;
-import java.util.IdentityHashMap;
-import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
@@ -53,8 +50,9 @@ public final class TrainCartsAttachmentViewer implements AttachmentViewer {
     private final Object viewRotationTrackingLock;
     private volatile ViewRotationTracker activeViewRotationTracker;
     private volatile PlayerPacketListener<ViewRotationPacketListener> viewRotationPacketListener;
-    private final Set<SpectatedFakePlayer> spectatedFakePlayersCreated;
-    private final Set<SpectatedFakePlayer> spectatedFakePlayersActive;
+    private final Object spectatedFakePlayerLock;
+    private SpectatedFakePlayer spectatedFakePlayerActive;
+    private volatile SpectatedFakePlayer spectatedFakePlayerClientActive;
 
     TrainCartsAttachmentViewer(TrainCarts plugin, Player player, PlayerGameInfo playerGameInfo, PacketQueue packetQueue) {
         this.plugin = plugin;
@@ -73,8 +71,9 @@ public final class TrainCartsAttachmentViewer implements AttachmentViewer {
         this.viewRotationTrackingLock = new Object();
         this.activeViewRotationTracker = null;
         this.viewRotationPacketListener = null;
-        this.spectatedFakePlayersCreated = Collections.newSetFromMap(new IdentityHashMap<>());
-        this.spectatedFakePlayersActive = Collections.newSetFromMap(new IdentityHashMap<>());
+        this.spectatedFakePlayerLock = new Object();
+        this.spectatedFakePlayerActive = null;
+        this.spectatedFakePlayerClientActive = null;
     }
 
     PacketQueue getPacketQueue() {
@@ -224,6 +223,10 @@ public final class TrainCartsAttachmentViewer implements AttachmentViewer {
         return new SpectatedFakePlayerHead(this, manager);
     }
 
+    public SpectatedFakePlayer getClientActiveSpectatedFakePlayer() {
+        return this.spectatedFakePlayerClientActive;
+    }
+
     @Override
     public ViewRotationTracker startViewRotationTracking() {
         synchronized (viewRotationTrackingLock) {
@@ -252,31 +255,56 @@ public final class TrainCartsAttachmentViewer implements AttachmentViewer {
     }
 
     void onSpectatedFakePlayerCreated(SpectatedFakePlayer fakePlayer) {
-        synchronized (this.spectatedFakePlayersCreated) {
-            this.spectatedFakePlayersCreated.add(fakePlayer);
+        final SpectatedFakePlayer previous;
+        synchronized (this.spectatedFakePlayerLock) {
+            previous = (this.spectatedFakePlayerActive != fakePlayer) ? this.spectatedFakePlayerActive : null;
+        }
+        if (previous != null) {
+            previous.stop();
+        }
+        synchronized (this.spectatedFakePlayerLock) {
+            this.spectatedFakePlayerActive = fakePlayer;
         }
     }
 
     void onSpectatedFakePlayerActive(SpectatedFakePlayer fakePlayer, boolean active) {
-        synchronized (this.spectatedFakePlayersCreated) {
+        SpectatedFakePlayer previous = null;
+        boolean scheduleClientActiveClear = false;
+        synchronized (this.spectatedFakePlayerLock) {
             if (active) {
-                this.spectatedFakePlayersActive.add(fakePlayer);
-            } else {
-                this.spectatedFakePlayersActive.remove(fakePlayer);
+                previous = (this.spectatedFakePlayerActive != fakePlayer) ? this.spectatedFakePlayerActive : null;
+                this.spectatedFakePlayerActive = fakePlayer;
+                this.spectatedFakePlayerClientActive = fakePlayer;
+            } else if (this.spectatedFakePlayerActive == fakePlayer) {
+                this.spectatedFakePlayerActive = null;
+                scheduleClientActiveClear = (this.spectatedFakePlayerClientActive == fakePlayer);
             }
+        }
+
+        if (previous != null) {
+            previous.stop();
+        }
+        if (scheduleClientActiveClear) {
+            this.getClientSynchronizer().synchronize(() -> {
+                synchronized (this.spectatedFakePlayerLock) {
+                    if (this.spectatedFakePlayerClientActive == fakePlayer) {
+                        this.spectatedFakePlayerClientActive = null;
+                    }
+                }
+            });
         }
     }
 
     void stopTrackedSpectatedFakePlayers() {
-        final SpectatedFakePlayer[] activePlayers;
-        synchronized (this.spectatedFakePlayersCreated) {
-            activePlayers = this.spectatedFakePlayersActive.toArray(new SpectatedFakePlayer[0]);
-            this.spectatedFakePlayersActive.clear();
-            this.spectatedFakePlayersCreated.clear();
+        final SpectatedFakePlayer activePlayer;
+        synchronized (this.spectatedFakePlayerLock) {
+            activePlayer = this.spectatedFakePlayerActive;
+            this.spectatedFakePlayerActive = null;
+            this.spectatedFakePlayerClientActive = null;
         }
 
-        for (SpectatedFakePlayer fakePlayer : activePlayers) {
-            fakePlayer.stop();
+        if (activePlayer != null) {
+            activePlayer.stop();
         }
     }
 

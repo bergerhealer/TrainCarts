@@ -286,6 +286,26 @@ public interface AttachmentViewer extends TrainCarts.Provider {
     }
 
     /**
+     * Gets the spectated fake player session this viewer client is currently relying on.
+     * This can still return a stopped session for a short period until client synchronization
+     * after stop() completes.
+     *
+     * @return client-active spectated fake player, or null if none is active
+     */
+    default SpectatedFakePlayer getClientActiveSpectatedFakePlayer() {
+        final TrainCarts plugin = getTrainCarts();
+        if (plugin == null || !plugin.isEnabled() || !isConnected()) {
+            return null;
+        }
+
+        final AttachmentViewer viewer = plugin.getAttachmentViewer(getPlayer());
+        if (viewer instanceof TrainCartsAttachmentViewer) {
+            return ((TrainCartsAttachmentViewer) viewer).getClientActiveSpectatedFakePlayer();
+        }
+        return null;
+    }
+
+    /**
      * Starts a new view rotation tracking session that captures incoming yaw/pitch changes
      * from the player. If another session was active before, it is replaced.
      *

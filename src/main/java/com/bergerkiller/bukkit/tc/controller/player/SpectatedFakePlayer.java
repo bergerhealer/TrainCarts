@@ -51,6 +51,7 @@ public class SpectatedFakePlayer {
     private double offsetY = 0.0;
     private double offsetZ = 0.0;
     private ItemStack skullItem = null;
+    private boolean stopped = false;
 
     public SpectatedFakePlayer(TrainCartsAttachmentViewer player) {
         this(player, null);
@@ -72,16 +73,25 @@ public class SpectatedFakePlayer {
     }
 
     public void setUseMinecartInterpolation(boolean useMinecartInterpolation) {
+        if (stopped) {
+            return;
+        }
         this.useMinecartInterpolation = useMinecartInterpolation;
     }
 
     public void setPlayerOffset(double x, double y, double z) {
+        if (stopped) {
+            return;
+        }
         this.offsetX = x;
         this.offsetY = y;
         this.offsetZ = z;
     }
 
     public void setForceAbsoluteSync(boolean forceAbsoluteSync) {
+        if (stopped) {
+            return;
+        }
         this.forceAbsoluteSync = forceAbsoluteSync;
     }
 
@@ -94,12 +104,15 @@ public class SpectatedFakePlayer {
      * @param callback Callback to run, null to disable
      */
     public void setOnRealPlayerPositionSynchronized(Runnable callback) {
+        if (stopped) {
+            return;
+        }
         this.onRealPlayerPositionSynchronized = callback;
     }
 
     public void start(Matrix4x4 transform, Vector motion) {
-        if (fakePlayer != null) {
-            stop();
+        if (stopped || fakePlayer != null) {
+            return;
         }
         Matrix4x4 syncTransform = transformForSync(transform);
 
@@ -144,6 +157,10 @@ public class SpectatedFakePlayer {
     }
 
     public void stop() {
+        if (stopped) {
+            return;
+        }
+        stopped = true;
         equipmentUpdateTask.stop();
         stopRealPlayerMount();
         if (blindRespawn != null) {
@@ -162,7 +179,9 @@ public class SpectatedFakePlayer {
     }
 
     public void mountSingle(int mountEntityId) {
-        checkStarted();
+        if (!checkStarted()) {
+            return;
+        }
 
         VehicleMountController vmc = player.getVehicleMountController();
         fakePlayer.entity.mount(vmc, mountEntityId);
@@ -172,7 +191,9 @@ public class SpectatedFakePlayer {
     }
 
     public void mountMultiple(int mountEntityIdA, int mountEntityIdB, int mountEntityIdC) {
-        checkStarted();
+        if (!checkStarted()) {
+            return;
+        }
 
         VehicleMountController vmc = player.getVehicleMountController();
         fakePlayer.entity.mount(vmc, mountEntityIdA);
@@ -182,6 +203,9 @@ public class SpectatedFakePlayer {
     }
 
     public void unmount() {
+        if (stopped) {
+            return;
+        }
         if (fakePlayer == null || mountedEntityIds.length != 3) {
             return;
         }
@@ -194,7 +218,9 @@ public class SpectatedFakePlayer {
     }
 
     public void updatePosition(Matrix4x4 transform) {
-        checkStarted();
+        if (!checkStarted()) {
+            return;
+        }
         Matrix4x4 syncTransform = transformForSync(transform);
 
         if (blindRespawn != null) {
@@ -220,7 +246,9 @@ public class SpectatedFakePlayer {
     }
 
     public void syncPosition(boolean absolute) {
-        checkStarted();
+        if (!checkStarted()) {
+            return;
+        }
         if (forceAbsoluteSync) {
             absolute = true;
         }
@@ -235,14 +263,20 @@ public class SpectatedFakePlayer {
     }
 
     public VirtualEntity getCurrentEntity() {
-        checkStarted();
+        if (!checkStarted()) {
+            return null;
+        }
         return fakePlayer.entity;
     }
 
-    private void checkStarted() {
+    private boolean checkStarted() {
         if (fakePlayer == null) {
+            if (stopped) {
+                return false;
+            }
             throw new IllegalStateException("Spectated fake player is not started");
         }
+        return true;
     }
 
     protected Matrix4x4 transformForSync(Matrix4x4 transform) {
