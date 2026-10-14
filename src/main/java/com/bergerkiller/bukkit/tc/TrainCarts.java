@@ -121,7 +121,6 @@ public class TrainCarts extends PluginBase {
     private TCListener listener;
     private TCPacketListener packetListener;
     private TCSuppressSeatTeleportPacketListener suppressSeatTeleportPacketListener;
-    private TCInteractionPacketListener interactionPacketListener;
     private FileConfiguration config;
     private final SpawnSignManager spawnSignManager = new SpawnSignManager(this);
     private SavedAttachmentModelStore savedAttachmentModels;
@@ -994,7 +993,6 @@ public class TrainCarts extends PluginBase {
 
         // Register listeners
         this.register(packetListener = new TCPacketListener(this), TCPacketListener.LISTENED_TYPES);
-        this.register(interactionPacketListener = new TCInteractionPacketListener(packetListener), TCInteractionPacketListener.TYPES);
         this.register(listener = new TCListener(this));
         this.register(new TCSeatChangeListener());
         this.register(new TrainChestListener(this));
@@ -1126,11 +1124,9 @@ public class TrainCarts extends PluginBase {
 
         //Unregister listeners
         this.unregister(packetListener);
-        this.unregister(interactionPacketListener);
         smoothCoastersAPI.unregister();
         listener = null;
         packetListener = null;
-        interactionPacketListener = null;
         smoothCoastersAPI = null;
 
         //Stop pending tasks for fake player list clearing

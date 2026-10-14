@@ -2,18 +2,20 @@ package com.bergerkiller.bukkit.tc;
 
 import com.bergerkiller.bukkit.common.Common;
 import com.bergerkiller.bukkit.common.Task;
+import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.collections.ImplicitlySharedSet;
 import com.bergerkiller.bukkit.common.conversion.type.HandleConversion;
 import com.bergerkiller.bukkit.common.events.PacketReceiveEvent;
 import com.bergerkiller.bukkit.common.events.PacketSendEvent;
-import com.bergerkiller.bukkit.common.internal.CommonBootstrap;
 import com.bergerkiller.bukkit.common.internal.CommonCapabilities;
 import com.bergerkiller.bukkit.common.protocol.CommonPacket;
 import com.bergerkiller.bukkit.common.protocol.PacketListener;
 import com.bergerkiller.bukkit.common.protocol.PacketType;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
+import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.common.wrappers.HumanHand;
+import com.bergerkiller.bukkit.common.wrappers.HumanHandRole;
 import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroupStore;
@@ -23,6 +25,7 @@ import com.bergerkiller.bukkit.tc.events.attachment.AttachmentInteractEvent;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.ServerboundAttackPacketHandle;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.ServerboundPlayerInputPacketHandle;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.ServerboundInteractPacketHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ServerboundSwingPacketHandle;
 import com.bergerkiller.generated.net.minecraft.world.entity.player.PlayerHandle;
 
 import java.util.HashMap;
@@ -31,6 +34,7 @@ import java.util.Map;
 import java.util.function.Consumer;
 
 import org.bukkit.Location;
+import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Player;
 import org.bukkit.event.player.PlayerInteractAtEntityEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
@@ -39,19 +43,30 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.util.Vector;
 
 /**
- * Temporary (???) packet listener to handle and cancel player SHIFT presses to cancel vehicle exit
+ * Processes incoming packets from the client and makes corrective changes to them, to make
+ * interactions with trains work properly:
+ * <ul>
+ *     <li>Handles the clicks on attachments and rewriting them as interactions with the actual minecart entity.</li>
+ *     <lI>Handles the 'sneak' toggling by clients, to differentiate vehicle-exits as player-initiated or not</lI>
+ *     <li>Handles clicks with blocks that were meant for the train occupying that space</li>
+ * </ul>
  */
 class TCPacketListener implements PacketListener {
     public static final int ATTACK_SUPPRESS_DURATION = 250; // 250ms
     public static final PacketType[] LISTENED_TYPES = new PacketType[] {
-            PacketType.IN_STEER_VEHICLE, PacketType.IN_INTERACT, PacketType.IN_ATTACK, PacketType.IN_PLAYER_COMMAND
-    };
+            /** Normal entity click interaction handling / sneak handling */
+            PacketType.IN_STEER_VEHICLE,
+            PacketType.IN_INTERACT,
+            PacketType.IN_ATTACK,
+            PacketType.IN_PLAYER_COMMAND,
 
-    /**
-     * After Minecraft 26.1 the interact-at position is expected to always be present. But before, the with and without at position
-     * had completely different handlers. And for things to work properly, we must null out any at position.
-     */
-    private static final boolean INTERACT_REWRITE_KEEP_AT = CommonBootstrap.evaluateMCVersion(">=", "26.1");
+            /** Block optimization handling */
+            PacketType.IN_USE_ITEM,
+            PacketType.IN_USE_ITEM_ON,
+            PacketType.IN_SWING,
+            PacketType.IN_PUNCH,
+            PacketType.IN_PLAYER_ACTION
+    };
 
     private final TrainCarts traincarts;
     private final Map<Player, Long> lastHitTime = new HashMap<Player, Long>();
@@ -123,6 +138,14 @@ class TCPacketListener implements PacketListener {
     public void onPacketReceive(PacketReceiveEvent event) {
         CommonPacket packet = event.getPacket();
         Player player = event.getPlayer();
+
+        // If disabled, do nothing
+        if (TCConfig.optimizeInteraction) {
+            optimizeBlockInteraction(event);
+            if (event.isCancelled()) {
+                return;
+            }
+        }
 
         // Note: sometimes an unmount packet is sent before the player is actually inside a vehicle.
         // However, this could also be because of a virtual invisible entity being controlled by the player.
@@ -246,6 +269,108 @@ class TCPacketListener implements PacketListener {
                     }
                 }
             }
+        }
+    }
+
+    /**
+     * Handles block interaction packets and translates them into packets
+     * interacting with minecarts that are in those positions.
+     * This ensures players can 'click' into trains more easily by clicking on rails/blocks behind the
+     * train, when that click passes through the bounding box of a train.
+     *
+     * @param event PacketReceiveEvent
+     */
+    private void optimizeBlockInteraction(PacketReceiveEvent event) {
+
+        // Ignore all this logic while the player is sneaking, so that interacting with blocks still works
+        if (event.getPlayer().isSneaking()) {
+            return;
+        }
+
+        // Store last hit when USE_ITEM is called, to avoid ENTITY_ANIMATION attack() being called incorrectly
+        if (event.getType() == PacketType.IN_USE_ITEM_ON) {
+            suppressAttacksFor(event.getPlayer(), TCPacketListener.ATTACK_SUPPRESS_DURATION);
+        }
+
+        // Ignore IN_BLOCK_DIG packets that are uninteresting to us
+        if (event.getType() == PacketType.IN_PLAYER_ACTION) {
+            String status = event.getPacket().read(PacketType.IN_PLAYER_ACTION.status).toString();
+            if (!status.equals("START_DESTROY_BLOCK")) {
+                return;
+            }
+        }
+
+        // For BLOCK_DIG and arm swings we check if clicking on a player, handling the entity attack() event
+        // When we cancel a BLOCK_DIG event, be sure to send a block update of the block being dug
+        // For arm animation, make sure it is that of the player's off hand.
+        boolean isAttackClick = false;
+        if (event.getType() == PacketType.IN_PLAYER_ACTION) {
+            isAttackClick = true;
+        } else if (event.getType() == PacketType.IN_PUNCH) {
+            if (isAttackSuppressed(event.getPlayer())) {
+                event.setCancelled(true);
+                return;
+            }
+            isAttackClick = true;
+        } else if (event.getType() == PacketType.IN_SWING) {
+            ServerboundSwingPacketHandle packet = ServerboundSwingPacketHandle.createHandle(event.getPacket().getHandle());
+            if (packet.getHandRole() == HumanHandRole.OFF) {
+                if (isAttackSuppressed(event.getPlayer())) {
+                    event.setCancelled(true);
+                    return;
+                }
+                isAttackClick = true;
+            }
+        }
+        if (isAttackClick) {
+            MinecartMember<?> member = MinecartMemberStore.getFromHitTest(Util.getRealEyeLocation(event.getPlayer()));
+            if (member != null) {
+                event.setCancelled(true);
+                simulateDefaultAttack(member, event.getPlayer());
+
+                // When packet is IN_BLOCK_DIG, send a block change to correct the changed block
+                if (event.getType() == PacketType.IN_PLAYER_ACTION) {
+                    IntVector3 pos = event.getPacket().read(PacketType.IN_PLAYER_ACTION.position);
+                    cancelBlockChanges(event.getPlayer(), pos);
+                }
+            }
+            return;
+        }
+
+        // IN_BLOCK_PLACE occurs when the player right-clicks the air while holding an item
+        // USE_ITEM occurs when the player right-clicks a block
+        // In both cases, when clicking on a cart, cancel the event and perform interaction
+        if (event.getType() == PacketType.IN_USE_ITEM || event.getType() == PacketType.IN_USE_ITEM_ON) {
+            MinecartMember<?> member = MinecartMemberStore.getFromHitTest(event.getPlayer().getEyeLocation());
+            if (member != null) {
+                HumanHand hand;
+                if (event.getType() == PacketType.IN_USE_ITEM) {
+                    hand = PacketType.IN_USE_ITEM.getHand(event.getPacket(), event.getPlayer());
+                } else {
+                    hand = PacketType.IN_USE_ITEM_ON.getHand(event.getPacket(), event.getPlayer());
+
+                    // Cancel any block changes by re-sending the block clicked (and the block at the face)
+                    IntVector3 pos = event.getPacket().read(PacketType.IN_USE_ITEM_ON.position);
+                    BlockFace dir =  event.getPacket().read(PacketType.IN_USE_ITEM_ON.direction);
+                    cancelBlockChanges(event.getPlayer(), pos);
+                    cancelBlockChanges(event.getPlayer(), pos.add(dir));
+                }
+
+                event.setCancelled(true);
+                this.simulateDefaultInteract(member, event.getPlayer(), hand, member.getEntity().getLocation().toVector());
+            }
+
+            return;
+        }
+    }
+
+    private void cancelBlockChanges(Player player, IntVector3 pos) {
+        // Check chunk is loaded in this area to protect against rogue client data
+        if (WorldUtil.isLoaded(player.getWorld(), pos.x, pos.y, pos.z)) {
+            CommonPacket bcPacket = PacketType.OUT_BLOCK_CHANGE.newInstance();
+            bcPacket.write(PacketType.OUT_BLOCK_CHANGE.position, pos);
+            bcPacket.write(PacketType.OUT_BLOCK_CHANGE.blockData, WorldUtil.getBlockData(player.getWorld(), pos));
+            PacketUtil.sendPacket(player, bcPacket);
         }
     }
 
