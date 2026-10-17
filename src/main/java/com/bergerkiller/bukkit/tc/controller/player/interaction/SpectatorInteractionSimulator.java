@@ -9,6 +9,7 @@ import com.bergerkiller.bukkit.common.resources.SoundEffect;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.DebugUtil;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
+import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.bukkit.common.utils.PlayerUtil;
@@ -34,6 +35,10 @@ import org.bukkit.block.BlockFace;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.Vector;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
 /**
  * Simulates player interactions while a player is viewing themselves through spectator mode.
  * Performs its own ray-tracing for clicks and fires off interactions for blocks, entities and trains.
@@ -42,7 +47,7 @@ import org.bukkit.util.Vector;
 public class SpectatorInteractionSimulator {
     private final SpectatedFakePlayer fakePlayer;
     private final AttachmentViewer player;
-    private boolean ignoreSpectatorFilter = false;
+    private List<Object> allowedPackets = Collections.emptyList();
 
     public SpectatorInteractionSimulator(SpectatedFakePlayer fakePlayer, AttachmentViewer player) {
         this.fakePlayer = fakePlayer;
@@ -59,7 +64,7 @@ public class SpectatorInteractionSimulator {
      * @see TrainCartsPlayerInteractionHandler#LISTENED_TYPES Packet types that are received here
      */
     public void handleReceivedPacket(PacketReceiveEvent event) {
-        if (ignoreSpectatorFilter) {
+        if (allowedPackets.contains(event.getPacket().getHandle())) {
             return;
         }
 
@@ -108,9 +113,23 @@ public class SpectatorInteractionSimulator {
     }
 
     private void receivePacketWithoutSuppress(PacketHandle packet) {
-        ignoreSpectatorFilter = true;
-        PacketUtil.receivePacket(player.getPlayer(), packet);
-        ignoreSpectatorFilter = false;
+        // Note: this should only run on the main thread to avoid race conditions
+        final List<Object> filter = Collections.singletonList(packet.getRaw());
+        try {
+            this.allowedPackets = LogicUtil.combineUnmodifiableLists(this.allowedPackets, filter);
+            PacketUtil.receivePacket(player.getPlayer(), packet);
+        } finally {
+            List<Object> allowedPackets = this.allowedPackets;
+            if (allowedPackets == filter) {
+                // Usual case
+                this.allowedPackets = Collections.emptyList();
+            } else {
+                // Exceptional case
+                allowedPackets = new ArrayList<>(allowedPackets);
+                allowedPackets.removeAll(filter);
+                this.allowedPackets = allowedPackets;
+            }
+        }
     }
 
     private BlockRayTrace.HitResult rayTraceWithEntities(BlockRayTrace rayTrace) {
