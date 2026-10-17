@@ -373,7 +373,7 @@ public class TCListener implements Listener {
             // Keep track of when a player interacts to detect spamming
             long lastHitTime = lastHitTimes.getOrDefault(event.getPlayer(), Long.MIN_VALUE);
             long time = System.currentTimeMillis();
-            long clickInterval = time - lastHitTime;
+            long clickInterval = (lastHitTime == Long.MIN_VALUE) ? Long.MAX_VALUE : (time - lastHitTime);
             lastHitTimes.put(event.getPlayer(), time);
 
             // Handle upside-down rail placement
@@ -596,6 +596,7 @@ public class TCListener implements Listener {
         }
 
         // Check that we are not spam-clicking (for block placement, that is!)
+        // This prevents accidental double-activation from players
         Long lastHitTime = lastHitTimes.get(event.getPlayer());
         if (lastHitTime != null) {
             long time = System.currentTimeMillis();
