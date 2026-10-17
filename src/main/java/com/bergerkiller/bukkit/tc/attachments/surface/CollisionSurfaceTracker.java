@@ -48,7 +48,6 @@ public class CollisionSurfaceTracker {
     private final EnumMap<BlockFace, CollisionWallTileGrid> wallTiles;
     private final List<CollisionSurfaceImpl> surfaces = new ArrayList<>();
     private SimulatedPlayer simulatedPlayer = null;
-    private AttachmentViewer.MovementController pmc = null;
     private Vector previousPlayerPosition = null;
 
     // Shared solver instance for this tracker class. Initialized with a logger that
@@ -221,17 +220,14 @@ public class CollisionSurfaceTracker {
 
         simulatedPlayer.lastJumpInput = controller.getInput().jumping();
         this.simulatedPlayer = simulatedPlayer;
-        this.pmc = controller;
         return true;
     }
-
 
     private void stopSimulatedPlayer(Vector trackingPosition) {
         if (this.simulatedPlayer != null && this.simulatedPlayer.pmc != null && !this.simulatedPlayer.pmc.hasStopped()) {
             this.simulatedPlayer.pmc.stop();
         }
         this.simulatedPlayer = null;
-        this.pmc = null;
         if (trackingPosition != null) {
             if (this.previousPlayerPosition == null) {
                 this.previousPlayerPosition = trackingPosition.clone();
@@ -246,7 +242,7 @@ public class CollisionSurfaceTracker {
         if (simulatedPlayer == null) {
             return;
         }
-        if (simulatedPlayer.pmc == null || simulatedPlayer.pmc.hasStopped()) {
+        if (simulatedPlayer.pmc == null || simulatedPlayer.pmc.hasStopped() || viewer.getPlayer().getVehicle() != null) {
             stopSimulatedPlayer(simulatedPlayer.position);
             return;
         }
