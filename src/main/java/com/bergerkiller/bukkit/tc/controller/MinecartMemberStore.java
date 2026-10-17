@@ -9,12 +9,14 @@ import com.bergerkiller.bukkit.common.conversion.Conversion;
 import com.bergerkiller.bukkit.common.entity.CommonEntity;
 import com.bergerkiller.bukkit.common.entity.CommonEntityType;
 import com.bergerkiller.bukkit.common.entity.type.*;
+import com.bergerkiller.bukkit.common.math.OrientedBoundingBox;
 import com.bergerkiller.bukkit.common.offline.OfflineBlock;
 import com.bergerkiller.bukkit.common.utils.*;
 import com.bergerkiller.bukkit.common.wrappers.HumanHand;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
+import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
 import com.bergerkiller.bukkit.tc.controller.components.RailPiece;
 import com.bergerkiller.bukkit.tc.controller.type.*;
 import com.bergerkiller.bukkit.tc.events.MemberSpawnEvent;
@@ -31,6 +33,7 @@ import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Minecart;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.util.Vector;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -486,10 +489,26 @@ public abstract class MinecartMemberStore {
      * 
      * @param eyeLocation
      * @return member hit, null if none found
+     * @deprecated Use {@link #hitTest(Location, double)} instead.
      */
+    @Deprecated
     public static MinecartMember<?> getFromHitTest(Location eyeLocation) {
-        MinecartMember<?> best = null;
-        double best_dist = 4.5;
+        HitTestResult result = hitTest(eyeLocation, 4.5);
+        return result == null ? null : result.member;
+    }
+
+    /**
+     * Performs a ray-tracing hit-test looking from an eye position and direction, a maximum distance away.
+     * Returns the first train or attachment of a train that was hit.
+     *
+     * @param eyeLocation Eye location
+     * @param maxDistance Maximum distance to look for trains
+     * @return HitTestResult with a found cart of a train looking at, or null if not looking at any train
+     */
+    public static HitTestResult hitTest(Location eyeLocation, double maxDistance) {
+        final double limitSq = Math.pow(maxDistance + 320.0, 2.0);
+
+        HitTestResult result = null;
         for (MinecartGroup group : MinecartGroupStore.getGroups().cloneAsIterable()) {
             if (group.getWorld() != eyeLocation.getWorld()) {
                 continue;
@@ -503,21 +522,44 @@ public abstract class MinecartMemberStore {
                     break;
                 }
 
-                double max_rad = 2.0 * ((double) member.getEntity().getWidth());
-                double dist_sq = member.getEntity().loc.distanceSquared(eyeLocation);
-                if (dist_sq > (max_rad * max_rad)) {
+                // Quick filter for very far-away trains to avoid lag
+                // Trains further away are not loaded to the client anyway
+                if (member.getEntity().loc.distanceSquared(eyeLocation) > limitSq) {
                     continue;
                 }
 
-                double dist_hit = member.getHitBox().hitTest(eyeLocation);
-                if (dist_hit >= best_dist) {
-                    continue;
+                // Check this member's attachments
+                for (Attachment attachment : member.getAttachments().getAllAttachments()) {
+                    if (attachment instanceof Attachment.InteractableAttachment) {
+                        for (OrientedBoundingBox bbox : ((Attachment.InteractableAttachment) attachment).getHitBoxes()) {
+                            OrientedBoundingBox.HitTestResult bboxHitResult = bbox.performHitTest(eyeLocation);
+                            if (bboxHitResult.success() && bboxHitResult.distance() <= maxDistance) {
+                                result = new HitTestResult(member, attachment, bboxHitResult.position(), bboxHitResult.distance());
+                                maxDistance = result.distance; // Next results need to be closer
+                            }
+                        }
+                    }
                 }
-
-                best_dist = dist_hit;
-                best = member;
             }
         }
-        return best;
+        return result;
+    }
+
+    /**
+     * The result of performing a ray-tracing hit-test to find what train and attachment of a train a player
+     * is looking at exactly.
+     */
+    public static class HitTestResult {
+        public final MinecartMember<?> member;
+        public final Attachment attachment;
+        public final Vector hitPosition;
+        public final double distance;
+
+        public HitTestResult(MinecartMember<?> member, Attachment attachment, Vector hitPosition, double distance) {
+            this.member = member;
+            this.attachment = attachment;
+            this.hitPosition = hitPosition;
+            this.distance = distance;
+        }
     }
 }

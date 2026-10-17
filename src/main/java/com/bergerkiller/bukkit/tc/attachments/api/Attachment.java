@@ -9,6 +9,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
+import com.bergerkiller.bukkit.common.math.OrientedBoundingBox;
 import com.bergerkiller.bukkit.common.wrappers.ChatText;
 import com.bergerkiller.bukkit.tc.events.attachment.AttachmentInteractEvent;
 import org.bukkit.entity.Player;
@@ -924,5 +925,21 @@ public interface Attachment extends AttachmentNameLookup.Supplier {
          * @param text New ChatText text to display
          */
         void setDisplayedText(ChatText text);
+    }
+
+    /**
+     * An attachment that can be clicked or damaged by players. Primarily used to perform ray-tracing
+     * logic, to see from a player's look perspective what attachment the player is clicking. Normally the
+     * client takes care of this, so implementing this has limited effectiveness.
+     */
+    interface InteractableAttachment extends Attachment {
+        /**
+         * Gets an iterable (collection) of hit boxes this attachment contains. Generally will return
+         * only one. When checking what attachment a player clicked, this method is called to find
+         * the hitboxes to test against.
+         *
+         * @return Hit boxes players can interact with
+         */
+        Iterable<OrientedBoundingBox> getHitBoxes();
     }
 }

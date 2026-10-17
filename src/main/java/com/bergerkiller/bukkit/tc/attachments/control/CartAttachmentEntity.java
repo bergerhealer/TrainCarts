@@ -3,6 +3,7 @@ package com.bergerkiller.bukkit.tc.attachments.control;
 import static com.bergerkiller.bukkit.common.utils.MaterialUtil.getMaterial;
 
 import com.bergerkiller.bukkit.common.Common;
+import com.bergerkiller.bukkit.common.math.OrientedBoundingBox;
 import org.bukkit.Material;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
@@ -38,11 +39,13 @@ import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
 import com.bergerkiller.generated.net.minecraft.world.entity.decoration.ArmorStandHandle;
 import com.bergerkiller.generated.net.minecraft.world.entity.vehicle.boat.BoatHandle;
 
+import java.util.Collections;
+
 /**
  * A cart attachment that is a standard Entity.
  * This is also used for Vanilla style minecarts.
  */
-public class CartAttachmentEntity extends CartAttachment {
+public class CartAttachmentEntity extends CartAttachment implements Attachment.InteractableAttachment {
     public static final AttachmentType TYPE = new AttachmentType() {
         @Override
         public String getID() {
@@ -335,6 +338,21 @@ public class CartAttachmentEntity extends CartAttachment {
     public boolean containsEntityId(int entityId) {
         return (this.entity != null && this.entity.getEntityId() == entityId) ||
                (this.actual != null && this.actual.getEntityId() == entityId);
+    }
+
+    @Override
+    public Iterable<OrientedBoundingBox> getHitBoxes() {
+        if (this.entity == null) {
+            return Collections.emptyList();
+        }
+
+        // TODO: Find the actual bounding box of a virtual entity?
+        // This logic is only important for vanilla Minecarts generally, so that's the bounding box we return
+        // For everything else, a HITBOX attachment is the right solution anyway.
+        OrientedBoundingBox bbox = new OrientedBoundingBox();
+        bbox.setPosition(entity.getPos());
+        bbox.setSize(0.98, 0.5, 0.98);
+        return Collections.singleton(bbox);
     }
 
     @Override

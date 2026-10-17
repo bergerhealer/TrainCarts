@@ -17,12 +17,14 @@ import com.bergerkiller.bukkit.tc.attachments.ui.menus.PositionMenu;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
+import java.util.Collections;
+
 /**
  * Is invisible, unless focused. Represents a box that players can interact with
  * to enter or destroy the cart. Can be overrided for custom attachments to
  * handle your own click actions for a configurable box in space.
  */
-public class CartAttachmentHitBox extends CartAttachment {
+public class CartAttachmentHitBox extends CartAttachment implements Attachment.InteractableAttachment {
     private static final Vector3 DEFAULT_SCALE = new Vector3(1.0, 1.0, 1.0);
 
     public static final AttachmentType TYPE = new BaseHitBoxType() {
@@ -67,6 +69,11 @@ public class CartAttachmentHitBox extends CartAttachment {
     @Override
     public boolean containsEntityId(int id) {
         return hitbox.containsEntityId(id);
+    }
+
+    @Override
+    public Iterable<OrientedBoundingBox> getHitBoxes() {
+        return Collections.singleton(getBoundingBox());
     }
 
     /**

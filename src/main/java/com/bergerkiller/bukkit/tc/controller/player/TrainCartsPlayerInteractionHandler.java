@@ -31,6 +31,7 @@ import com.bergerkiller.generated.net.minecraft.network.protocol.game.Serverboun
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.ServerboundPlayerInputPacketHandle;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.ServerboundInteractPacketHandle;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.ServerboundSwingPacketHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ServerboundUseItemOnPacketHandle;
 import com.bergerkiller.generated.net.minecraft.world.entity.player.PlayerHandle;
 
 import java.util.HashMap;
@@ -344,8 +345,9 @@ public class TrainCartsPlayerInteractionHandler implements PacketListener {
             }
         }
         if (isAttackClick) {
-            MinecartMember<?> member = MinecartMemberStore.getFromHitTest(Util.getRealEyeLocation(event.getPlayer()));
-            if (member != null) {
+            MinecartMemberStore.HitTestResult hitResult = MinecartMemberStore.hitTest(Util.getRealEyeLocation(event.getPlayer()), 4.5);
+            if (hitResult != null) {
+                MinecartMember<?> member = hitResult.member;
                 event.setCancelled(true);
                 simulateDefaultAttack(member, event.getPlayer());
 
@@ -362,8 +364,9 @@ public class TrainCartsPlayerInteractionHandler implements PacketListener {
         // USE_ITEM occurs when the player right-clicks a block
         // In both cases, when clicking on a cart, cancel the event and perform interaction
         if (event.getType() == PacketType.IN_USE_ITEM || event.getType() == PacketType.IN_USE_ITEM_ON) {
-            MinecartMember<?> member = MinecartMemberStore.getFromHitTest(event.getPlayer().getEyeLocation());
-            if (member != null) {
+            MinecartMemberStore.HitTestResult hitResult = MinecartMemberStore.hitTest(Util.getRealEyeLocation(event.getPlayer()), 4.5);
+            if (hitResult != null) {
+                MinecartMember<?> member = hitResult.member;
                 HumanHand hand;
                 if (event.getType() == PacketType.IN_USE_ITEM) {
                     hand = PacketType.IN_USE_ITEM.getHand(event.getPacket(), event.getPlayer());
