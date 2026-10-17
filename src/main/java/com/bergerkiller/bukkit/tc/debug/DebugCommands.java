@@ -422,7 +422,7 @@ public class DebugCommands {
                     return;
                 }
 
-                if (player.isSneaking()) {
+                if (player.isSneaking() || player.getVehicle() != null) {
                     controller.stop();
                     stop();
                     return;
@@ -501,6 +501,11 @@ public class DebugCommands {
                     return;
                 }
 
+                if (player.getVehicle() != null) {
+                    controller.stop();
+                    stop();
+                    return;
+                }
                 if (player.isSneaking()) {
                     player.teleport(center.toLocation(player.getWorld()));
                     controller.stop();
