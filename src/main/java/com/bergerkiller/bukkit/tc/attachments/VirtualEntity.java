@@ -14,6 +14,8 @@ import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundMoveEntityPacketHandle;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundMoveMinecartPacketHandle;
 import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
+import com.bergerkiller.generated.net.minecraft.world.entity.LivingEntityHandle;
+import com.bergerkiller.generated.net.minecraft.world.entity.decoration.ArmorStandHandle;
 import com.bergerkiller.generated.net.minecraft.world.entity.vehicle.minecart.NewMinecartBehaviorHandle;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.EntityType;
@@ -96,6 +98,29 @@ public class VirtualEntity extends VirtualSpawnableObject {
     private boolean minecartInterpolation = false;
     private boolean useParentMetadata = false;
     private Vector yawPitchRoll = new Vector(0.0, 0.0, 0.0);
+
+    /**
+     * Creates a VirtualEntity especially geared towards moving another seated entity around.
+     * Acts as an invisible vehicle.
+     *
+     * @param manager AttachmentManager
+     * @return new VirtualEntity
+     */
+    public static VirtualEntity createMountVehicle(AttachmentManager manager) {
+        VirtualEntity entity = new VirtualEntity(manager);
+        // Configure as an invisible armor stand marker
+        entity.setEntityType(EntityType.ARMOR_STAND);
+        entity.setSyncMode(SyncMode.SEAT);
+
+        // Make invisible and non-interactive
+        entity.getMetaData().set(EntityHandle.DATA_FLAGS, (byte) (EntityHandle.DATA_FLAG_INVISIBLE));
+        entity.getMetaData().set(LivingEntityHandle.DATA_HEALTH, 10.0F);
+        entity.getMetaData().set(ArmorStandHandle.DATA_ARMORSTAND_FLAGS, (byte) (
+                ArmorStandHandle.DATA_FLAG_SET_MARKER |
+                        ArmorStandHandle.DATA_FLAG_NO_BASEPLATE |
+                        ArmorStandHandle.DATA_FLAG_IS_SMALL));
+        return entity;
+    }
 
     public VirtualEntity(AttachmentManager manager) {
         this(manager, EntityUtil.getUniqueEntityId(), UUID.randomUUID());
