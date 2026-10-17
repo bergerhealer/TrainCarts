@@ -561,5 +561,10 @@ public abstract class MinecartMemberStore {
             this.hitPosition = hitPosition;
             this.distance = distance;
         }
+
+        @Override
+        public String toString() {
+            return "CartHitResult{member=" + member + ", position=" + hitPosition + ", distance=" + distance +"}";
+        }
     }
 }

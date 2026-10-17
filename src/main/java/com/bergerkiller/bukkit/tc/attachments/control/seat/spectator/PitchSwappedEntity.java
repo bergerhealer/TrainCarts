@@ -5,7 +5,6 @@ import java.util.function.Supplier;
 
 import org.bukkit.util.Vector;
 
-import com.bergerkiller.bukkit.common.controller.VehicleMountController;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.tc.Util;
@@ -25,7 +24,6 @@ public class PitchSwappedEntity<E extends VirtualEntity> {
     private static final float MAX_PITCH = EntityTrackerEntryStateHandle.getRotationFromProtocol(127); // Closest to 180
 
     private final AttachmentViewer viewer;
-    private final VehicleMountController vmc;
     private Consumer<E> beforeSwap = e -> {};
     private Runnable afterSwap = () -> {};
     /** The entity as it is currently displayed */
@@ -38,7 +36,6 @@ public class PitchSwappedEntity<E extends VirtualEntity> {
 
     private PitchSwappedEntity(AttachmentViewer viewer, E entity, E entityAlt, E entityAltFlip) {
         this.viewer = viewer;
-        this.vmc = viewer.getVehicleMountController();
         this.entity = entity;
         this.entityAlt = entityAlt;
         this.entityAltFlip = entityAltFlip;

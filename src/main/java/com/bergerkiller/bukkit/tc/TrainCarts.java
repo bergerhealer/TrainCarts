@@ -51,7 +51,7 @@ import com.bergerkiller.bukkit.tc.controller.global.TrainUpdateController;
 import com.bergerkiller.bukkit.tc.controller.player.TrainCartsAttachmentViewerMap;
 import com.bergerkiller.bukkit.tc.controller.player.network.PlayerClientSynchronizer;
 import com.bergerkiller.bukkit.tc.controller.player.network.PlayerPacketListener;
-import com.bergerkiller.bukkit.tc.controller.player.TrainCartsPlayerInteractionHandler;
+import com.bergerkiller.bukkit.tc.controller.player.interaction.TrainCartsPlayerInteractionHandler;
 import com.bergerkiller.bukkit.tc.detector.DetectorRegion;
 import com.bergerkiller.bukkit.tc.itemanimation.ItemAnimation;
 import com.bergerkiller.bukkit.tc.locator.TrainLocator;

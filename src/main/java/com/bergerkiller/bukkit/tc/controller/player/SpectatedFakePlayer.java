@@ -3,7 +3,6 @@ package com.bergerkiller.bukkit.tc.controller.player;
 import com.bergerkiller.bukkit.common.Common;
 import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.common.controller.VehicleMountController;
-import com.bergerkiller.bukkit.common.events.PacketReceiveEvent;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.wrappers.RelativeFlags;
 import com.bergerkiller.bukkit.tc.TrainCarts;
@@ -11,12 +10,12 @@ import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
 import com.bergerkiller.bukkit.tc.attachments.FakePlayerSpawner;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity;
-import com.bergerkiller.bukkit.tc.attachments.VirtualOffScreenMount;
 import com.bergerkiller.bukkit.tc.attachments.VirtualEntity.SyncMode;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentManager;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.SeatedEntityHead;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.spectator.PitchSwappedEntity;
 import com.bergerkiller.bukkit.common.utils.PlayerUtil;
+import com.bergerkiller.bukkit.tc.controller.player.interaction.SpectatorInteractionSimulator;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundPlayerPositionPacketHandle;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundSetCameraPacketHandle;
 import com.bergerkiller.generated.net.minecraft.server.level.ServerPlayerHandle;
@@ -33,17 +32,19 @@ import java.util.Objects;
  * Controls spawning a fake player, spectating it and synchronizing first-person
  * appearance and look direction.
  */
-public class SpectatedFakePlayer {
+public class SpectatedFakePlayer implements TrainCarts.Provider {
     private static final int[] NO_MOUNTS = new int[0];
 
     private final TrainCarts traincarts;
     private final TrainCartsAttachmentViewer player;
+    private final SpectatorInteractionSimulator spectatorInteractionSimulator;
     private final AttachmentManager manager;
     private PitchSwappedEntity<FakeVirtualPlayer> fakePlayer = null;
     private BlindRespawn blindRespawn = null;
     private VirtualEntity playerMount = null;
     private int[] mountedEntityIds = NO_MOUNTS;
     private boolean useMinecartInterpolation = false;
+    private boolean visibleOnSpawn = false;
     private boolean forceAbsoluteSync = false;
     /** If true, then when the fake player is spawned head is already aligned the right way (since 1.20.2) */
     private final boolean canSpawnWithoutHeadAnimation;
@@ -63,6 +64,7 @@ public class SpectatedFakePlayer {
     public SpectatedFakePlayer(TrainCartsAttachmentViewer player, AttachmentManager manager) {
         this.traincarts = player.getTrainCarts();
         this.player = player;
+        this.spectatorInteractionSimulator = new SpectatorInteractionSimulator(this, player);
         this.manager = manager;
         this.equipmentUpdateTask = new Task(player.getTrainCarts()) {
             @Override
@@ -74,6 +76,19 @@ public class SpectatedFakePlayer {
                 && Common.evaluateMCVersion(">=", "1.20.2")
                 && player.evaluateGameVersion(">=", "1.20.2");
         this.player.onSpectatedFakePlayerCreated(this);
+    }
+
+    @Override
+    public TrainCarts getTrainCarts() {
+        return traincarts;
+    }
+
+    public SpectatorInteractionSimulator getSpectatorInteractionSimulator() {
+        return spectatorInteractionSimulator;
+    }
+
+    public VirtualEntity getFakePlayer() {
+        return fakePlayer.entity;
     }
 
     public void setUseMinecartInterpolation(boolean useMinecartInterpolation) {
@@ -120,11 +135,16 @@ public class SpectatedFakePlayer {
         }
         Matrix4x4 syncTransform = transformForSync(transform);
 
+        // Only spawn the player visible if the head animation glitch is not present, or if this is a head-only fake player
+        // This prevents an awkward head-turn animation from playing while the player spawns in,
+        // visible to the player spectating the 'blind respawn' entity.
+        this.visibleOnSpawn = !isHeadOnly() && canSpawnWithoutHeadAnimation;
+
         this.skullItem = isHeadOnly() ? SeatedEntityHead.createSkullItem(player.getPlayer()) : null;
         this.fakePlayer = PitchSwappedEntity.create(player,
-                new FakeVirtualPlayer(manager, FakePlayerSpawner.NO_NAMETAG, !isHeadOnly() && canSpawnWithoutHeadAnimation),
-                new FakeVirtualPlayer(manager, FakePlayerSpawner.NO_NAMETAG_SECONDARY, false),
-                new FakeVirtualPlayer(manager, FakePlayerSpawner.NO_NAMETAG_TERTIARY, false));
+                new FakeVirtualPlayer(manager, FakePlayerSpawner.NO_NAMETAG),
+                new FakeVirtualPlayer(manager, FakePlayerSpawner.NO_NAMETAG_SECONDARY),
+                new FakeVirtualPlayer(manager, FakePlayerSpawner.NO_NAMETAG_TERTIARY));
         this.fakePlayer.beforeSwap(swapped -> {
             if (blindRespawn == null) {
                 if (isHeadOnly()) {
@@ -293,7 +313,7 @@ public class SpectatedFakePlayer {
 
     private void startRealPlayerMount(Matrix4x4 syncTransform) {
         if (playerMount == null) {
-            playerMount = new VirtualOffScreenMount(manager, player.getPlayer().getWorld());
+            playerMount = VirtualEntity.createMountVehicle(manager);
         }
 
         playerMount.updatePosition(syncTransform);
@@ -415,17 +435,11 @@ public class SpectatedFakePlayer {
 
     private class FakeVirtualPlayer extends VirtualEntity {
         private final FakePlayerSpawner fakePlayerSpawner;
-        private final boolean initiallyVisible;
         private int mountedVehicleId = -1;
 
         public FakeVirtualPlayer(AttachmentManager manager, FakePlayerSpawner fakePlayerSpawner) {
-            this(manager, fakePlayerSpawner, false);
-        }
-
-        public FakeVirtualPlayer(AttachmentManager manager, FakePlayerSpawner fakePlayerSpawner, boolean initiallyVisible) {
             super(manager);
             this.fakePlayerSpawner = fakePlayerSpawner;
-            this.initiallyVisible = initiallyVisible;
             this.setEntityType(EntityType.PLAYER);
             this.setSyncMode(SyncMode.NORMAL);
             this.setUseMinecartInterpolation(useMinecartInterpolation);
@@ -446,6 +460,8 @@ public class SpectatedFakePlayer {
 
         @Override
         protected void sendSpawnPackets(com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer viewer, Vector motion) {
+            final boolean invisible = !visibleOnSpawn || fakePlayer.entity != this;
+
             FakePlayerSpawner.FakePlayerPosition orientation = FakePlayerSpawner.FakePlayerPosition.create(
                     this.getPosX(), this.getPosY(), this.getPosZ(),
                     (float) this.getYawPitchRoll().getY(),
@@ -454,21 +470,10 @@ public class SpectatedFakePlayer {
 
             addViewerWithoutSpawning(viewer);
             fakePlayerSpawner.spawnPlayer(viewer, viewer.getPlayer(), this.getEntityId(), orientation, meta -> {
-                meta.setFlag(EntityHandle.DATA_FLAGS, EntityHandle.DATA_FLAG_INVISIBLE, !initiallyVisible);
+                meta.setFlag(EntityHandle.DATA_FLAGS, EntityHandle.DATA_FLAG_INVISIBLE, invisible);
                 meta.set(EntityHandle.DATA_NO_GRAVITY, true);
                 FakeVirtualPlayer.this.metaData = meta;
             });
         }
-    }
-
-    /**
-     * Called while the client is in spectator mode to handle packets sent by the player. This handles the rewriting
-     * of those interaction packets into one that logically comes from the actual player, that the server can
-     * accept. Without this, the server would just receive click interactions with ghost entities or worse - the
-     * player itself, triggering a client disconnect.
-     *
-     * @param event PacketReceiveEvent
-     */
-    public void handleReceivedPacket(PacketReceiveEvent event) {
     }
 }

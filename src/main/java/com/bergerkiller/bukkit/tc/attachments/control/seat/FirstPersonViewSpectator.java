@@ -1,8 +1,6 @@
 package com.bergerkiller.bukkit.tc.attachments.control.seat;
 
 import com.bergerkiller.bukkit.common.wrappers.RelativeFlags;
-import com.bergerkiller.bukkit.tc.attachments.VirtualOffScreenMount;
-import com.bergerkiller.bukkit.tc.controller.player.SpectatedFakePlayer;
 import com.bergerkiller.bukkit.tc.controller.player.ViewRotationTracker;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundPlayerPositionPacketHandle;
 import com.bergerkiller.generated.net.minecraft.server.level.ServerPlayerHandle;
@@ -133,7 +131,7 @@ public class FirstPersonViewSpectator extends FirstPersonView {
         // Mount the player itself off-screen on a mount somewhere
         // We want it to stay out of clickable range to prevent player d/c
         if (this._playerMount == null) {
-            this._playerMount = new VirtualOffScreenMount(seat.getManager(), viewer.getPlayer().getWorld());
+            this._playerMount = VirtualEntity.createMountVehicle(seat.getManager());
 
             // Put the Player somewhere high up there in the sky with safe Y positioning
             this._playerMount.updatePosition(eyeTransform);
