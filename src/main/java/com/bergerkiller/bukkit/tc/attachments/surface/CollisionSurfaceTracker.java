@@ -1,12 +1,14 @@
 package com.bergerkiller.bukkit.tc.attachments.surface;
 
 import com.bergerkiller.bukkit.common.math.OrientedBoundingBox;
+import com.bergerkiller.bukkit.common.math.Quaternion;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.wrappers.RelativeFlags;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
+import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer.MovementController.OrientationMode;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundPlayerPositionPacketHandle;
 import com.bergerkiller.generated.net.minecraft.server.level.ServerPlayerHandle;
 import com.bergerkiller.generated.net.minecraft.world.phys.AABBHandle;
@@ -224,13 +226,15 @@ public class CollisionSurfaceTracker {
                 surface,
                 false
         );
+        simulatedPlayer.viewLockNeedsReset = surface != null && surface.viewLock;
 
-        if (!controller.update(position, true)) {
+        if (!controller.update(position, getViewLockOrientationMode(surface, simulatedPlayer), getViewLockOrientation(surface), true)) {
             controller.stop();
             return false;
         }
 
         simulatedPlayer.lastJumpInput = controller.getInput().jumping();
+        simulatedPlayer.viewLockNeedsReset = false;
         this.simulatedPlayer = simulatedPlayer;
         return true;
     }
@@ -458,12 +462,18 @@ public class CollisionSurfaceTracker {
         }
         if (hasSurfaceCollision) {
             nextPosition = solution.state.feetPosition();
+            boolean wasFlying = simulatedPlayer.flying;
             if (solution.lastSurface != null && isFloorLikeLanding(solution)) {
+                CollisionSurfaceImpl landedSurface = toSurfaceImpl(solution.lastSurface);
+                boolean surfaceChanged = simulatedPlayer.lastSurface != solution.lastSurface;
                 simulatedPlayer.lastSurface = solution.lastSurface;
                 simulatedPlayer.flying = false;
                 simulatedPlayer.velocity.setX(0.0);
                 simulatedPlayer.velocity.setY(0.0);
                 simulatedPlayer.velocity.setZ(0.0);
+                simulatedPlayer.viewLockNeedsReset = landedSurface != null
+                        && landedSurface.viewLock
+                        && (wasFlying || surfaceChanged);
             } else if (!simulatedPlayer.flying) {
                 simulatedPlayer.velocity = removeIntoSurfaceVelocity(
                         simulatedPlayer.velocity,
@@ -489,9 +499,16 @@ public class CollisionSurfaceTracker {
         simulatedPlayer.applyDrag();
         simulatedPlayer.applyMinimumSpeed();
 
-        if (!simulatedPlayer.pmc.update(nextPosition, true)) {
+        currentSurface = toSurfaceImpl(simulatedPlayer.lastSurface);
+        OrientationMode orientationMode = getViewLockOrientationMode(currentSurface, simulatedPlayer);
+        Quaternion orientation = getViewLockOrientation(currentSurface);
+
+        if (!simulatedPlayer.pmc.update(nextPosition, orientationMode, orientation, true)) {
             stopSimulatedPlayer(currentPosition);
             return;
+        }
+        if (orientationMode != OrientationMode.NONE) {
+            simulatedPlayer.viewLockNeedsReset = false;
         }
 
         simulatedPlayer.lastPosition = currentPosition;
@@ -660,6 +677,17 @@ public class CollisionSurfaceTracker {
 
     private static CollisionSurfaceImpl toSurfaceImpl(CollisionSurface surface) {
         return (surface instanceof CollisionSurfaceImpl) ? (CollisionSurfaceImpl) surface : null;
+    }
+
+    private static OrientationMode getViewLockOrientationMode(CollisionSurfaceImpl surface, SimulatedPlayer simulatedPlayer) {
+        if (surface == null || !surface.viewLock || surface.getShape() == null) {
+            return OrientationMode.NONE;
+        }
+        return simulatedPlayer.viewLockNeedsReset ? OrientationMode.ABSOLUTE_RESET : OrientationMode.ABSOLUTE;
+    }
+
+    private static Quaternion getViewLockOrientation(CollisionSurfaceImpl surface) {
+        return (surface == null || surface.getShape() == null) ? null : surface.getShape().getOrientation().clone();
     }
 
     /**

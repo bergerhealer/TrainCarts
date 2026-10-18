@@ -28,6 +28,11 @@ class SimulatedPlayer {
     public CollisionSurface lastSurface;
     public boolean flying;
     public boolean lastJumpInput;
+    /**
+     * When true, the next grounded update should reset the view-lock orientation
+     * before continuing with absolute updates.
+     */
+    public boolean viewLockNeedsReset;
 
     public SimulatedPlayer(AttachmentViewer viewer, Vector position) {
         this(viewer, viewer.controlMovement(), position, position.clone(), new Vector(), CollisionSurface.DISABLED, false);
@@ -50,6 +55,7 @@ class SimulatedPlayer {
         this.lastSurface = lastSurface;
         this.flying = flying;
         this.lastJumpInput = false;
+        this.viewLockNeedsReset = false;
     }
 
     /**
