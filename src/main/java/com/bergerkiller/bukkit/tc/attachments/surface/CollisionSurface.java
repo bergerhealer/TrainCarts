@@ -36,6 +36,10 @@ public interface CollisionSurface {
         }
 
         @Override
+        public void setViewLock(boolean viewLock) {
+        }
+
+        @Override
         public OrientedBoundingBox getShape() {
             return null;
         }
@@ -100,6 +104,14 @@ public interface CollisionSurface {
      * @param useShulkers True to spawn shulkers when stationary
      */
     void setUseShulkerGrid(boolean useShulkers);
+
+    /**
+     * Sets whether the player's view should be locked to follow the orientation changes of this surface,
+     * while standing on this surface.
+     *
+     * @param viewLock True to lock the player's view with the movements of this surface
+     */
+    void setViewLock(boolean viewLock);
 
     /**
      * Gets the surface shape this surface is set to. Returns null when this surface is removed, such

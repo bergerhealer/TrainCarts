@@ -110,6 +110,27 @@ public abstract class CartAttachmentPlatform extends CartAttachment {
                     sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
                 }
             }).setBounds(0, 40, 100, 12);
+
+            tab.addWidget(new MapWidgetText())
+                    .setText("View Lock")
+                    .setFont(MapFont.MINECRAFT)
+                    .setColor(MapColorPalette.COLOR_RED)
+                    .setBounds(22, 56, 50, 11);
+            tab.addWidget(new MapWidgetSelectionBox() {
+                @Override
+                public void onAttached() {
+                    super.onAttached();
+                    this.addItem("None");
+                    this.addItem("Follow Surface");
+                    this.setSelectedIndex(attachment.getConfig().getOrDefault("viewLock", false) ? 1 : 0);
+                }
+
+                @Override
+                public void onSelectedItemChanged() {
+                    attachment.getConfig().set("viewLock", this.getSelectedIndex() == 1);
+                    sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
+                }
+            }).setBounds(0, 65, 100, 12);
         }
 
         @Override
