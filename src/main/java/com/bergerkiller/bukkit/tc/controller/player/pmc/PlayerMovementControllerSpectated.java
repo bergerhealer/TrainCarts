@@ -7,41 +7,40 @@ import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.math.Quaternion;
 import com.bergerkiller.bukkit.common.protocol.PacketType;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
+import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.bukkit.common.wrappers.PlayerAbilities;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
+import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer.ViewRotationTracker;
 import com.bergerkiller.bukkit.tc.controller.player.SpectatedFakePlayer;
-import com.bergerkiller.bukkit.tc.controller.player.ViewRotationTracker;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundPlayerAbilitiesPacketHandle;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundPlayerRotationPacketHandle;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.ServerboundMovePlayerPacketHandle;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.ServerboundPlayerAbilitiesPacketHandle;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.ServerboundPlayerInputPacketHandle;
 import com.bergerkiller.generated.net.minecraft.server.level.ServerPlayerHandle;
 import org.bukkit.util.Vector;
 
-import java.util.Collections;
-
 /**
  * Movement controller that keeps the player spectating a fake player entity.
  * The fake player is moved using requested movement API updates, while look
- * orientation is synchronized from incoming look packets.
+ * orientation is synchronized using the attachment viewer's rotation tracker.
  */
 class PlayerMovementControllerSpectated extends PlayerMovementController {
     private static final boolean HAS_CLIENT_TICK_END_PACKET = Common.evaluateMCVersion(">=", "1.21.2");
     private static final int DOUBLE_TAP_FORWARD_THRESHOLD_TICKS = 7;
+    private static final float MIN_PITCH = -90.0f;
+    private static final float MAX_PITCH = 90.0f;
 
     private final Object stateLock = new Object();
     private final SpectatedFakePlayer fakePlayer;
     private final boolean useClientTickEndPacket;
     private AttachmentViewer.Input input = AttachmentViewer.Input.ofPlayer(player);
+    private ViewRotationTracker viewRotationTracker = null;
     /** Whether double-tap W sprint was toggled on */
     private boolean hasSprintDoubleTapAction = false;
     private int clientTicksElapsed = 0;
     private int lastForwardTapTick = Integer.MIN_VALUE;
-    private boolean wasForwardPressed = false;
-    private boolean acceptLookPackets = false;
-    private ViewRotationTracker.Rotation lastLookRotation = null;
+    private boolean wasForwardPressed;
+    private ViewRotationTracker.Rotation viewRotation = null;
     private Vector requestedPosition = null;
     private Quaternion requestedOrientation = null;
     private boolean started = false;
@@ -67,17 +66,16 @@ class PlayerMovementControllerSpectated extends PlayerMovementController {
     }
 
     @Override
-    protected void syncPosition(Vector position, Quaternion orientation) {
+    protected void syncPosition(Vector position, Quaternion orientation, Quaternion orientationDelta) {
         synchronized (stateLock) {
             requestedPosition = position.clone();
-            if (orientation != null) {
-                requestedOrientation = orientation.clone();
-            } else {
-                updateOrientationFromLookPacket();
+            if (orientationDelta != null) {
+                applyOrientationDelta(orientationDelta);
             }
+            updateOrientationFromRotationTracker();
 
-            if (requestedOrientation == null) {
-                requestedOrientation = Quaternion.fromLookDirection(player.getEyeLocation().getDirection(), new Vector(0.0, 1.0, 0.0));
+            if (viewRotation == null) {
+                setViewRotation(Quaternion.fromLookDirection(player.getEyeLocation().getDirection(), new Vector(0.0, 1.0, 0.0)));
             }
 
             ensureStarted();
@@ -86,35 +84,55 @@ class PlayerMovementControllerSpectated extends PlayerMovementController {
             fakePlayer.syncPosition(true);
 
             ServerPlayerHandle sp = ServerPlayerHandle.fromBukkit(player);
-            sp.setPosition(requestedPosition.getX(), requestedPosition.getY(), requestedPosition.getZ());
+            sp.setPositionRotation(requestedPosition.getX(), requestedPosition.getY(), requestedPosition.getZ(), viewRotation.yaw, viewRotation.pitch);
         }
+    }
+
+    private void ensureStarted() {
+        if (started) {
+            return;
+        }
+        ViewRotationTracker.Rotation initialRotation = viewRotation;
+        if (initialRotation == null) {
+            initialRotation = ViewRotationTracker.Rotation.fromPlayerEye(player.getEyeLocation());
+            viewRotation = initialRotation;
+            requestedOrientation = Quaternion.fromYawPitchRoll(initialRotation.pitch, initialRotation.yaw, 0.0);
+        }
+
+        viewRotationTracker = viewer.startViewRotationTracking();
+        viewRotationTracker.setRotation(initialRotation);
+        viewRotationTracker.setUsePitchAdjustment(true);
+        viewRotationTracker.enable();
+
+        fakePlayer.start(createFakePlayerTransform(), new Vector());
+
+        started = true;
     }
 
     @Override
     protected void onStopped() {
+        final ViewRotationTracker trackerToStop;
         synchronized (stateLock) {
-            fakePlayer.setOnRealPlayerPositionSynchronized(null);
             if (started) {
                 started = false;
                 fakePlayer.stop();
             }
-            acceptLookPackets = false;
+            trackerToStop = viewRotationTracker;
+            viewRotationTracker = null;
             requestedPosition = null;
             requestedOrientation = null;
+            viewRotation = null;
+        }
+
+        if (trackerToStop != null) {
+            trackerToStop.stop();
         }
     }
 
     @Override
     public void onPacketReceive(PacketReceiveEvent event) {
-        PacketType type = event.getType();
-        if (type == PacketType.IN_POSITION_LOOK || type == PacketType.IN_LOOK) {
-            ServerboundMovePlayerPacketHandle packet = ServerboundMovePlayerPacketHandle.createHandle(event.getPacket().getHandle());
-            synchronized (stateLock) {
-                if (acceptLookPackets) {
-                    lastLookRotation = new ViewRotationTracker.Rotation(packet.getYaw(), packet.getPitch());
-                }
-            }
-        } else if (type == PacketType.IN_STEER_VEHICLE) {
+        final PacketType type = event.getType();
+        if (type == PacketType.IN_STEER_VEHICLE) {
             ServerboundPlayerInputPacketHandle packet = ServerboundPlayerInputPacketHandle.createHandle(event.getPacket().getHandle());
             synchronized (stateLock) {
                 boolean isForwardPressed = packet.isForward();
@@ -158,38 +176,38 @@ class PlayerMovementControllerSpectated extends PlayerMovementController {
     public void onPacketSend(PacketSendEvent event) {
     }
 
-    private void ensureStarted() {
-        if (started) {
-            return;
+    private void updateOrientationFromRotationTracker() {
+        ViewRotationTracker tracker = viewRotationTracker;
+        if (tracker != null) {
+            ViewRotationTracker.Rotation rotation = tracker.readAndResetRotationChange();
+            if (rotation != ViewRotationTracker.Rotation.ZERO) {
+                applyRotationDelta(rotation.yaw, rotation.pitch);
+            }
         }
-        final ViewRotationTracker.Rotation initialRotation = new ViewRotationTracker.Rotation(
-                player.getEyeLocation().getYaw(),
-                player.getEyeLocation().getPitch());
-        lastLookRotation = initialRotation;
-        requestedOrientation = Quaternion.fromYawPitchRoll(initialRotation.pitch, initialRotation.yaw, 0.0);
-        acceptLookPackets = false;
-
-        fakePlayer.start(createFakePlayerTransform(), new Vector());
-        viewer.getClientSynchronizer().synchronizeBundle(
-                Collections.singletonList(
-                        ClientboundPlayerRotationPacketHandle.createAbsolute(initialRotation.yaw, initialRotation.pitch)
-                ),
-                () -> {},
-                () -> {
-                    synchronized (stateLock) {
-                        acceptLookPackets = true;
-                    }
-                });
-
-        started = true;
     }
 
-    private void updateOrientationFromLookPacket() {
-        ViewRotationTracker.Rotation rotation = lastLookRotation;
-        if (rotation == null) {
-            return;
+    private void setViewRotation(Quaternion orientation) {
+        Vector yawPitchRoll = orientation.getYawPitchRoll();
+        viewRotation = new ViewRotationTracker.Rotation(
+                (float) yawPitchRoll.getY(),
+                MathUtil.clamp((float) yawPitchRoll.getX(), MIN_PITCH, MAX_PITCH));
+        requestedOrientation = Quaternion.fromYawPitchRoll(viewRotation.pitch, viewRotation.yaw, 0.0);
+    }
+
+    private void applyOrientationDelta(Quaternion delta) {
+        Vector yawPitchRoll = delta.getYawPitchRoll();
+        applyRotationDelta((float) yawPitchRoll.getY(), (float) yawPitchRoll.getX());
+    }
+
+    private void applyRotationDelta(float yawDelta, float pitchDelta) {
+        if (viewRotation == null) {
+            setViewRotation(Quaternion.fromLookDirection(player.getEyeLocation().getDirection(), new Vector(0.0, 1.0, 0.0)));
         }
-        requestedOrientation = Quaternion.fromYawPitchRoll(rotation.pitch, rotation.yaw, 0.0);
+
+        viewRotation = new ViewRotationTracker.Rotation(
+                viewRotation.yaw + yawDelta,
+                MathUtil.clamp(viewRotation.pitch + pitchDelta, MIN_PITCH, MAX_PITCH));
+        requestedOrientation = Quaternion.fromYawPitchRoll(viewRotation.pitch, viewRotation.yaw, 0.0);
     }
 
     private Matrix4x4 createFakePlayerTransform() {

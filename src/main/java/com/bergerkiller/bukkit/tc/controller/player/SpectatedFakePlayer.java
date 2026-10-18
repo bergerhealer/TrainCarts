@@ -4,7 +4,6 @@ import com.bergerkiller.bukkit.common.Common;
 import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.common.controller.VehicleMountController;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
-import com.bergerkiller.bukkit.common.wrappers.RelativeFlags;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
@@ -16,7 +15,6 @@ import com.bergerkiller.bukkit.tc.attachments.control.seat.SeatedEntityHead;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.spectator.PitchSwappedEntity;
 import com.bergerkiller.bukkit.common.utils.PlayerUtil;
 import com.bergerkiller.bukkit.tc.controller.player.interaction.SpectatorInteractionSimulator;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundPlayerPositionPacketHandle;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundSetCameraPacketHandle;
 import com.bergerkiller.generated.net.minecraft.server.level.ServerPlayerHandle;
 import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
@@ -48,7 +46,6 @@ public class SpectatedFakePlayer implements TrainCarts.Provider {
     private boolean forceAbsoluteSync = false;
     /** If true, then when the fake player is spawned head is already aligned the right way (since 1.20.2) */
     private final boolean canSpawnWithoutHeadAnimation;
-    private Runnable onRealPlayerPositionSynchronized = null;
     private final EnumMap<EquipmentSlot, ItemStack> equipmentState = new EnumMap<>(EquipmentSlot.class);
     private final Task equipmentUpdateTask;
     private double offsetX = 0.0;
@@ -112,21 +109,6 @@ public class SpectatedFakePlayer implements TrainCarts.Provider {
             return;
         }
         this.forceAbsoluteSync = forceAbsoluteSync;
-    }
-
-    /**
-     * Sets whether the real player is mounted onto an invisible off-screen seat while spectating
-     * this fake player, so incoming look packets can be tracked reliably. Disabled by default.
-     * Sets a callback run after the real player has been synchronized to the off-screen seat
-     * position. Used to enable look packet tracking after the client has acknowledged teleport.
-     *
-     * @param callback Callback to run, null to disable
-     */
-    public void setOnRealPlayerPositionSynchronized(Runnable callback) {
-        if (stopped) {
-            return;
-        }
-        this.onRealPlayerPositionSynchronized = callback;
     }
 
     public void start(Matrix4x4 transform, Vector motion) {
@@ -319,19 +301,6 @@ public class SpectatedFakePlayer implements TrainCarts.Provider {
         playerMount.updatePosition(syncTransform);
         playerMount.syncPosition(true);
         playerMount.spawn(player, new Vector());
-
-        final Runnable callback = onRealPlayerPositionSynchronized;
-        final Vector pos = playerMount.getSyncPos();
-        player.getClientSynchronizer().synchronize(teleportId -> ClientboundPlayerPositionPacketHandle.createNew(
-                pos.getX(), pos.getY(), pos.getZ(),
-                playerMount.getSyncYaw(), playerMount.getSyncPitch(),
-                0.0, 0.0, 0.0,
-                RelativeFlags.ABSOLUTE_POSITION,
-                teleportId), p -> {
-            if (callback != null) {
-                callback.run();
-            }
-        });
         player.getVehicleMountController().mount(playerMount.getEntityId(), player.getEntityId());
     }
 

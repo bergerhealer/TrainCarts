@@ -394,7 +394,8 @@ public class DebugCommands {
     private void commandTestFlight(
             final Player player,
             final TrainCarts plugin,
-            final @Flag("stop_on_collide") boolean stopOnBlockCollision
+            final @Flag("stop_on_collide") boolean stopOnBlockCollision,
+            final @Flag("free_look") boolean freeLook
     ) {
         new Task(plugin) {
             Quaternion rotation = new Quaternion();
@@ -433,41 +434,60 @@ public class DebugCommands {
                     return;
                 }
 
-                if (!controller.update(loc.toVector(), stopOnBlockCollision)) {
-                    stop();
-                    return;
-                }
-
-                speed *= 0.9;
                 AttachmentViewer.Input input = controller.getInput();
-                if (input.hasWalkInput() || input.jumping() || input.sneaking()) {
-                    lastMotion = new Vector();
-                    speed += 0.2;
-                } else if (speed < 0.01) {
-                    speed = 0.0;
-                }
+                if (freeLook) {
+                    if (!controller.update(loc.toVector(), rotation, stopOnBlockCollision)) {
+                        stop();
+                        return;
+                    }
 
-                Quaternion q = Quaternion.fromLookDirection(player.getEyeLocation().getDirection(), new Vector(0, 1, 0));
-                if (input.jumping()) {
-                    lastMotion.add(q.upVector());
-                }
-                if (input.forwards()) {
-                    lastMotion.add(q.forwardVector());
-                } else if (input.backwards()) {
-                    lastMotion.add(q.forwardVector().multiply(-1.0));
-                }
-                if (input.left()) {
-                    lastMotion.add(q.rightVector());
-                } else if (input.right()) {
-                    lastMotion.add(q.rightVector().multiply(-1.0));
-                }
+                    double turn = 4.0;
+                    if (input.left()) {
+                        rotation.rotateY(turn);
+                    } else if (input.right()) {
+                        rotation.rotateY(-turn);
+                    }
+                    if (input.forwards()) {
+                        rotation.rotateX(-turn);
+                    } else if (input.backwards()) {
+                        rotation.rotateX(turn);
+                    }
+                } else {
+                    if (!controller.update(loc.toVector(), stopOnBlockCollision)) {
+                        stop();
+                        return;
+                    }
 
-                double fixedSpeed = speed;
-                if (input.sprinting()) {
-                    fixedSpeed *= 2.0;
-                }
+                    speed *= 0.9;
+                    if (input.hasWalkInput() || input.jumping() || input.sneaking()) {
+                        lastMotion = new Vector();
+                        speed += 0.2;
+                    } else if (speed < 0.01) {
+                        speed = 0.0;
+                    }
 
-                loc.add(lastMotion.clone().multiply(fixedSpeed));
+                    Quaternion q = Quaternion.fromLookDirection(player.getEyeLocation().getDirection(), new Vector(0, 1, 0));
+                    if (input.jumping()) {
+                        lastMotion.add(q.upVector());
+                    }
+                    if (input.forwards()) {
+                        lastMotion.add(q.forwardVector());
+                    } else if (input.backwards()) {
+                        lastMotion.add(q.forwardVector().multiply(-1.0));
+                    }
+                    if (input.left()) {
+                        lastMotion.add(q.rightVector());
+                    } else if (input.right()) {
+                        lastMotion.add(q.rightVector().multiply(-1.0));
+                    }
+
+                    double fixedSpeed = speed;
+                    if (input.sprinting()) {
+                        fixedSpeed *= 2.0;
+                    }
+
+                    loc.add(lastMotion.clone().multiply(fixedSpeed));
+                }
             }
         }.start(5, 1);
         player.sendMessage("Started");

@@ -40,6 +40,7 @@ public abstract class PlayerMovementController implements AttachmentViewer.Movem
     private boolean syncAsArmorstand = true;
     private Vector prevPos = null;
     private Vector lastSyncPos = null;
+    private Quaternion lastAbsoluteOrientation = null;
     protected volatile boolean translateVehicleSteer = false;
     protected boolean isFlightForced = false;
     private Boolean wasFlyingBeforeControl = null;
@@ -75,6 +76,7 @@ public abstract class PlayerMovementController implements AttachmentViewer.Movem
     @Override
     public final void stop() {
         stopped = true;
+        lastAbsoluteOrientation = null;
         onStopped();
         type.remove(this);
         setFlightForced(false);
@@ -93,6 +95,16 @@ public abstract class PlayerMovementController implements AttachmentViewer.Movem
     public final boolean update(Vector position, Quaternion orientation, boolean stopOnBlockCollision) {
         if (stopped) {
             return false;
+        }
+
+        Quaternion orientationDelta = null;
+        if (orientation != null) {
+            synchronized (this) {
+                if (lastAbsoluteOrientation != null) {
+                    orientationDelta = Quaternion.diff(lastAbsoluteOrientation, orientation);
+                }
+                lastAbsoluteOrientation = orientation.clone();
+            }
         }
 
         // Remember the original flight state of the player before we took over
@@ -125,11 +137,11 @@ public abstract class PlayerMovementController implements AttachmentViewer.Movem
         }
         MathUtil.setVector(prevPos, position);
 
-        syncPosition(position, orientation);
+        syncPosition(position, orientation, orientationDelta);
         return true;
     }
 
-    protected abstract void syncPosition(Vector position, Quaternion orientation);
+    protected abstract void syncPosition(Vector position, Quaternion orientation, Quaternion orientationDelta);
 
     /**
      * Called when this movement controller is stopped.
@@ -492,8 +504,7 @@ public abstract class PlayerMovementController implements AttachmentViewer.Movem
                 PacketType.IN_POSITION, PacketType.IN_POSITION_LOOK,
                 PacketType.IN_STEER_VEHICLE, PacketType.IN_ABILITIES, PacketType.IN_PLAYER_COMMAND);
         public static final ControllerType SPECTATED = new ControllerType(PlayerMovementControllerSpectated::new,
-                PacketType.IN_CLIENT_TICK_END, PacketType.IN_POSITION_LOOK, PacketType.IN_LOOK,
-                PacketType.IN_STEER_VEHICLE);
+                PacketType.IN_CLIENT_TICK_END, PacketType.IN_STEER_VEHICLE);
 
         /**
          * Selects the most appropriate controller type to use for a certain player viewer.

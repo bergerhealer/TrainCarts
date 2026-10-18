@@ -48,7 +48,8 @@ public final class TrainCartsAttachmentViewer implements AttachmentViewer {
     private volatile MovementControllerTicket activeMovementController;
     CollisionSurfaceTracker collisionSurfaceTracker;
     private final Object viewRotationTrackingLock;
-    private volatile ViewRotationTracker activeViewRotationTracker;
+    private volatile ViewRotationTrackerImpl activeViewRotationTracker;
+    private volatile ViewRotationTrackerSessionImpl activeViewRotationTrackerSession;
     private volatile PlayerPacketListener<ViewRotationPacketListener> viewRotationPacketListener;
     private final Object spectatedFakePlayerLock;
     private SpectatedFakePlayer spectatedFakePlayerActive;
@@ -70,6 +71,7 @@ public final class TrainCartsAttachmentViewer implements AttachmentViewer {
         this.collisionSurfaceTracker = null;
         this.viewRotationTrackingLock = new Object();
         this.activeViewRotationTracker = null;
+        this.activeViewRotationTrackerSession = null;
         this.viewRotationPacketListener = null;
         this.spectatedFakePlayerLock = new Object();
         this.spectatedFakePlayerActive = null;
@@ -230,27 +232,32 @@ public final class TrainCartsAttachmentViewer implements AttachmentViewer {
     @Override
     public ViewRotationTracker startViewRotationTracking() {
         synchronized (viewRotationTrackingLock) {
-            if (activeViewRotationTracker != null) {
-                activeViewRotationTracker.markStoppedByReplacement();
+            ViewRotationTrackerImpl tracker = activeViewRotationTracker;
+            if (tracker != null && !tracker.requestUse()) {
+                tracker = null;
             }
-            ViewRotationTracker tracker = new ViewRotationTracker(this, new ViewRotationTracker.TrackerControl() {
-                @Override
-                public void enable(ViewRotationTracker tracker) {
-                    enableViewRotationTracking(tracker);
-                }
+            if (tracker == null) {
+                tracker = new ViewRotationTrackerImpl(this, new ViewRotationTrackerImpl.TrackerControl() {
+                    @Override
+                    public void enable(ViewRotationTrackerImpl tracker) {
+                        enableViewRotationTracking(tracker);
+                    }
 
-                @Override
-                public void stop(ViewRotationTracker tracker) {
-                    stopViewRotationTracking(tracker);
-                }
-            });
-            tracker.reset();
+                    @Override
+                    public void stop(ViewRotationTrackerImpl tracker) {
+                        stopViewRotationTracking(tracker);
+                    }
+                });
+            }
             activeViewRotationTracker = tracker;
+            ViewRotationTrackerSessionImpl session = new ViewRotationTrackerSessionImpl(tracker);
+            activeViewRotationTrackerSession = session;
+            tracker.setSession(session);
             if (viewRotationPacketListener == null) {
                 viewRotationPacketListener = createPacketListener(new ViewRotationPacketListener(),
                         PacketType.IN_POSITION_LOOK, PacketType.IN_POSITION, PacketType.IN_LOOK);
             }
-            return tracker;
+            return session;
         }
     }
 
@@ -313,6 +320,7 @@ public final class TrainCartsAttachmentViewer implements AttachmentViewer {
             if (activeViewRotationTracker != null) {
                 activeViewRotationTracker.markStoppedByReplacement();
                 activeViewRotationTracker = null;
+                activeViewRotationTrackerSession = null;
             }
             if (viewRotationPacketListener != null) {
                 viewRotationPacketListener.disable();
@@ -320,7 +328,7 @@ public final class TrainCartsAttachmentViewer implements AttachmentViewer {
         }
     }
 
-    private void enableViewRotationTracking(ViewRotationTracker tracker) {
+    private void enableViewRotationTracking(ViewRotationTrackerImpl tracker) {
         synchronized (viewRotationTrackingLock) {
             if (tracker != activeViewRotationTracker) {
                 return;
@@ -333,12 +341,13 @@ public final class TrainCartsAttachmentViewer implements AttachmentViewer {
         }
     }
 
-    private void stopViewRotationTracking(ViewRotationTracker tracker) {
+    private void stopViewRotationTracking(ViewRotationTrackerImpl tracker) {
         synchronized (viewRotationTrackingLock) {
             if (tracker != activeViewRotationTracker) {
                 return;
             }
             activeViewRotationTracker = null;
+            activeViewRotationTrackerSession = null;
 
             PlayerPacketListener<?> listener = viewRotationPacketListener;
             if (listener != null) {
@@ -350,7 +359,7 @@ public final class TrainCartsAttachmentViewer implements AttachmentViewer {
     private final class ViewRotationPacketListener implements PacketListener {
         @Override
         public void onPacketReceive(PacketReceiveEvent event) {
-            ViewRotationTracker tracker = activeViewRotationTracker;
+            ViewRotationTrackerImpl tracker = activeViewRotationTracker;
             if (tracker != null) {
                 tracker.onPacketReceive(event);
             }
@@ -358,6 +367,91 @@ public final class TrainCartsAttachmentViewer implements AttachmentViewer {
 
         @Override
         public void onPacketSend(PacketSendEvent event) {
+        }
+    }
+
+    /**
+     * Session-specific handle for a shared tracker core. Once a newer handle is created,
+     * this old handle becomes a no-op so concurrent systems cannot interfere with each other.
+     */
+    private final class ViewRotationTrackerSessionImpl implements ViewRotationTracker, ViewRotationTrackerImpl.RotationSession {
+        private final ViewRotationTrackerImpl delegate;
+        private final Object stateLock = new Object();
+        private Rotation pendingRotation = Rotation.ZERO;
+        private Rotation lastRotation = null;
+
+        ViewRotationTrackerSessionImpl(ViewRotationTrackerImpl delegate) {
+            this.delegate = delegate;
+        }
+
+        private boolean isActiveSession() {
+            return this == activeViewRotationTrackerSession && delegate == activeViewRotationTracker;
+        }
+
+        @Override
+        public void setUsePitchAdjustment(boolean usePitchAdjustment) {
+            if (isActiveSession()) {
+                delegate.setUsePitchAdjustment(usePitchAdjustment);
+            }
+        }
+
+        @Override
+        public void setRotation(Rotation rotation) {
+            if (isActiveSession()) {
+                delegate.setRotation(rotation);
+            }
+        }
+
+        @Override
+        public void enable() {
+            if (isActiveSession()) {
+                delegate.enable();
+            }
+        }
+
+        @Override
+        public void stop() {
+            if (isActiveSession()) {
+                delegate.stop();
+            }
+        }
+
+        @Override
+        public Rotation readAndResetRotationChange() {
+            if (!isActiveSession()) {
+                return Rotation.ZERO;
+            }
+            synchronized (stateLock) {
+                Rotation result = pendingRotation;
+                pendingRotation = Rotation.ZERO;
+                return result;
+            }
+        }
+
+        @Override
+        public Rotation getLastRotation() {
+            if (!isActiveSession()) {
+                return null;
+            }
+            synchronized (stateLock) {
+                return lastRotation;
+            }
+        }
+
+        @Override
+        public void pushRotation(Rotation newRotation, Rotation changes) {
+            if (!isActiveSession()) {
+                return;
+            }
+
+            synchronized (stateLock) {
+                if (pendingRotation == null) {
+                    pendingRotation = changes;
+                } else {
+                    pendingRotation = Rotation.add(pendingRotation, changes);
+                }
+                lastRotation = newRotation;
+            }
         }
     }
 
@@ -409,5 +503,6 @@ public final class TrainCartsAttachmentViewer implements AttachmentViewer {
         public boolean update(Vector position, Quaternion orientation, boolean stopOnCollision) {
             return controller.get().update(position, orientation, stopOnCollision);
         }
+
     }
 }

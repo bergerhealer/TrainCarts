@@ -12,7 +12,6 @@ import com.bergerkiller.bukkit.tc.attachments.surface.CollisionSurface;
 import com.bergerkiller.bukkit.tc.controller.player.SpectatedFakePlayer;
 import com.bergerkiller.bukkit.tc.controller.player.SpectatedFakePlayerHead;
 import com.bergerkiller.bukkit.tc.controller.player.TrainCartsAttachmentViewer;
-import com.bergerkiller.bukkit.tc.controller.player.ViewRotationTracker;
 import com.bergerkiller.bukkit.tc.controller.player.network.PlayerClientSynchronizer;
 import com.bergerkiller.bukkit.tc.controller.player.network.PlayerPacketListener;
 import com.bergerkiller.bukkit.common.math.Quaternion;
@@ -23,6 +22,7 @@ import com.bergerkiller.mountiplex.reflection.declarations.MethodDeclaration;
 import com.bergerkiller.mountiplex.reflection.util.FastMethod;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.Location;
 import org.bukkit.entity.Player;
 
 import com.bergerkiller.bukkit.common.controller.VehicleMountController;
@@ -306,6 +306,128 @@ public interface AttachmentViewer extends TrainCarts.Provider {
     }
 
     /**
+     * Public API for tracking and reading player view rotation changes. Primarily used to read incoming
+     * player rotation changes while the player is spectating another entity.
+     */
+    interface ViewRotationTracker {
+        ViewRotationTracker NOOP = new ViewRotationTracker() {
+            @Override
+            public void setUsePitchAdjustment(boolean usePitchAdjustment) {
+            }
+
+            @Override
+            public void setRotation(Rotation rotation) {
+            }
+
+            @Override
+            public void enable() {
+            }
+
+            @Override
+            public void stop() {
+            }
+
+            @Override
+            public Rotation readAndResetRotationChange() {
+                return Rotation.ZERO;
+            }
+
+            @Override
+            public Rotation getLastRotation() {
+                return null;
+            }
+        };
+
+        /**
+         * Enables this tracker. Starts listening to changes and starts updating the values read from
+         * {@link #readAndResetRotationChange()} and {@link #getLastRotation()}. Call after setting
+         * up the other options of this tracker.
+         */
+        void enable();
+
+        /**
+         * Stops this tracker. No longer updates rotation changes after this is called. If another tracker
+         * started meanwhile, does nothing but does still disable this tracker.
+         */
+        void stop();
+
+        /**
+         * Gets the yaw and pitch change that have accumulated since the last time this method was called.
+         *
+         * @return Read rotation changes
+         */
+        Rotation readAndResetRotationChange();
+
+        /**
+         * Gets the last-known absolute rotation of the actual player client.
+         *
+         * @return Last rotation
+         */
+        Rotation getLastRotation();
+
+        /**
+         * Sets the initial rotation this tracker will have, even before the player's rotation is read. Further look changes
+         * by the player will become a delta on top of this rotation. If called after the tracker is enabled, this
+         * will reset rotation to a new value without {@link #readAndResetRotationChange()} detecting it.
+         *
+         * @param rotation Rotation
+         */
+        void setRotation(Rotation rotation);
+
+        /**
+         * Sets whether to automatically adjust the player's pitch to stay within 15 degrees from 0. This will sync an update
+         * to the player resetting back to 0, allowing for infinite pitch rotation.
+         *
+         * @param usePitchAdjustment True to enable pitch adjustment logic
+         */
+        void setUsePitchAdjustment(boolean usePitchAdjustment);
+
+        /**
+         * Sets the initial rotation this tracker will have, even before the player's rotation is read. Further look changes
+         * by the player will become a delta on top of this rotation. If called after the tracker is enabled, this
+         * will reset rotation to a new value without {@link #readAndResetRotationChange()} detecting it.
+         *
+         * @param yaw Rotation yaw
+         * @param pitch Rotation pitch
+         */
+        default void setRotation(float yaw, float pitch) {
+            setRotation(new Rotation(yaw, pitch));
+        }
+
+        /**
+         * Immutable yaw/pitch rotation values.
+         */
+        final class Rotation {
+            public static final Rotation ZERO = new Rotation(0.0f, 0.0f);
+
+            public final float yaw;
+            public final float pitch;
+
+            public Rotation(float yaw, float pitch) {
+                this.yaw = yaw;
+                this.pitch = pitch;
+            }
+
+            public static Rotation fromPlayerEye(Location eyeLocation) {
+                return new Rotation(eyeLocation.getYaw(), eyeLocation.getPitch());
+            }
+
+            public static Rotation add(Rotation a, Rotation b) {
+                return new Rotation(a.yaw + b.yaw, a.pitch + b.pitch);
+            }
+
+            public static Rotation subtract(Rotation a, Rotation b) {
+                return new Rotation(a.yaw - b.yaw, a.pitch - b.pitch);
+            }
+
+            @Override
+            public String toString() {
+                return "Rotation{yaw=" + yaw + ", pitch=" + pitch + "}";
+            }
+        }
+    }
+
+    /**
      * Starts a new view rotation tracking session that captures incoming yaw/pitch changes
      * from the player. If another session was active before, it is replaced.
      *
@@ -314,14 +436,15 @@ public interface AttachmentViewer extends TrainCarts.Provider {
     default ViewRotationTracker startViewRotationTracking() {
         final TrainCarts plugin = getTrainCarts();
         if (plugin == null || !plugin.isEnabled() || !isConnected()) {
-            throw new IllegalStateException("Player is not connected");
+            return ViewRotationTracker.NOOP;
         }
 
         final AttachmentViewer viewer = plugin.getAttachmentViewer(getPlayer());
         if (viewer instanceof TrainCartsAttachmentViewer) {
             return ((TrainCartsAttachmentViewer) viewer).startViewRotationTracking();
         }
-        throw new IllegalStateException("TrainCartsAttachmentViewer unavailable");
+
+        return ViewRotationTracker.NOOP;
     }
 
     /**
@@ -682,9 +805,7 @@ public interface AttachmentViewer extends TrainCarts.Provider {
         /**
          * Sends a new player position and look-orientation to the player. The player
          * will be updated to move to this new position and have its look-orientation
-         * updated to reflect the new orientation. The orientation will be updated
-         * relatively: the change in orientation is kept track of and that is
-         * synchronized to the player.
+         * updated to reflect the new absolute orientation.
          *
          * @param position New position for the Player viewer
          * @param orientation New look-orientation for the Player viewer.
@@ -713,9 +834,7 @@ public interface AttachmentViewer extends TrainCarts.Provider {
         /**
          * Sends a new player position and look-orientation to the player. The player
          * will be updated to move to this new position and have its look-orientation
-         * updated to reflect the new orientation. The orientation will be updated
-         * relatively: the change in orientation is kept track of and that is
-         * synchronized to the player.
+         * updated to reflect the new absolute orientation.
          *
          * @param position New position for the Player viewer
          * @param orientation New look-orientation for the Player viewer.

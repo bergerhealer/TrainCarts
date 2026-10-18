@@ -1,7 +1,7 @@
 package com.bergerkiller.bukkit.tc.attachments.control.seat;
 
 import com.bergerkiller.bukkit.common.wrappers.RelativeFlags;
-import com.bergerkiller.bukkit.tc.controller.player.ViewRotationTracker;
+import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer.ViewRotationTracker;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundPlayerPositionPacketHandle;
 import com.bergerkiller.generated.net.minecraft.server.level.ServerPlayerHandle;
 import org.bukkit.util.Vector;
@@ -125,8 +125,8 @@ public class FirstPersonViewSpectator extends FirstPersonView {
 
         // Track incoming player look packets and correct spectator pitch where needed
         this._viewRotationTracker = viewer.startViewRotationTracking();
-        this._viewRotationTracker.setSuppressPositionPackets(true);
         this._viewRotationTracker.setUsePitchAdjustment(true);
+        this._viewRotationTracker.enable();
 
         // Mount the player itself off-screen on a mount somewhere
         // We want it to stay out of clickable range to prevent player d/c
@@ -137,19 +137,6 @@ public class FirstPersonViewSpectator extends FirstPersonView {
             this._playerMount.updatePosition(eyeTransform);
             this._playerMount.syncPosition(true);
             this._playerMount.spawn(viewer, new Vector());
-
-            // Sync the player to be high up in the sky, and then begin intercepting player inputs
-            // This also gets rid of the ghost-mode Y offset that the server receives from the player
-            Vector pos = this._playerMount.getSyncPos();
-            viewer.getClientSynchronizer().synchronize(teleportId -> ClientboundPlayerPositionPacketHandle.createNew(
-                    pos.getX(), pos.getY(), pos.getZ(),
-                    this._playerMount.getSyncYaw(), this._playerMount.getSyncPitch(),
-                    0.0, 0.0, 0.0,
-                    RelativeFlags.ABSOLUTE_POSITION,
-                    teleportId), p -> {
-                // Enable tracking after player is synced
-                _viewRotationTracker.enable();
-            });
 
             // Mount the player. Happens after the position sync.
             viewer.getVehicleMountController().mount(this._playerMount.getEntityId(), viewer.getEntityId());
@@ -192,9 +179,6 @@ public class FirstPersonViewSpectator extends FirstPersonView {
                 playerHandle.setPositionRotation(pos.getX(), pos.getY(), pos.getZ(),
                         entity.getSyncYaw(), entity.getSyncPitch());
                 playerHandle.setFallDistance(0.0f);
-
-                viewer.send(ClientboundPlayerPositionPacketHandle.createAbsolute(pos.getX(), pos.getY(), pos.getZ(),
-                        entity.getSyncYaw(), entity.getSyncPitch()));
             }
         }
 
@@ -233,6 +217,13 @@ public class FirstPersonViewSpectator extends FirstPersonView {
             Matrix4x4 baseTransform = getEyeTransform();
             _playerMount.updatePosition(baseTransform);
             _spectatedEntity.updatePosition(baseTransform);
+
+            // Also update actual yaw/pitch of the underlying server entity of the player
+            // That way, anything relying on player getEyeLocation() still works OK.
+            if (player != null) {
+                ServerPlayerHandle serverPlayer = ServerPlayerHandle.fromBukkit(player.getPlayer());
+                serverPlayer.setRotation(_spectatedEntity.getCurrentEntity().getSyncYaw(), _spectatedEntity.getCurrentEntity().getSyncPitch());
+            }
         }
 
         // Update input

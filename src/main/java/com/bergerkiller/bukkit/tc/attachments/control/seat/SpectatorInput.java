@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.tc.attachments.control.seat;
 
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundPlayerRotationPacketHandle;
+import com.bergerkiller.generated.net.minecraft.server.level.ServerPlayerHandle;
 import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
@@ -38,7 +39,6 @@ class SpectatorInput {
         this.deltaRotation = YawPitch.ZERO;
         this.absOrientation.setIdentity();
         this.enabled = true;
-        sendRotation(0.0f, 0.0f); // reset
     }
 
     /**
@@ -63,7 +63,8 @@ class SpectatorInput {
         if (this.player != null) {
             FirstPersonView.HeadRotation headRot = FirstPersonView.HeadRotation.compute(currentEyeTransform);
             headRot = headRot.ensureLevel();
-            sendRotation(headRot.pitch, headRot.yaw);
+
+            ServerPlayerHandle.fromBukkit(this.player.getPlayer()).setRotation(headRot.yaw, headRot.pitch);
         }
         this.player = null;
         this.blindTicks = 0;
@@ -124,10 +125,6 @@ class SpectatorInput {
                 return; // Identity - input disabled until client sync'd up
             }
         }
-    }
-
-    private void sendRotation(float pitch, float yaw) {
-        player.send(ClientboundPlayerRotationPacketHandle.createAbsolute(yaw, pitch));
     }
 
     private static boolean isUpsideDown(Quaternion q) {
