@@ -539,7 +539,7 @@ public abstract class PlayerMovementController implements AttachmentViewer.Movem
         @Override
         public void onPacketReceive(PacketReceiveEvent event) {
             final Player player = event.getPlayer();
-            for (PlayerMovementController controller : activeControllers) {
+            for (PlayerMovementController controller : activeControllersView) {
                 if (controller.player == player) {
                     controller.onPacketReceive(event);
                 }
@@ -549,7 +549,7 @@ public abstract class PlayerMovementController implements AttachmentViewer.Movem
         @Override
         public void onPacketSend(PacketSendEvent event) {
             final Player player = event.getPlayer();
-            for (PlayerMovementController controller : activeControllers) {
+            for (PlayerMovementController controller : activeControllersView) {
                 if (controller.player == player) {
                     controller.onPacketSend(event);
                 }
