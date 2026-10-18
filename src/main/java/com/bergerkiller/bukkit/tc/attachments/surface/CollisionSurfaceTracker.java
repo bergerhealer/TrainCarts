@@ -36,6 +36,8 @@ public class CollisionSurfaceTracker {
     private static final double MAX_INPUT_ANGLE = 80.0;
     /** Angle (degrees) at which gravity-based sliding starts scaling from 0 (at this angle) to full at 90 degrees. */
     private static final double GRAVITY_START_ANGLE = 50.0;
+    /** Downward distance checked after a player dismounts to immediately pick up nearby surface control. */
+    private static final double DISMOUNT_SURFACE_SUPPORT_DISTANCE = 1.0;
     /** When true, pressing sneak forces surface collisions off. Useful for testing. */
     private static final boolean SNEAKING_DISABLES_SURFACE_COLLISIONS = false;
     /** Whether to log when the player bounds penetrate surfaces unexpectedly (solver bugs) */
@@ -48,6 +50,7 @@ public class CollisionSurfaceTracker {
     private final EnumMap<BlockFace, CollisionWallTileGrid> wallTiles;
     private final List<CollisionSurfaceImpl> surfaces = new ArrayList<>();
     private SimulatedPlayer simulatedPlayer = null;
+    private Boolean previousPlayerSeated = null;
     private Vector previousPlayerPosition = null;
 
     // Shared solver instance for this tracker class. Initialized with a logger that
@@ -128,6 +131,9 @@ public class CollisionSurfaceTracker {
 
         ServerPlayerHandle playerHandle = ServerPlayerHandle.fromBukkit(viewer.getPlayer());
         AABBHandle bboxTo = playerHandle.getBoundingBox();
+        boolean isSeated = viewer.getPlayer().getVehicle() != null;
+        boolean wasSeated = previousPlayerSeated != null && previousPlayerSeated;
+        previousPlayerSeated = isSeated;
         if (simulatedPlayer != null) {
             if (SNEAKING_DISABLES_SURFACE_COLLISIONS && viewer.getPlayer().isSneaking()) {
                 stopSimulatedPlayer(viewer.getPlayer().getLocation().toVector());
@@ -159,6 +165,12 @@ public class CollisionSurfaceTracker {
         // Sneak debug mode, pretend surfaces aren't there so player can be freed from the surfaces.
         if (SNEAKING_DISABLES_SURFACE_COLLISIONS && viewer.getPlayer().isSneaking()) {
             return;
+        }
+
+        if (wasSeated && !isSeated) {
+            if (tryStartSimulatedPlayerAfterDismount(transitions, new PlayerBoundsState(bboxTo), previousPosition, movement)) {
+                return;
+            }
         }
 
         PlayerCollisionSolver.Result<CollisionSurfaceImpl> solution = PLAYER_COLLISION_SOLVER.solveDetailed(
@@ -221,6 +233,25 @@ public class CollisionSurfaceTracker {
         simulatedPlayer.lastJumpInput = controller.getInput().jumping();
         this.simulatedPlayer = simulatedPlayer;
         return true;
+    }
+
+    private boolean tryStartSimulatedPlayerAfterDismount(
+            List<OBBSurfaceTransition<CollisionSurfaceImpl>> transitions,
+            PlayerBoundsState currentBounds,
+            Vector previousPosition,
+            Vector velocity
+    ) {
+        PlayerBoundsState loweredBounds = currentBounds.translate(0.0, -DISMOUNT_SURFACE_SUPPORT_DISTANCE, 0.0);
+        PlayerCollisionSolver.Result<CollisionSurfaceImpl> support = PLAYER_COLLISION_SOLVER.solveDetailed(
+                transitions,
+                new PlayerBoundsTransition(currentBounds, loweredBounds)
+        );
+        if (support.lastCollisionMode != PlayerCollisionSolver.CollisionMode.FEET || support.lastSurface == null) {
+            return false;
+        }
+
+        Vector solPos = support.state.feetPosition();
+        return startSimulatedPlayer(support.lastSurface, previousPosition, solPos, velocity);
     }
 
     private void stopSimulatedPlayer(Vector trackingPosition) {
