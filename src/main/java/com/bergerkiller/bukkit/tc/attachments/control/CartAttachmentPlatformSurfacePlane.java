@@ -28,6 +28,7 @@ import java.util.List;
 public class CartAttachmentPlatformSurfacePlane extends CartAttachmentPlatform {
     private final OrientedBoundingBox bbox = new OrientedBoundingBox();
     private PlatformMode platformMode = PlatformMode.SIMULATED_WITH_SHULKER_GRID;
+    private boolean viewLock = false;
     private final List<PlayerSurface> playerSurfaces = new ArrayList<>();
     private Plane plane = null; // Null if not spawned
 
@@ -36,6 +37,7 @@ public class CartAttachmentPlatformSurfacePlane extends CartAttachmentPlatform {
         Vector3 size = LogicUtil.fixNull(this.getConfiguredPosition().size, DEFAULT_SIZE);
         bbox.setSize(new Vector(size.x, 0.0, size.z));
         platformMode = readPlatformMode(config);
+        viewLock = config.getOrDefault("viewLock", false);
         playerSurfaces.forEach(this::applySettings);
     }
 
@@ -76,6 +78,7 @@ public class CartAttachmentPlatformSurfacePlane extends CartAttachmentPlatform {
         }
         surface.surface.setSimulated(platformMode.isSimulated());
         surface.surface.setUseShulkerGrid(platformMode.isSpawningShulkerGrid());
+        surface.surface.setViewLock(viewLock);
     }
 
     public void setPlaneColor(ChatColor color) {
