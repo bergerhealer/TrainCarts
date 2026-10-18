@@ -66,11 +66,20 @@ class PlayerMovementControllerSpectated extends PlayerMovementController {
     }
 
     @Override
-    protected void syncPosition(Vector position, Quaternion orientation, Quaternion orientationDelta) {
+    protected void syncPosition(Vector position, OrientationUpdate orientationUpdate) {
         synchronized (stateLock) {
             requestedPosition = position.clone();
-            if (orientationDelta != null) {
-                applyOrientationDelta(orientationDelta);
+            if (orientationUpdate != null) {
+                if (orientationUpdate.mode == OrientationMode.ABSOLUTE_LOOK_AT) {
+                    // Force the player to look exactly into the new absolute orientation
+                    setViewRotation(orientationUpdate.absolute);
+                    if (viewRotationTracker != null) {
+                        viewRotationTracker.setRotation(viewRotation);
+                    }
+                } else {
+                    // Merely apply the relative change to the player view
+                    applyOrientationDelta(orientationUpdate.delta);
+                }
             }
             updateOrientationFromRotationTracker();
 

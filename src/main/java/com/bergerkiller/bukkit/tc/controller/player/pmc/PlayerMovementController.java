@@ -92,18 +92,34 @@ public abstract class PlayerMovementController implements AttachmentViewer.Movem
     }
 
     @Override
-    public final boolean update(Vector position, Quaternion orientation, boolean stopOnBlockCollision) {
+    public final boolean update(Vector position, OrientationMode orientationMode, Quaternion orientation, boolean stopOnBlockCollision) {
         if (stopped) {
             return false;
         }
 
-        Quaternion orientationDelta = null;
-        if (orientation != null) {
+        OrientationUpdate orientationUpdate = null;
+        if (orientationMode != OrientationMode.NONE && orientation != null) {
             synchronized (this) {
-                if (lastAbsoluteOrientation != null) {
-                    orientationDelta = Quaternion.diff(lastAbsoluteOrientation, orientation);
+                if (orientationMode == OrientationMode.ABSOLUTE_RESET) {
+                    lastAbsoluteOrientation = orientation;
+                    orientationUpdate = new OrientationUpdate(orientationMode, orientation, new Quaternion());
+                } else if (orientationMode == OrientationMode.ABSOLUTE || orientationMode == OrientationMode.ABSOLUTE_LOOK_AT) {
+                    Quaternion delta;
+                    if (lastAbsoluteOrientation != null) {
+                        delta = Quaternion.diff(lastAbsoluteOrientation, orientation);
+                    } else {
+                        delta = new Quaternion();
+                    }
+                    lastAbsoluteOrientation = orientation.clone();
+                    orientationUpdate = new OrientationUpdate(orientationMode, lastAbsoluteOrientation, delta);
+                } else if (orientationMode == OrientationMode.RELATIVE) {
+                    if (lastAbsoluteOrientation == null) {
+                        lastAbsoluteOrientation = new Quaternion();
+                    }
+                    lastAbsoluteOrientation = lastAbsoluteOrientation.clone();
+                    lastAbsoluteOrientation.multiply(orientation);
+                    orientationUpdate = new OrientationUpdate(orientationMode, lastAbsoluteOrientation, orientation.clone());
                 }
-                lastAbsoluteOrientation = orientation.clone();
             }
         }
 
@@ -137,11 +153,11 @@ public abstract class PlayerMovementController implements AttachmentViewer.Movem
         }
         MathUtil.setVector(prevPos, position);
 
-        syncPosition(position, orientation, orientationDelta);
+        syncPosition(position, orientationUpdate);
         return true;
     }
 
-    protected abstract void syncPosition(Vector position, Quaternion orientation, Quaternion orientationDelta);
+    protected abstract void syncPosition(Vector position, OrientationUpdate orientationUpdate);
 
     /**
      * Called when this movement controller is stopped.
@@ -229,6 +245,21 @@ public abstract class PlayerMovementController implements AttachmentViewer.Movem
             player.sendMessage("Collided with block");
         }
         return true;
+    }
+
+    /**
+     * Tracks the changes to the orientation input
+     */
+    protected static final class OrientationUpdate {
+        public final OrientationMode mode;
+        public final Quaternion absolute;
+        public final Quaternion delta;
+
+        public OrientationUpdate(OrientationMode mode, Quaternion absolute, Quaternion delta) {
+            this.mode = mode;
+            this.absolute = absolute;
+            this.delta = delta;
+        }
     }
 
     /**

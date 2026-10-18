@@ -774,7 +774,7 @@ public interface AttachmentViewer extends TrainCarts.Provider {
             }
 
             @Override
-            public boolean update(Vector position, Quaternion orientation, boolean stopOnCollision) {
+            public boolean update(Vector position, OrientationMode orientationMode, Quaternion orientation, boolean stopOnCollision) {
                 return false;
             }
         };
@@ -808,14 +808,14 @@ public interface AttachmentViewer extends TrainCarts.Provider {
          * updated to reflect the new absolute orientation.
          *
          * @param position New position for the Player viewer
+         * @param orientationMode Mode by which the orientation parameter is used
          * @param orientation New look-orientation for the Player viewer.
-         *                    Use <i>null</i> to leave look-orientation untouched.
          * @param stopOnBlockCollision Whether to check for block collisions, and to stop movement
          *                             control when such a block collision is identified.
          * @return True if the update was applied, False if the controller was/has been stopped
          *         (due to block collision).
          */
-        boolean update(Vector position, Quaternion orientation, boolean stopOnBlockCollision);
+        boolean update(Vector position, OrientationMode orientationMode, Quaternion orientation, boolean stopOnBlockCollision);
 
         /**
          * Sends a new player position to the player. Look-orientation is not updated
@@ -828,7 +828,7 @@ public interface AttachmentViewer extends TrainCarts.Provider {
          *         (due to block collision).
          */
         default boolean update(Vector position, boolean stopOnBlockCollision) {
-            return update(position, null, stopOnBlockCollision);
+            return update(position, OrientationMode.NONE, null, stopOnBlockCollision);
         }
 
         /**
@@ -837,12 +837,12 @@ public interface AttachmentViewer extends TrainCarts.Provider {
          * updated to reflect the new absolute orientation.
          *
          * @param position New position for the Player viewer
+         * @param orientationMode Mode by which the orientation parameter is used
          * @param orientation New look-orientation for the Player viewer.
-         *                    Use <i>null</i> to leave look-orientation untouched.
          * @return True if the update was applied, False if the controller was/has been stopped
          */
-        default boolean update(Vector position, Quaternion orientation) {
-            return update(position, orientation, false);
+        default boolean update(Vector position, OrientationMode orientationMode, Quaternion orientation) {
+            return update(position, orientationMode, orientation, false);
         }
 
         /**
@@ -854,6 +854,33 @@ public interface AttachmentViewer extends TrainCarts.Provider {
          */
         default boolean update(Vector position) {
             return update(position, false);
+        }
+
+        /**
+         * Way by which this movement controller updates the player view using the orientation.
+         */
+        enum OrientationMode {
+            /** No orientation will be updated at all, value is ignored */
+            NONE,
+            /**
+             * Sets a new base orientation, but does not trigger any orientation change for the player.
+             * Use this when the orientation changes radically (player is being moved by something new).
+             */
+            ABSOLUTE_RESET,
+            /**
+             * Forces the player to look into the yaw/pitch direction using this orientation specified, and
+             * sets this value as a new absolute.
+             */
+            ABSOLUTE_LOOK_AT,
+            /**
+             * Pushes a new absolute orientation value. The delta between the previous orientation is tracked,
+             * and the player view is rotated along with it.
+             */
+            ABSOLUTE,
+            /**
+             * Pushes a new relative orientation value. The player view is rotated by this value.
+             */
+            RELATIVE
         }
 
         /**

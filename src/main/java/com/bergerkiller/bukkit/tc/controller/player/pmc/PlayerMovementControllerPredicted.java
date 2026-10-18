@@ -48,7 +48,9 @@ abstract class PlayerMovementControllerPredicted extends PlayerMovementControlle
         return input.lastInput.input;
     }
 
-    private RequestedPosition computeNextRequestedPosition(Vector position, Quaternion orientation) {
+    private RequestedPosition computeNextRequestedPosition(Vector position, OrientationUpdate orientationUpdate) {
+        Quaternion orientation = orientationUpdate == null ? null : orientationUpdate.absolute;
+
         RequestedPosition lastRequestedPositionSync = this.lastRequestedPosition.get();
         int serverTicks = CommonUtil.getServerTicks();
         if (lastRequestedPositionSync != null && (serverTicks - lastRequestedPositionSync.serverTicks) < 20) {
@@ -76,10 +78,10 @@ abstract class PlayerMovementControllerPredicted extends PlayerMovementControlle
     }
 
     @Override
-    protected final void syncPosition(Vector position, Quaternion orientation, Quaternion orientationDelta) {
+    protected final void syncPosition(Vector position, OrientationUpdate orientationUpdate) {
         // Place the new position + orientation for consumption
         // If orientation is never specified, it will remain null
-        this.lastRequestedPosition.set(computeNextRequestedPosition(position, orientation));
+        this.lastRequestedPosition.set(computeNextRequestedPosition(position, orientationUpdate));
 
         // TODO: Fake receive() the player position packet, so the server right away positions
         // the player here as if the player sent it. This way laggy players don't appear to lag

@@ -436,7 +436,7 @@ public class DebugCommands {
 
                 AttachmentViewer.Input input = controller.getInput();
                 if (freeLook) {
-                    if (!controller.update(loc.toVector(), rotation, stopOnBlockCollision)) {
+                    if (!controller.update(loc.toVector(), AttachmentViewer.MovementController.OrientationMode.ABSOLUTE, rotation, stopOnBlockCollision)) {
                         stop();
                         return;
                     }
