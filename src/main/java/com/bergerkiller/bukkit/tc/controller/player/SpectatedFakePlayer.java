@@ -350,10 +350,6 @@ public class SpectatedFakePlayer implements TrainCarts.Provider {
                 playerHandle.setPositionRotation(pos.getX(), pos.getY(), pos.getZ(),
                         entity.getSyncYaw(), entity.getSyncPitch());
                 playerHandle.setFallDistance(0.0f);
-
-                player.send(ClientboundPlayerPositionPacketHandle.createAbsolute(
-                        pos.getX(), pos.getY(), pos.getZ(),
-                        entity.getSyncYaw(), entity.getSyncPitch()));
             }
         }
     }
