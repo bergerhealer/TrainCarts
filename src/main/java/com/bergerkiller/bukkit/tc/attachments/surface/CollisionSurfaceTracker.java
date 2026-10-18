@@ -777,6 +777,7 @@ public class CollisionSurfaceTracker {
         private OrientedBoundingBox prevShape;
         private int moveDetectedAtCount = 0;
         private boolean useShulkersWhenNotMoving = true;
+        private boolean viewLock = false;
         private boolean isMoving = false;
         private boolean simulationEnabled = true;
 
@@ -788,6 +789,11 @@ public class CollisionSurfaceTracker {
         @Override
         public void setUseShulkerGrid(boolean useShulkers) {
             useShulkersWhenNotMoving = useShulkers;
+        }
+
+        @Override
+        public void setViewLock(boolean viewLock) {
+            this.viewLock = viewLock;
         }
 
         @Override
