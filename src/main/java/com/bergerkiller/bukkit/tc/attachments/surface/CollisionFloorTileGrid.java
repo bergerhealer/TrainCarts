@@ -3,6 +3,7 @@ package com.bergerkiller.bukkit.tc.attachments.surface;
 import com.bergerkiller.bukkit.common.collections.FastTrackedUpdateSet;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.wrappers.LongHashMap;
+import com.bergerkiller.generated.net.minecraft.world.phys.AABBHandle;
 import org.bukkit.block.BlockFace;
 
 import java.util.ArrayList;
@@ -22,12 +23,52 @@ import java.util.function.Predicate;
  * as the surface shapes change.
  */
 class CollisionFloorTileGrid {
+    private static final double FLOOR_WALK_THRESHOLD = 0.5;
+    private static final double PLAYER_HALF_WIDTH = 0.3;
     private final ShulkerTracker shulkerCache;
     private final LongHashMap<TileColumn> columns = new LongHashMap<>();
     private final FastTrackedUpdateSet<TileColumn> changedColumns = new FastTrackedUpdateSet<>();
 
     public CollisionFloorTileGrid(ShulkerTracker shulkerCache) {
         this.shulkerCache = shulkerCache;
+    }
+
+    /**
+     * Gets the floor material that sits the the player position x/y/z specified. Returns
+     * null if there is no floor here (or the material is (jumping) above it).
+     *
+     * @param x Foot x-coordinate
+     * @param y Foot y-coordinate
+     * @param z Foot z-coordinate
+     * @return CollisionSurfaceMaterial, or null if there is no surface here
+     */
+    public CollisionSurfaceMaterial getWalkingOn(double x, double y, double z) {
+        int center_tile_x = MathUtil.floor(x);
+        int center_tile_z = MathUtil.floor(z);
+        TileColumn column = columns.get(MathUtil.longHashToLong(center_tile_x, center_tile_z));
+        if (column != null && column.isWalkingOn(x, y, z)) {
+            return column.shapes.getSurfaceMaterial();
+        }
+
+        int min_x = MathUtil.floor(x - PLAYER_HALF_WIDTH);
+        int max_x = MathUtil.floor(x + PLAYER_HALF_WIDTH);
+        int min_z = MathUtil.floor(z - PLAYER_HALF_WIDTH);
+        int max_z = MathUtil.floor(z + PLAYER_HALF_WIDTH);
+        for (int tile_x = min_x; tile_x <= max_x; tile_x++) {
+            for (int tile_z = min_z; tile_z <= max_z; tile_z++) {
+                if (tile_x == center_tile_x && tile_z == center_tile_z) {
+                    continue;
+                }
+
+                column = columns.get(MathUtil.longHashToLong(tile_x, tile_z));
+                if (column != null && column.isWalkingOn(x, y, z)) {
+                    return column.shapes.getSurfaceMaterial();
+                }
+            }
+        }
+
+        // Not on top of a shulker
+        return null;
     }
 
     /**
@@ -112,6 +153,25 @@ class CollisionFloorTileGrid {
             this.tile_z = z;
             this.key = key;
             this.tracker = changedColumns.track(this);
+        }
+
+        public boolean isWalkingOn(double x, double y, double z) {
+            for (Shulker shulker : shulkers) {
+                AABBHandle bbox = shulker.getBoundingBox();
+                if ( (x + PLAYER_HALF_WIDTH) < bbox.getMinX()
+                        || (x - PLAYER_HALF_WIDTH) > bbox.getMaxX()
+                        || (z + PLAYER_HALF_WIDTH) < bbox.getMinZ()
+                        || (z - PLAYER_HALF_WIDTH) > bbox.getMaxZ()
+                ) {
+                    continue;
+                }
+
+                if (y >= (bbox.getMinY() + 0.5) && y <= (bbox.getMaxY() + FLOOR_WALK_THRESHOLD)) {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         public void notifyChanged() {
@@ -218,6 +278,11 @@ class CollisionFloorTileGrid {
             }
 
             @Override
+            public CollisionSurfaceMaterial getSurfaceMaterial() {
+                return CollisionSurfaceMaterial.AIR;
+            }
+
+            @Override
             public TileColumnShapes cleanupClearedTiles(TileColumn column) {
                 return this;
             }
@@ -241,6 +306,13 @@ class CollisionFloorTileGrid {
          * @return top merged CollisionFloorTileShape
          */
         CollisionFloorTileShape getShape();
+
+        /**
+         * Gets the surface material the floor is made of
+         *
+         * @return CollisionSurfaceMaterial
+         */
+        CollisionSurfaceMaterial getSurfaceMaterial();
 
         /**
          * Removes tile shapes tied to surfaces that have been cleared,
@@ -287,6 +359,11 @@ class CollisionFloorTileGrid {
         @Override
         public CollisionFloorTileShape getShape() {
             return shape;
+        }
+
+        @Override
+        public CollisionSurfaceMaterial getSurfaceMaterial() {
+            return surface.getMaterial();
         }
 
         @Override
@@ -355,6 +432,12 @@ class CollisionFloorTileGrid {
                 this.combinedShape = combinedShape;
             }
             return combinedShape;
+        }
+
+        @Override
+        public CollisionSurfaceMaterial getSurfaceMaterial() {
+            getShape();
+            return slots.isEmpty() ? CollisionSurfaceMaterial.AIR : slots.get(0).surface.getMaterial();
         }
 
         @Override
