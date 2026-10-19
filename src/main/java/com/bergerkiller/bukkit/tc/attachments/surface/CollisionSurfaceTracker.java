@@ -1,10 +1,13 @@
 package com.bergerkiller.bukkit.tc.attachments.surface;
 
+import com.bergerkiller.bukkit.common.entity.type.CommonPlayer;
+import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.math.OrientedBoundingBox;
 import com.bergerkiller.bukkit.common.math.Quaternion;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
+import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.common.wrappers.RelativeFlags;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
@@ -54,6 +57,7 @@ public class CollisionSurfaceTracker {
     private SimulatedPlayer simulatedPlayer = null;
     private Boolean previousPlayerSeated = null;
     private Vector previousPlayerPosition = null;
+    private final StepSoundTracker stepSoundTracker = new StepSoundTracker();
 
     // Shared solver instance for this tracker class. Initialized with a logger that
     // routes messages to the plugin logger. Set disabled when not testing.
@@ -210,6 +214,21 @@ public class CollisionSurfaceTracker {
             viewer.send(packet);
         }
 
+        // While walking on top of a surface, keep track of the amount of distance the player moved horizontally
+        // This is only for playing sounds on the shulker floor tile grid. There's separate tracking in simulation mode.
+        if (viewer.getPlayer().isFlying()) {
+            // No sound: player is either flying or is already walking on actual blocks (double step sound!)
+            stepSoundTracker.noStep();
+        } else {
+            Vector pos = viewer.getPlayer().getLocation().toVector();
+            CollisionSurfaceMaterial shulkerStep = floorTiles.getWalkingOn(pos.getX(), pos.getY(), pos.getZ());
+            if (shulkerStep == null) {
+                stepSoundTracker.noStep();
+            } else if (stepSoundTracker.step(pos) && !viewer.getPlayer().isSneaking()) {
+                shulkerStep.playStepSound(pos.toLocation(viewer.getPlayer().getWorld()));
+            }
+        }
+
         // Legacy active-surface / shulker switching code removed: movement is handled by the
         // simulated-player logic and the collision solver. We simply track the player's
         // actual position for purposes such as shulker spawning.
@@ -300,6 +319,7 @@ public class CollisionSurfaceTracker {
             OBBSurfaceTransition<CollisionSurfaceImpl> transition = findTransition(transitions, currentSurface);
             if (transition != null) {
                 activeTransition = transition;
+                stepSoundTracker.move(createTransitionTransform(transition));
                 // Move the simulated player state along with the surface the player is standing on.
                 // Compute carry velocity (how much the surface itself moved) and transform the
                 // player's stored velocity into the new surface orientation. The player's feet are
@@ -509,6 +529,17 @@ public class CollisionSurfaceTracker {
         }
         if (orientationMode != OrientationMode.NONE) {
             simulatedPlayer.viewLockNeedsReset = false;
+        }
+
+        if (simulatedPlayer.flying) {
+            stepSoundTracker.noStep();
+        } else {
+            CollisionSurfaceImpl steppedOnSurface = toSurfaceImpl(simulatedPlayer.lastSurface);
+            if (steppedOnSurface == null) {
+                stepSoundTracker.noStep();
+            } else if (stepSoundTracker.step(nextPosition) && !simulatedPlayer.isSneaking()) {
+                steppedOnSurface.getMaterial().playStepSound(nextPosition.toLocation(viewer.getPlayer().getWorld()));
+            }
         }
 
         simulatedPlayer.lastPosition = currentPosition;
@@ -727,6 +758,19 @@ public class CollisionSurfaceTracker {
         return null;
     }
 
+    private static Matrix4x4 createTransitionTransform(OBBSurfaceTransition<?> transition) {
+        Matrix4x4 fromTransform = new Matrix4x4();
+        fromTransform.translate(transition.from.center);
+        fromTransform.rotate(transition.from.orientation);
+        fromTransform.invert();
+
+        Matrix4x4 toTransform = new Matrix4x4();
+        toTransform.translate(transition.to.center);
+        toTransform.rotate(transition.to.orientation);
+        toTransform.multiply(fromTransform);
+        return toTransform;
+    }
+
     // Emit a small reproducible snippet to the server log for debugging solver issues.
     // All lines are combined into a single log entry separated by newlines to make
     // copy/pasting into a unit test easier.
@@ -801,6 +845,7 @@ public class CollisionSurfaceTracker {
     private class CollisionSurfaceImpl implements CollisionSurface {
         private int updateCounter = 0;
         private String debugName = null;
+        private CollisionSurfaceMaterial material = CollisionSurfaceMaterial.DEFAULT;
         private OrientedBoundingBox shape;
         private OrientedBoundingBox prevShape;
         private int moveDetectedAtCount = 0;
@@ -822,6 +867,16 @@ public class CollisionSurfaceTracker {
         @Override
         public void setViewLock(boolean viewLock) {
             this.viewLock = viewLock;
+        }
+
+        @Override
+        public CollisionSurfaceMaterial getMaterial() {
+            return material;
+        }
+
+        @Override
+        public void setMaterial(CollisionSurfaceMaterial material) {
+            this.material = material;
         }
 
         @Override

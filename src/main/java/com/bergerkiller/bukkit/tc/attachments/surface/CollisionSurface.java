@@ -40,6 +40,15 @@ public interface CollisionSurface {
         }
 
         @Override
+        public CollisionSurfaceMaterial getMaterial() {
+            return CollisionSurfaceMaterial.AIR;
+        }
+
+        @Override
+        public void setMaterial(CollisionSurfaceMaterial material) {
+        }
+
+        @Override
         public OrientedBoundingBox getShape() {
             return null;
         }
@@ -112,6 +121,20 @@ public interface CollisionSurface {
      * @param viewLock True to lock the player's view with the movements of this surface
      */
     void setViewLock(boolean viewLock);
+
+    /**
+     * Gets the material this surface is made of
+     *
+     * @return CollisionSurfaceMaterial
+     */
+    CollisionSurfaceMaterial getMaterial();
+
+    /**
+     * Sets the material this surface is made of
+     *
+     * @param material CollisionSurfaceMaterial
+     */
+    void setMaterial(CollisionSurfaceMaterial material);
 
     /**
      * Gets the surface shape this surface is set to. Returns null when this surface is removed, such

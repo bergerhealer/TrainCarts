@@ -70,6 +70,19 @@ class SimulatedPlayer {
     }
 
     /**
+     * Gets whether the player is sneaking (and no sounds are played while walking)
+     *
+     * @return True if sneaking
+     */
+    public boolean isSneaking() {
+        if (pmc != null && !pmc.hasStopped()) {
+            return pmc.getInput().sneaking();
+        } else {
+            return viewer.getPlayer().isSneaking();
+        }
+    }
+
+    /**
      * Gets the player forward vector based on the player's look-at yaw.
      * This is the axis along which forward walking movement occurs.
      *
