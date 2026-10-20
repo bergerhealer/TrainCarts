@@ -485,7 +485,11 @@ public interface AttachmentViewer extends TrainCarts.Provider {
      * @return True if display entity location interpolation is supported for this client
      */
     default boolean supportsDisplayEntityLocationInterpolation() {
-        return CommonCapabilities.HAS_DISPLAY_ENTITY_LOCATION_INTERPOLATION && evaluateGameVersion(">=", "1.20.2");
+        // Note: 26.3 appears to have a client-side bug where trying to move a display entity around,
+        // causes random stutters and glitches that I can't find a workaround for.
+        return CommonCapabilities.HAS_DISPLAY_ENTITY_LOCATION_INTERPOLATION
+                && evaluateGameVersion(">=", "1.20.2")
+                && evaluateGameVersion("<", " 26.3");
     }
 
     /**
@@ -494,9 +498,20 @@ public interface AttachmentViewer extends TrainCarts.Provider {
      *
      * @return True if relative camera rotation updates are supported
      */
-    default boolean supportRelativeRotationUpdate() {
+    default boolean supportsRelativeRotationUpdate() {
         return (Common.evaluateMCVersion("<", "1.21.2") || Common.evaluateMCVersion(">=", "1.21.9")) &&
                 (evaluateGameVersion("<", "1.21.2") || evaluateGameVersion(">=", "1.21.9"));
+    }
+
+    /**
+     * Gets whether this viewer, and the server itself, supports sending multi-step movement packets for entities.
+     * This is a feature since 26.3 that allows the interpolation ticks to be changed for movement updates, and also
+     * allows chaining multiple updates in a row.
+     *
+     * @return True if multi-step movement updates are supported for this viewer
+     */
+    default boolean supportsMultiStepMovement() {
+        return Common.evaluateMCVersion(">=", "26.3") && evaluateGameVersion(">=", "26.3");
     }
 
     /**

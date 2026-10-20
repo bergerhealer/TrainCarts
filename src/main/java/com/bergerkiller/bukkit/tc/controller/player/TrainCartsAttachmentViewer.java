@@ -40,7 +40,8 @@ public final class TrainCartsAttachmentViewer implements AttachmentViewer {
     private final double armorStandButtOffset;
     private final boolean supportsDisplayEntityLocationInterpolation;
     private final boolean supportsDisplayEntities;
-    private final boolean supportRelativeRotationUpdate;
+    private final boolean supportsRelativeRotationUpdate;
+    private final boolean supportsMultiStepMovement;
     // Components
     private final PacketQueue packetQueue;
     private final PlayerClientSynchronizer playerClientSynchronizer;
@@ -63,7 +64,8 @@ public final class TrainCartsAttachmentViewer implements AttachmentViewer {
         this.armorStandButtOffset = AttachmentViewer.super.getArmorStandButtOffset();
         this.supportsDisplayEntityLocationInterpolation = AttachmentViewer.super.supportsDisplayEntityLocationInterpolation();
         this.supportsDisplayEntities = AttachmentViewer.super.supportsDisplayEntities();
-        this.supportRelativeRotationUpdate = AttachmentViewer.super.supportRelativeRotationUpdate();
+        this.supportsRelativeRotationUpdate = AttachmentViewer.super.supportsRelativeRotationUpdate();
+        this.supportsMultiStepMovement = AttachmentViewer.super.supportsMultiStepMovement();
         this.packetQueue = packetQueue;
         this.playerClientSynchronizer = plugin.getPlayerClientSynchronizerProvider().forViewer(this);
         this.activeMovementControllerLock = new MovementControllerTicket();
@@ -113,8 +115,13 @@ public final class TrainCartsAttachmentViewer implements AttachmentViewer {
     }
 
     @Override
-    public boolean supportRelativeRotationUpdate() {
-        return supportRelativeRotationUpdate;
+    public boolean supportsRelativeRotationUpdate() {
+        return supportsRelativeRotationUpdate;
+    }
+
+    @Override
+    public boolean supportsMultiStepMovement() {
+        return supportsMultiStepMovement;
     }
 
     @Override
