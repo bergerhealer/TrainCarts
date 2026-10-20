@@ -188,7 +188,7 @@ public class FirstPersonViewDefault extends FirstPersonView {
 
             // Refresh this change in pitch/yaw/roll to the player
             if (Math.abs(pyr.getX()) > 1e-5 || Math.abs(pyr.getY()) > 1e-5) {
-                if (getViewer().supportRelativeRotationUpdate()) {
+                if (getViewer().supportsRelativeRotationUpdate()) {
                     // Relative update
                     ClientboundPlayerRotationPacketHandle p = ClientboundPlayerRotationPacketHandle.createRelative((float) pyr.getY(), (float) pyr.getX());
                     this._playerPitchRemainder = (pyr.getX() - p.getPitch());

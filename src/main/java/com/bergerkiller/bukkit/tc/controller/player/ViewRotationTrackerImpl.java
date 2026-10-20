@@ -232,7 +232,7 @@ class ViewRotationTrackerImpl {
     }
 
     private void makePitchAdjustment(Rotation newRotation, float pitchAdjustment) {
-        if (viewer.supportRelativeRotationUpdate()) {
+        if (viewer.supportsRelativeRotationUpdate()) {
             viewer.getClientSynchronizer().synchronizeBundle(
                     Collections.singletonList(
                             ClientboundPlayerRotationPacketHandle.createRelative(0.0f, pitchAdjustment)
