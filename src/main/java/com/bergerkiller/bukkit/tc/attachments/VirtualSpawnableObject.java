@@ -2,6 +2,7 @@ package com.bergerkiller.bukkit.tc.attachments;
 
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.protocol.CommonPacket;
+import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentManager;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import com.bergerkiller.generated.net.minecraft.network.protocol.PacketHandle;
@@ -15,6 +16,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 /**
  * An object that stores a list of AttachmentViewer viewers that
@@ -168,6 +170,17 @@ public abstract class VirtualSpawnableObject {
 
     public Collection<AttachmentViewer> getViewers() {
         return viewers;
+    }
+
+    /**
+     * Gets only those attachment viewers that meet the predicate filter. If all viewers match the filter,
+     * returns the underlying viewers collection unmodified.
+     *
+     * @param filter Filter
+     * @return Viewers matching the filter
+     */
+    public Collection<AttachmentViewer> getViewersMatching(Predicate<AttachmentViewer> filter) {
+        return Util.filterList(this.viewers, filter);
     }
 
     public void forAllViewers(Consumer<? super AttachmentViewer> action) {

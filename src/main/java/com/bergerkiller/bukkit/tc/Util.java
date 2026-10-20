@@ -1812,16 +1812,70 @@ public class Util {
     }
 
     /**
-     * Filters all elements of a List. This method relies on the input list being
-     * unmodifiable itself.
+     * Creates a new List containing only the values that pass the filter. If all values pass the filter, the input list is returned unchanged.
+     * If none match, returns an unmodifiable empty list.
      *
-     * @param list Input List
-     * @param filter Filter Predicate
-     * @return Unmodifiable List filtered by the input filter
-     * @param <T> List Type
+     * @param values Input values
+     * @param filter Filter predicate
+     * @return List only containing values that pass the filter predicate
+     * @param <T> List value type
      */
-    public static <T> List<T> filterList(List<T> list, Predicate<T> filter) {
-        return filterAndMapList(list, filter, null);
+    public static <T> List<T> filterList(List<T> values, Predicate<? super T> filter) {
+        Iterator<T> iter = values.iterator();
+        if (!iter.hasNext()) {
+            return Collections.emptyList();
+        }
+
+        // Test if the first element passes the filter. If so, it's possible all values pass.
+        // Count how many values from the beginning pass the filter. If it's all of them, return
+        // the values list unchanged. If not, create a sub-list omitting the elements that don't match.
+        if (filter.test(iter.next())) {
+            int numPassingFromStart = 1;
+            while (true) {
+                if (!iter.hasNext()) {
+                    return values; // All values pass the filter
+                } else if (filter.test(iter.next())) {
+                    numPassingFromStart++;
+                } else {
+                    break;
+                }
+            }
+
+            // Need to create a sub-list
+            List<T> result = new ArrayList<>(values.size() - 1);
+            result.addAll(values.subList(0, numPassingFromStart));
+            while (iter.hasNext()) {
+                T value = iter.next();
+                if (filter.test(value)) {
+                    result.add(value);
+                }
+            }
+            return result;
+        }
+
+        // Test if none of the elements pass the filter. If so, none pass, and we return an empty list.
+        int numFailingFromStart = 1;
+        T firstPassingValue;
+        while (true) {
+            if (!iter.hasNext()) {
+                return Collections.emptyList(); // None of the values pass the filter
+            } else if (!filter.test(firstPassingValue = iter.next())) {
+                numFailingFromStart++;
+            } else {
+                break;
+            }
+        }
+
+        // Need to create a sub-list
+        List<T> result = new ArrayList<>(values.size() - numFailingFromStart);
+        result.add(firstPassingValue);
+        while (iter.hasNext()) {
+            T value = iter.next();
+            if (filter.test(value)) {
+                result.add(value);
+            }
+        }
+        return result;
     }
 
     /**
