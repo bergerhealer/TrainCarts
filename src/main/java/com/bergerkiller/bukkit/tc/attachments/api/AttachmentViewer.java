@@ -487,6 +487,7 @@ public interface AttachmentViewer extends TrainCarts.Provider {
     default boolean supportsDisplayEntityLocationInterpolation() {
         // Note: 26.3 appears to have a client-side bug where trying to move a display entity around,
         // causes random stutters and glitches that I can't find a workaround for.
+        // Related? https://report.bugs.mojang.com/servicedesk/customer/portal/2/MC-311974
         return CommonCapabilities.HAS_DISPLAY_ENTITY_LOCATION_INTERPOLATION
                 && evaluateGameVersion(">=", "1.20.2")
                 && evaluateGameVersion("<", " 26.3");
