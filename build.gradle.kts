@@ -7,7 +7,7 @@ plugins {
 val buildNumber = System.getenv("BUILD_NUMBER") ?: "NO-CI"
 
 group = "com.bergerkiller.bukkit"
-version = "2.0.3"
+version = "2.0.4-SNAPSHOT"
 
 repositories {
     mavenLocal {
