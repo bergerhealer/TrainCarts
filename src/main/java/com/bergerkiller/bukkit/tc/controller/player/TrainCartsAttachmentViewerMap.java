@@ -1,7 +1,9 @@
 package com.bergerkiller.bukkit.tc.controller.player;
 
 import com.bergerkiller.bukkit.common.collections.FastIdentityHashMap;
+import com.bergerkiller.bukkit.common.component.LibraryComponent;
 import com.bergerkiller.bukkit.common.protocol.PlayerGameInfo;
+import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.controller.player.network.PacketQueue;
 import org.bukkit.Bukkit;
@@ -15,13 +17,29 @@ import java.util.function.Consumer;
  * Stores all of the {@link TrainCartsAttachmentViewer} instances for all of the
  * online Players on the server.
  */
-public class TrainCartsAttachmentViewerMap {
+public class TrainCartsAttachmentViewerMap implements LibraryComponent {
+    private static final int CLEANUP_INTERVAL = 20 * 60; // once per minute
     private final TrainCarts plugin;
     private final FastIdentityHashMap<Player, TrainCartsAttachmentViewer> viewers = new FastIdentityHashMap<>();
     private final List<PacketQueue> queuesList = new ArrayList<>();
+    private Task cleanupTask;
 
     public TrainCartsAttachmentViewerMap(TrainCarts plugin) {
         this.plugin = plugin;
+        this.cleanupTask = null;
+    }
+
+    @Override
+    public synchronized void enable() {
+        if (cleanupTask == null) {
+            cleanupTask = new CleanupTask(plugin).start(CLEANUP_INTERVAL, CLEANUP_INTERVAL);
+        }
+    }
+
+    @Override
+    public synchronized void disable() {
+        Task.stop(cleanupTask);
+        cleanupTask = null;
     }
 
     /**
@@ -85,5 +103,28 @@ public class TrainCartsAttachmentViewerMap {
                 v.collisionSurfaceTracker.update();
             }
         });
+    }
+
+    /**
+     * Cleans up cached viewers for players that are no longer valid/online.
+     * This acts as a fallback in case quit/despawn events are missed.
+     */
+    public synchronized void cleanupInvalidViewers() {
+        for (Player player : new ArrayList<>(viewers.keySet())) {
+            if (!player.isValid() && Bukkit.getPlayer(player.getUniqueId()) != player) {
+                remove(player);
+            }
+        }
+    }
+
+    private final class CleanupTask extends Task {
+        public CleanupTask(TrainCarts plugin) {
+            super(plugin);
+        }
+
+        @Override
+        public void run() {
+            cleanupInvalidViewers();
+        }
     }
 }

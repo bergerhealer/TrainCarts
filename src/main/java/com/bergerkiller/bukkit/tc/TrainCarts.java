@@ -985,6 +985,9 @@ public class TrainCarts extends PluginBase {
         // Cleans up unused cached rail types over time to avoid memory leaks
         cacheCleanupTask = new CacheCleanupTask(this).start(1, 1);
 
+        // Cleans up stale attachment viewers if quit/despawn events are missed
+        optionalComponents.enable(attachmentViewerMap);
+
         // Clean up the cache right now, so that all rails are recalculated
         RailLookup.forceRecalculation();
 
@@ -1376,7 +1379,6 @@ public class TrainCarts extends PluginBase {
     }
 
     private static class CacheCleanupTask extends Task {
-
         public CacheCleanupTask(JavaPlugin plugin) {
             super(plugin);
         }
