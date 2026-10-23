@@ -14,15 +14,22 @@ import com.bergerkiller.bukkit.tc.utils.CircularFIFOQueueStampedRW;
 import com.bergerkiller.generated.net.minecraft.network.protocol.PacketHandle;
 import com.bergerkiller.generated.net.minecraft.network.protocol.common.ClientboundCustomPayloadPacketHandle;
 
+import java.util.ArrayList;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.logging.Level;
+
 /**
  * Efficiently queues up packets and sends them on a dedicated thread.
  * Includes a sync method to wait until sending has completed.
  * Queue is per player.
  */
 public class PacketQueue implements me.m56738.smoothcoasters.api.NetworkInterface {
+    private static final int FALLBACK_BATCH_SIZE = 16;
     private final TrainCarts plugin;
     private final Player player;
     private final CircularFIFOQueue<CommonPacket> queue;
+    private final Object threadStateLock = new Object();
+    private final AtomicBoolean fallbackProcessing = new AtomicBoolean(false);
     private volatile Thread thread;
 
     /**
@@ -115,7 +122,11 @@ public class PacketQueue implements me.m56738.smoothcoasters.api.NetworkInterfac
      */
     public void syncBegin() {
         while (!this.queue.isEmpty()) {
-            Thread.yield(); // Eh.
+            if (this.getProcessingThread() == null) {
+                processPacketsFallback();
+            } else {
+                Thread.yield(); // Eh.
+            }
         }
     }
 
@@ -126,11 +137,21 @@ public class PacketQueue implements me.m56738.smoothcoasters.api.NetworkInterfac
     }
 
     private void startProcessingPackets() {
-        if (thread == null && !queue.isAborted()) {
-            Thread newThread = new Thread(this::processPacketsThread, "TC-PacketWriterThread-" + player.getEntityId());
-            newThread.setDaemon(true);
-            this.thread = newThread;
-            newThread.start();
+        synchronized (threadStateLock) {
+            if (getProcessingThread() != null) {
+                return;
+            }
+            Thread newThread;
+            try {
+                newThread = new Thread(this::processPacketsThread, "TC-PacketWriterThread-" + player.getEntityId());
+                newThread.setDaemon(true);
+                this.thread = newThread;
+                newThread.start();
+            } catch (Throwable t) {
+                this.thread = null;
+                plugin.getLogger().log(Level.SEVERE, "Failed to start packet writer thread for " + player.getName() +
+                        ", queue will be drained during sync", t);
+            }
         }
     }
 
@@ -140,15 +161,78 @@ public class PacketQueue implements me.m56738.smoothcoasters.api.NetworkInterfac
             try {
                 processPacket(queue.take(60000));
             } catch (EmptyQueueException e) {
-                if (queue.runIfEmpty(() -> thread = null)) {
+                if (queue.runIfEmpty(this::stopCurrentProcessingThread)) {
                     break;
                 }
             }
         }
     }
 
+    private void stopCurrentProcessingThread() {
+        synchronized (threadStateLock) {
+            if (thread == Thread.currentThread()) {
+                thread = null;
+            }
+        }
+    }
+
+    private Thread getProcessingThread() {
+        synchronized (threadStateLock) {
+            if (thread != null && !thread.isAlive()) {
+                thread = null;
+            }
+            return thread;
+        }
+    }
+
     private void processPacket(CommonPacket packet) {
         PacketUtil.sendPacket(player, packet, !(packet instanceof SilentCommonPacket));
+    }
+
+    /**
+     * This runs if for whatever reason the packet processing thread could not be spawned.
+     * Then this is called every tick during the syncBegin phase, as a fallback routine.
+     * Hopefully this never fires in practise.
+     */
+    private void processPacketsFallback() {
+        if (!fallbackProcessing.compareAndSet(false, true)) {
+            return;
+        }
+
+        final Thread current = Thread.currentThread();
+        final ArrayList<CommonPacket> packets = new ArrayList<>(FALLBACK_BATCH_SIZE);
+        try {
+            while (true) {
+                synchronized (threadStateLock) {
+                    Thread activeThread = this.getProcessingThread();
+                    if (activeThread != null && activeThread != current) {
+                        return;
+                    }
+
+                    // Mark fallback as current packet consumer so wake callback won't start another one
+                    thread = current;
+
+                    packets.clear();
+                    for (int i = 0; i < FALLBACK_BATCH_SIZE; i++) {
+                        try {
+                            packets.add(queue.take(0));
+                        } catch (EmptyQueueException e) {
+                            break;
+                        }
+                    }
+
+                    if (packets.isEmpty()) {
+                        thread = null;
+                        break;
+                    }
+                }
+
+                packets.forEach(this::processPacket);
+            }
+        } finally {
+            stopCurrentProcessingThread();
+            fallbackProcessing.set(false);
+        }
     }
 
     @Override

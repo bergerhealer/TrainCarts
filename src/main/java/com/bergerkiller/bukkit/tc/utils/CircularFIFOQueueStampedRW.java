@@ -19,8 +19,10 @@ public class CircularFIFOQueueStampedRW<E> implements CircularFIFOQueue<E> {
     private boolean aborted = false;
     // Is set to true while wait() is busy (synchronized)
     private boolean waiting = false;
-    // Callback is called when a put() is done on an empty queue
-    // Can be used to kick-start a reading operation on another thread
+    // Callback is called when a put() is done on an empty queue.
+    // Can be used to kick-start a reading operation on another thread.
+    // This callback is not synchronized with runIfEmpty(), and can run
+    // concurrently from multiple threads.
     private Runnable wakeCallback = () -> {};
     // compareAndExchange exists since JDK 9. Adds a slower fallback for JDK 8.
     private static final CompareAndExchangeFunc compareAndExchange = detectCompareAndExchangeFunc();
@@ -154,11 +156,16 @@ public class CircularFIFOQueueStampedRW<E> implements CircularFIFOQueue<E> {
     public void put(E value) {
         // Non-exclusive lock has the best performance, if it works
         if (!fastPut(value)) {
+            boolean shouldNotifyEmpty;
             long slowPutLock = this.lock.writeLock();
             try {
-                slowPut(value);
+                shouldNotifyEmpty = slowPut(value);
             } finally {
                 this.lock.unlockWrite(slowPutLock);
+            }
+
+            if (shouldNotifyEmpty) {
+                notifyEmpty();
             }
         }
     }
@@ -199,10 +206,14 @@ public class CircularFIFOQueueStampedRW<E> implements CircularFIFOQueue<E> {
                 }
 
                 // Handle overflow right here
+                boolean shouldNotifyEmpty;
                 try {
-                    slowPut(value);
+                    shouldNotifyEmpty = slowPut(value);
                 } finally {
                     lock.unlockWrite(slowOverflowPutLock);
+                }
+                if (shouldNotifyEmpty) {
+                    notifyEmpty();
                 }
                 return true;
             }
@@ -226,8 +237,9 @@ public class CircularFIFOQueueStampedRW<E> implements CircularFIFOQueue<E> {
      * Supports dynamic resizing of the buffer thanks to having an exclusive lock.
      *
      * @param value Value to put
+     * @return True if queue transitioned from empty to non-empty and wake-up is needed
      */
-    private void slowPut(E value) {
+    private boolean slowPut(E value) {
         // Overflow was detected when trying to put a value
         // Now we obtained an exclusive write lock
         // In this critical section we're certain the write / read index won't change
@@ -264,22 +276,22 @@ public class CircularFIFOQueueStampedRW<E> implements CircularFIFOQueue<E> {
             this.buffer = new_buffer;
             this.readPos = 0;
             this.writePos.set(index);
+            return false;
         } else {
             // False alarm. Probably already resolved. Write as usual.
             buffer[nextWrite] = value;
             this.writePos.set(nextWrite);
-
-            // If buffer was completely empty, chances are the reader was either stopped or
-            // is in a wait situation. Got to notify and wake the reader if it isn't running.
-            if (currWrite == rpos) {
-                notifyEmpty();
-            }
+            // True when queue was empty before writing, so caller must notify/wake reader
+            return (currWrite == rpos);
         }
     }
 
     private void notifyEmpty() {
         // Check waiting, and if so, wake up the reader thread
         synchronized (this) {
+            if (aborted) {
+                return;
+            }
             if (waiting) {
                 this.notifyAll();
                 return;

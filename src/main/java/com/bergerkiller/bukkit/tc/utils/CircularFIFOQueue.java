@@ -55,8 +55,10 @@ public interface CircularFIFOQueue<E> {
     /**
      * Sets a callback to be called when {@link #put(Object)} is done while this
      * circular queue is empty. Can be used to kickstart a reader thread
-     * if one is not already running. The callback is synchronized, and only
-     * one instance will run at any one time.
+     * if one is not already running.<br>
+     * <br>
+     * The callback is <b>not</b> synchronized with {@link #runIfEmpty(Runnable)}.
+     * Implementations may call this callback concurrently from multiple threads.
      *
      * @param callback
      */
@@ -65,14 +67,17 @@ public interface CircularFIFOQueue<E> {
     /**
      * Runs an action if this queue is empty. Can be used with
      * {@link #setWakeCallback(Runnable)} right before shutting down a reader
-     * thread to make sure the reader, actually, should be shut down.
-     * The runnable is synchronized in the same way <i>setWakeCallback</i> is,
-     * and as such can update the same shared state.<br>
+     * thread to make sure the reader, actually, should be shut down.<br>
      * <br>
-     * Typically inside the runnable a flag is updated that tells a future
-     * wake callback that the task should be started again.
+     * The key guarantee this method provides is an atomic check+act with queue
+     * mutation: if the queue is empty, then the runnable executes while no writer
+     * can concurrently put new values into the queue. This lets a reader safely
+     * clean up and publish shutdown state while preventing new packets from being
+     * written during that shutdown transition.<br>
+     * <br>
+     * This method does <b>not</b> synchronize with wake callback execution.
      *
-     * @param runnable Runnable to be run synchronized if this queue is empty
+     * @param runnable Runnable to be run if this queue is empty
      * @return True if the runnable was actually run because the queue was empty
      */
     boolean runIfEmpty(Runnable runnable);
