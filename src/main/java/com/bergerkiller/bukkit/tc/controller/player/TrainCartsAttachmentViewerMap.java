@@ -55,14 +55,19 @@ public class TrainCartsAttachmentViewerMap implements LibraryComponent {
         TrainCartsAttachmentViewer viewer = viewers.get(player);
         if (viewer == null) {
             final PlayerGameInfo playerGameInfo = PlayerGameInfo.of(player);
-            if (player.isValid() || Bukkit.getPlayer(player.getUniqueId()) == player) {
+            if (isRealPlayer(player)) {
                 final PacketQueue packetQueue = PacketQueue.create(plugin, player, playerGameInfo);
                 viewer = new TrainCartsAttachmentViewer(plugin, player, playerGameInfo, packetQueue);
                 viewers.put(player, viewer);
                 queuesList.add(packetQueue);
             } else {
+                //plugin.getLogger().log(Level.INFO, "Attachment viewer fallback (No-Op queue) for non-real player "
+                //        + player.getName() + " (" + player.getUniqueId() + "), isValid=" + player.isValid());
                 final PacketQueue packetQueue = PacketQueue.createNoOp(plugin, player);
                 viewer = new TrainCartsAttachmentViewer(plugin, player, playerGameInfo, packetQueue);
+                if (player.isValid()) {
+                    viewers.put(player, viewer);
+                }
             }
         }
         return viewer;
@@ -111,10 +116,14 @@ public class TrainCartsAttachmentViewerMap implements LibraryComponent {
      */
     public synchronized void cleanupInvalidViewers() {
         for (Player player : new ArrayList<>(viewers.keySet())) {
-            if (!player.isValid() && Bukkit.getPlayer(player.getUniqueId()) != player) {
+            if (!player.isValid() && !isRealPlayer(player)) {
                 remove(player);
             }
         }
+    }
+
+    private static boolean isRealPlayer(Player player) {
+        return Bukkit.getPlayer(player.getUniqueId()) == player;
     }
 
     private final class CleanupTask extends Task {
