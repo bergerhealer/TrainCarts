@@ -8,6 +8,8 @@ import com.bergerkiller.bukkit.common.math.Vector3;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
+import com.bergerkiller.bukkit.common.wrappers.BlockData;
+import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentManager;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import com.bergerkiller.bukkit.tc.attachments.helper.HelperMethods;
@@ -29,6 +31,7 @@ public class CartAttachmentPlatformSurfacePlane extends CartAttachmentPlatform {
     private final OrientedBoundingBox bbox = new OrientedBoundingBox();
     private PlatformMode platformMode = PlatformMode.SIMULATED_WITH_SHULKER_GRID;
     private boolean viewLock = false;
+    private BlockData surfaceMaterial = DEFAULT_SURFACE_MATERIAL;
     private final List<PlayerSurface> playerSurfaces = new ArrayList<>();
     private Plane plane = null; // Null if not spawned
 
@@ -37,7 +40,8 @@ public class CartAttachmentPlatformSurfacePlane extends CartAttachmentPlatform {
         Vector3 size = LogicUtil.fixNull(this.getConfiguredPosition().size, DEFAULT_SIZE);
         bbox.setSize(new Vector(size.x, 0.0, size.z));
         platformMode = readPlatformMode(config);
-        viewLock = config.getOrDefault("viewLock", false);
+        viewLock = config.getOrDefault("viewLock", true);
+        surfaceMaterial = Util.getConfigBlockDataOptional(config, "surfaceMaterial").orElse(DEFAULT_SURFACE_MATERIAL);
         playerSurfaces.forEach(this::applySettings);
     }
 
@@ -79,6 +83,7 @@ public class CartAttachmentPlatformSurfacePlane extends CartAttachmentPlatform {
         surface.surface.setSimulated(platformMode.isSimulated());
         surface.surface.setUseShulkerGrid(platformMode.isSpawningShulkerGrid());
         surface.surface.setViewLock(viewLock);
+        surface.surface.setMaterial(() -> surfaceMaterial);
     }
 
     public void setPlaneColor(ChatColor color) {
