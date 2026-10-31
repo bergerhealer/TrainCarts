@@ -1687,6 +1687,30 @@ public class Util {
     }
 
     /**
+     * Uses {@link #getConfigOptional(ConfigurationNode, String, Class)} for a String-encoded block data,
+     * and deserializes it into BlockData. If no value is present, or the value is invalid, returns empty.
+     *
+     * @param config Configuration to read from
+     * @param key Key to read from
+     * @return read BlockData as an optional, or {@link Optional#empty()}
+     */
+    public static Optional<BlockData> getConfigBlockDataOptional(ConfigurationNode config, String key) {
+        return getConfigOptional(config, key, String.class).map(BlockData::fromString);
+    }
+
+    /**
+     * Uses {@link #setConfigOptional(ConfigurationNode, String, Optional)} to encode a block data value
+     * and write it to the configuration, if present.
+     *
+     * @param config Configuration to update
+     * @param key Key to update
+     * @param blockData New block data value to set, empty to remove it
+     */
+    public static void setConfigBlockDataOptional(ConfigurationNode config, String key, Optional<BlockData> blockData) {
+        setConfigOptional(config, key, blockData.map(BlockData::serializeToString));
+    }
+
+    /**
      * Gets the BlockData of the block that experienced physics, part of a block
      * physics event. On later versions this BlockData is stored in the event itself,
      * avoiding an expensive lookup. Otherwise, the block data is looked up of the block.

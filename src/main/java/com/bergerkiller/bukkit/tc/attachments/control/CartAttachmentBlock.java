@@ -9,6 +9,7 @@ import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.common.wrappers.BlockData;
 import com.bergerkiller.bukkit.common.wrappers.Brightness;
 import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.attachments.VirtualDisplayBlockEntity;
 import com.bergerkiller.bukkit.tc.attachments.VirtualDisplayEntity;
 import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
@@ -23,6 +24,8 @@ import com.bergerkiller.bukkit.tc.attachments.ui.item.MapWidgetBrightnessDialog;
 import com.bergerkiller.bukkit.tc.attachments.ui.menus.PositionMenu;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
+
+import java.util.Optional;
 
 /**
  * Shows a Block display entity
@@ -41,13 +44,10 @@ public class CartAttachmentBlock extends CartAttachment implements BrightnessAdj
 
         @Override
         public MapTexture getIcon(ConfigurationNode config) {
-            BlockData blockData = deserializeBlockData(config);
-            if (blockData != null) {
-                return BlockDataTextureCache.get(16, 16).get(blockData);
-            }
-
-            // Failed to load BlockData - wrong version maybe?
-            return MapTexture.loadPluginResource(TrainCarts.plugin, "com/bergerkiller/bukkit/tc/textures/attachments/unknown_block.png");
+            return Util.getConfigBlockDataOptional(config, "blockData")
+                    .map(BlockDataTextureCache.get(16, 16)::get)
+                    .orElseGet(() -> MapTexture.loadPluginResource(TrainCarts.plugin,
+                            "com/bergerkiller/bukkit/tc/textures/attachments/unknown_block.png"));
         }
 
         @Override
@@ -67,12 +67,12 @@ public class CartAttachmentBlock extends CartAttachment implements BrightnessAdj
             MapWidgetBlockDataSelector selector = new MapWidgetBlockDataSelector() {
                 @Override
                 public void onAttached() {
-                    this.setSelectedBlockData(deserializeBlockData(attachment.getConfig()));
+                    this.setSelectedBlockData(Util.getConfigBlockDataOptional(attachment.getConfig(), "blockData").orElse(null));
                 }
 
                 @Override
                 public void onSelectedBlockDataChanged(BlockData blockData) {
-                    attachment.getConfig().set("blockData", (blockData == null) ? null : blockData.serializeToString());
+                    Util.setConfigBlockDataOptional(attachment.getConfig(), "blockData", Optional.ofNullable(blockData));
                     sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed", attachment);
                     attachment.resetIcon();
                 }
@@ -94,14 +94,6 @@ public class CartAttachmentBlock extends CartAttachment implements BrightnessAdj
         }
     };
 
-    private static BlockData deserializeBlockData(ConfigurationNode config) {
-        String blockDataStr = config.get("blockData", String.class);
-        if (blockDataStr != null) {
-            return BlockData.fromString(blockDataStr);
-        }
-        return null;
-    }
-
     private VirtualDisplayBlockEntity entity;
 
     @Override
@@ -111,7 +103,7 @@ public class CartAttachmentBlock extends CartAttachment implements BrightnessAdj
 
     @Override
     public void onLoad(ConfigurationNode config) {
-        entity.setBlockData(deserializeBlockData(config));
+        entity.setBlockData(Util.getConfigBlockDataOptional(config, "blockData").orElse(null));
         entity.setScale(getConfiguredPosition().size);
         entity.setBrightness(VirtualDisplayEntity.loadBrightnessFromConfig(config));
     }
