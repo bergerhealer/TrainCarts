@@ -14,7 +14,7 @@ import com.bergerkiller.bukkit.tc.TrainCarts;
  * Shows a simple focusable blinking icon that can be clicked (onClick())
  */
 public abstract class MapWidgetBlinkyButton extends MapWidget {
-    private MapTexture icon = MapTexture.createEmpty(16, 16);
+    private MapTexture icon_idle = MapTexture.createEmpty(16, 16);
     private MapTexture icon_disabled = MapTexture.createEmpty(16, 16);
     private MapTexture icon_blink_a = MapTexture.createEmpty(16, 16);
     private MapTexture icon_blink_b = MapTexture.createEmpty(16, 16);
@@ -46,36 +46,54 @@ public abstract class MapWidgetBlinkyButton extends MapWidget {
     }
 
     public MapWidgetBlinkyButton setIcon(MapTexture icon) {
-        this.icon = icon;
-        this.icon_blink_a.clear();
-        this.icon_blink_a.setBlendMode(MapBlendMode.NONE);
-        this.icon_blink_a.draw(this.icon, 0, 0);
-        this.icon_blink_a.setBlendMode(MapBlendMode.SUBTRACT);
-        this.icon_blink_a.fill(MapColorPalette.getColor(20, 20, 64));
-        this.icon_blink_b.clear();
-        this.icon_blink_b.setBlendMode(MapBlendMode.NONE);
-        this.icon_blink_b.draw(this.icon, 0, 0);
-        this.icon_blink_b.setBlendMode(MapBlendMode.ADD);
-        this.icon_blink_b.fill(MapColorPalette.getColor(80, 80, 0));
-        for (int x = 0; x < this.icon_disabled.getWidth(); x++) {
-            for (int y = 0; y < this.icon_disabled.getHeight(); y++) {
-                byte code = this.icon.readPixel(x, y);
-                if (MapColorPalette.isTransparent(code)) {
-                    this.icon_disabled.writePixel(x, y, code);
-                } else {
-                    java.awt.Color c = MapColorPalette.getRealColor(this.icon.readPixel(x, y));
-                    int avg = (c.getRed() + c.getGreen() + c.getBlue()) / 3;
-                    this.icon_disabled.writePixel(x, y, MapColorPalette.getColor(avg, avg, avg));
-                }
-            }
-        }
+        this.icon_idle = MapTexture.createEmpty(icon.getWidth(), icon.getHeight());
+        this.icon_disabled = MapTexture.createEmpty(icon.getWidth(), icon.getHeight());
+        this.icon_blink_a = MapTexture.createEmpty(icon.getWidth(), icon.getHeight());
+        this.icon_blink_b = MapTexture.createEmpty(icon.getWidth(), icon.getHeight());
+        createIconVariants(icon, this.icon_idle, this.icon_disabled, this.icon_blink_a, this.icon_blink_b);
         this.setSize(icon.getWidth(), icon.getHeight());
         this.invalidate();
         return this;
     }
 
+    protected void createIconVariants(
+            MapTexture icon,
+            MapTexture iconIdle,
+            MapTexture iconDisabled,
+            MapTexture iconBlinkA,
+            MapTexture iconBlinkB
+    ) {
+        // iconIdle/iconDisabled/iconBlinkA/iconBlinkB are provided pre-cleared by setIcon()
+        iconIdle.draw(icon, 0, 0);
+
+        iconBlinkA.setBlendMode(MapBlendMode.NONE);
+        iconBlinkA.draw(iconIdle, 0, 0);
+        iconBlinkA.setBlendMode(MapBlendMode.SUBTRACT);
+        iconBlinkA.fill(MapColorPalette.getColor(20, 20, 64));
+        iconBlinkA.setBlendMode(MapBlendMode.NONE);
+
+        iconBlinkB.setBlendMode(MapBlendMode.NONE);
+        iconBlinkB.draw(iconIdle, 0, 0);
+        iconBlinkB.setBlendMode(MapBlendMode.ADD);
+        iconBlinkB.fill(MapColorPalette.getColor(80, 80, 0));
+        iconBlinkB.setBlendMode(MapBlendMode.NONE);
+
+        for (int x = 0; x < iconIdle.getWidth(); x++) {
+            for (int y = 0; y < iconIdle.getHeight(); y++) {
+                byte code = iconIdle.readPixel(x, y);
+                if (MapColorPalette.isTransparent(code)) {
+                    iconDisabled.writePixel(x, y, code);
+                } else {
+                    java.awt.Color c = MapColorPalette.getRealColor(code);
+                    int avg = (c.getRed() + c.getGreen() + c.getBlue()) / 3;
+                    iconDisabled.writePixel(x, y, MapColorPalette.getColor(avg, avg, avg));
+                }
+            }
+        }
+    }
+
     public MapTexture getIcon() {
-        return this.icon;
+        return this.icon_idle;
     }
 
     private void setBlink(boolean mode) {
@@ -108,7 +126,7 @@ public abstract class MapWidgetBlinkyButton extends MapWidget {
         if (!this.isEnabled()) {
             this.view.draw(this.icon_disabled, 0, 0);
         } else if (!this.isFocused()) {
-            this.view.draw(this.icon, 0, 0);
+            this.view.draw(this.icon_idle, 0, 0);
         } else if (this.blinkMode) {
             this.view.draw(this.icon_blink_a, 0, 0);
         } else {
