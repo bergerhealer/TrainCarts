@@ -113,7 +113,7 @@ class PlayerMovementControllerSpectated extends PlayerMovementController {
         viewRotationTracker.setUsePitchAdjustment(true);
         viewRotationTracker.enable();
 
-        fakePlayer.start(createFakePlayerTransform(), new Vector());
+        fakePlayer.start(createFakePlayerTransform(), getInitialMotion());
 
         started = true;
     }

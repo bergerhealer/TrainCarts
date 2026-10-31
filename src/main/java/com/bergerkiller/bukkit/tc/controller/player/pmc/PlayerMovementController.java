@@ -38,6 +38,7 @@ public abstract class PlayerMovementController implements AttachmentViewer.Movem
     protected final AttachmentViewer viewer;
     protected final Player player;
     private boolean syncAsArmorstand = true;
+    private Vector initialMotion = null;
     private Vector prevPos = null;
     private Vector lastSyncPos = null;
     private Quaternion lastAbsoluteOrientation = null;
@@ -64,9 +65,14 @@ public abstract class PlayerMovementController implements AttachmentViewer.Movem
     public void setOptions(AttachmentViewer.MovementController.Options options) {
         this.translateVehicleSteer = options.isPreserveInput();
         this.syncAsArmorstand = options.isSyncAsArmorStand();
+        this.initialMotion = options.getInitialMotion();
         if (!this.syncAsArmorstand) {
             lastSyncPos = null;
         }
+    }
+
+    protected final Vector getInitialMotion() {
+        return (initialMotion == null) ? new Vector() : initialMotion.clone();
     }
 
     /**

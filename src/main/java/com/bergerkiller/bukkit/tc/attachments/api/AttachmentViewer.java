@@ -920,6 +920,7 @@ public interface AttachmentViewer extends TrainCarts.Provider {
         final class Options {
             private boolean preserveInput = false;
             private boolean syncAsArmorStand = true;
+            private Vector initialMotion = null;
 
             /**
              * Creates new MovementController Options with the default configuration
@@ -960,6 +961,18 @@ public interface AttachmentViewer extends TrainCarts.Provider {
             }
 
             /**
+             * Sets the initial motion to apply when movement control starts.
+             * If not set, defaults to no initial motion.
+             *
+             * @param initialMotion Initial motion vector
+             * @return this
+             */
+            public Options initialMotion(Vector initialMotion) {
+                this.initialMotion = (initialMotion == null) ? null : initialMotion.clone();
+                return this;
+            }
+
+            /**
              * Gets the current setting of {@link #preserveInput(boolean)}
              *
              * @return Whether player input is preserved as steering controls
@@ -975,6 +988,15 @@ public interface AttachmentViewer extends TrainCarts.Provider {
              */
             public boolean isSyncAsArmorStand() {
                 return syncAsArmorStand;
+            }
+
+            /**
+             * Gets the configured initial motion to apply when movement control starts.
+             *
+             * @return Initial motion, or null if unset
+             */
+            public Vector getInitialMotion() {
+                return (initialMotion == null) ? null : initialMotion.clone();
             }
         }
     }
