@@ -138,7 +138,8 @@ public abstract class MapWidgetBlockDataSelector extends MapWidget implements Bl
             }
         };
         brightnessButton.setSize(14, 14);
-        brightnessButton.setIcon("attachments/item_brightness.png");
+        brightnessButton.setIcon(MapTexture.loadResource(MapWidgetBlockDataSelector.class,
+                "/com/bergerkiller/bukkit/tc/textures/attachments/item_brightness.png"));
         brightnessButton.setTooltip("Block Brightness");
         brightnessButton.setPosition(42, 2);
         blockOptions.getTab(1).addWidget(brightnessButton);

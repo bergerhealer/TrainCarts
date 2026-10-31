@@ -40,6 +40,7 @@ public abstract class MapWidgetBlinkyButton extends MapWidget {
         return this;
     }
 
+    @Deprecated
     public MapWidgetBlinkyButton setIcon(String filename) {
         return this.setIcon(MapTexture.loadPluginResource(TrainCarts.plugin, "com/bergerkiller/bukkit/tc/textures/" + filename));
     }

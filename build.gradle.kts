@@ -52,6 +52,7 @@ dependencies {
     compileOnly(libs.worldedit.bukkit)
 
     // Test dependencies
+    testImplementation(libs.geantyref)
     testImplementation(libs.junit)
     testImplementation(libs.spigot)
     testImplementation(libs.bkcommonlib)
