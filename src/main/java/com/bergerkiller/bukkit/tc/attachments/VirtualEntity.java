@@ -478,12 +478,16 @@ public class VirtualEntity extends VirtualSpawnableObject {
 
         //System.out.println("SPAWN " + this.syncAbsX + "/" + this.syncAbsY + "/" + this.syncAbsZ + " ID=" + this.entityUUID);
 
+        boolean hasInitialMotion = motion.lengthSquared() > 0.001;
+
         // Position to spawn at
         Vector spawnPos = this.syncAbsPos.clone();
         if (byViewerPositionAdjustment != null) {
             byViewerPositionAdjustment.adjust(viewer, spawnPos);
         }
-        spawnPos.subtract(motion);
+        if (hasInitialMotion) {
+            spawnPos.subtract(motion);
+        }
 
         // Create a spawn packet appropriate for the type of entity being spawned
         if (isLivingEntity()) {
@@ -526,17 +530,40 @@ public class VirtualEntity extends VirtualSpawnableObject {
             viewer.send(ClientboundSetEntityDataPacketHandle.createNew(this.entityId, getUsedMeta(), true).toCommonPacket());
         }
 
+        // Encode the initial motion as a position change
+        // When supported by the viewer, use a 1-tick motion update
+        ClientboundMoveEntityPacketHandle.PositionChange initialMotionChange = null;
+        if (hasInitialMotion) {
+            if (viewer.supportsMultiStepMovement()) {
+                initialMotionChange = ClientboundMoveEntityPacketHandle.PositionChange.steppedBuilder()
+                        .addStep(motion.getX(), motion.getY(), motion.getZ(), 1);
+            } else {
+                initialMotionChange = ClientboundMoveEntityPacketHandle.PositionChange.encodeLinearChange(
+                        motion.getX(), motion.getY(), motion.getZ());
+            }
+        }
+
         if (this.syncMode == SyncMode.SEAT) {
-            PosRotHandle movePacket = PosRotHandle.createNew(
+            // In seat mode, need to synchronize yaw/pitch on spawn
+            if (initialMotionChange != null) {
+                viewer.send(PosRotHandle.createNew(
+                        this.entityId,
+                        initialMotionChange,
+                        this.syncYaw,
+                        this.syncPitch,
+                        false));
+            } else {
+                viewer.send(RotHandle.createNew(
+                        this.entityId,
+                        this.syncYaw,
+                        this.syncPitch,
+                        false));
+            }
+        } else if (initialMotionChange != null) {
+            viewer.send(PosHandle.createNew(
                     this.entityId,
-                    motion.getX(), motion.getY(), motion.getZ(),
-                    this.syncYaw,
-                    this.syncPitch,
-                    false);
-            viewer.send(movePacket);
-        } else if (motion.lengthSquared() > 0.001) {
-            CommonPacket movePacket = PacketType.OUT_ENTITY_MOVE.newInstance(this.entityId, motion.getX(), motion.getY(), motion.getZ(), false);
-            viewer.send(movePacket);
+                    initialMotionChange,
+                    false));
         }
 
         // Resend velocity if one is set

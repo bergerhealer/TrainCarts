@@ -4,6 +4,8 @@ import com.bergerkiller.bukkit.common.Common;
 import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.common.controller.VehicleMountController;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
+import com.bergerkiller.bukkit.common.protocol.CommonPacket;
+import com.bergerkiller.bukkit.common.protocol.PacketType;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
@@ -15,6 +17,8 @@ import com.bergerkiller.bukkit.tc.attachments.control.seat.SeatedEntityHead;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.spectator.PitchSwappedEntity;
 import com.bergerkiller.bukkit.common.utils.PlayerUtil;
 import com.bergerkiller.bukkit.tc.controller.player.interaction.SpectatorInteractionSimulator;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundEntityPositionSyncPacketHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundMoveEntityPacketHandle;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundSetCameraPacketHandle;
 import com.bergerkiller.generated.net.minecraft.server.level.ServerPlayerHandle;
 import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
@@ -426,9 +430,15 @@ public class SpectatedFakePlayer implements TrainCarts.Provider {
         @Override
         protected void sendSpawnPackets(com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer viewer, Vector motion) {
             final boolean invisible = !visibleOnSpawn || fakePlayer.entity != this;
+            Vector spawnPos = this.getSyncPos();
+
+            boolean hasInitialMotion = motion.lengthSquared() > 0.001;
+            if (hasInitialMotion) {
+                spawnPos = spawnPos.clone().subtract(motion);
+            }
 
             FakePlayerSpawner.FakePlayerPosition orientation = FakePlayerSpawner.FakePlayerPosition.create(
-                    this.getPosX(), this.getPosY(), this.getPosZ(),
+                    spawnPos.getX(), spawnPos.getY(), spawnPos.getZ(),
                     (float) this.getYawPitchRoll().getY(),
                     this.getLivePitch(),
                     (float) this.getYawPitchRoll().getY());
@@ -439,6 +449,25 @@ public class SpectatedFakePlayer implements TrainCarts.Provider {
                 meta.set(EntityHandle.DATA_NO_GRAVITY, true);
                 FakeVirtualPlayer.this.metaData = meta;
             });
+
+            if (hasInitialMotion) {
+                if (viewer.supportsMultiStepMovement()) {
+                    // Send motion as being meant for only 1 tick
+                    viewer.send(ClientboundMoveEntityPacketHandle.PosHandle.createNew(
+                            this.getEntityId(),
+                            ClientboundMoveEntityPacketHandle.PositionChange.steppedBuilder()
+                                    .addStep(motion.getX(), motion.getY(), motion.getZ(), 1),
+                            false
+                    ));
+                } else {
+                    // Must send with default interpolation rate of the client
+                    CommonPacket movePacket = PacketType.OUT_ENTITY_MOVE.newInstance(
+                            this.getEntityId(),
+                            motion.getX(), motion.getY(), motion.getZ(),
+                            false);
+                    viewer.send(movePacket);
+                }
+            }
         }
     }
 }
