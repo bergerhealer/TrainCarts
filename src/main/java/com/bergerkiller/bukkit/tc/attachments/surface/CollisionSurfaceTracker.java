@@ -1,8 +1,12 @@
 package com.bergerkiller.bukkit.tc.attachments.surface;
 
+import com.bergerkiller.bukkit.common.events.PacketReceiveEvent;
+import com.bergerkiller.bukkit.common.events.PacketSendEvent;
 import com.bergerkiller.bukkit.common.entity.type.CommonPlayer;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.math.OrientedBoundingBox;
+import com.bergerkiller.bukkit.common.protocol.PacketListener;
+import com.bergerkiller.bukkit.common.protocol.PacketType;
 import com.bergerkiller.bukkit.common.math.Quaternion;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
@@ -12,7 +16,9 @@ import com.bergerkiller.bukkit.common.wrappers.RelativeFlags;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer.MovementController.OrientationMode;
+import com.bergerkiller.bukkit.tc.controller.player.network.PlayerPacketListener;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundPlayerPositionPacketHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ServerboundMovePlayerPacketHandle;
 import com.bergerkiller.generated.net.minecraft.server.level.ServerPlayerHandle;
 import com.bergerkiller.generated.net.minecraft.world.phys.AABBHandle;
 import org.bukkit.Location;
@@ -22,6 +28,7 @@ import org.bukkit.util.Vector;
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -47,6 +54,9 @@ public class CollisionSurfaceTracker {
     private static final boolean SNEAKING_DISABLES_SURFACE_COLLISIONS = false;
     /** Whether to log when the player bounds penetrate surfaces unexpectedly (solver bugs) */
     private static final boolean VERIFY_LOG_PENETRATIONS = false;
+    /** Distance within which packet-monitoring for moving surfaces is active */
+    private static final double MOVING_SURFACE_MONITOR_RANGE = 10.0;
+    private static final double MOVING_SURFACE_MONITOR_RANGE_SQUARED = MOVING_SURFACE_MONITOR_RANGE * MOVING_SURFACE_MONITOR_RANGE;
     private final AttachmentViewer viewer;
     private final int shulkerViewDistance;
     private final PlayerPusher playerPusher;
@@ -58,6 +68,8 @@ public class CollisionSurfaceTracker {
     private Boolean previousPlayerSeated = null;
     private Vector previousPlayerPosition = null;
     private final StepSoundTracker stepSoundTracker = new StepSoundTracker();
+    private PlayerPacketListener<MovingSurfacePacketMonitor> movingSurfacePacketMonitor = null;
+    private final AtomicReference<Vector> movingSurfacePacketDelta = new AtomicReference<>(new Vector());
 
     // Shared solver instance for this tracker class. Initialized with a logger that
     // routes messages to the plugin logger. Set disabled when not testing.
@@ -97,6 +109,10 @@ public class CollisionSurfaceTracker {
         }
 
         return solution.lastSurface;
+    }
+
+    public Vector getMovingSurfacePacketDelta() {
+        return movingSurfacePacketDelta.get().clone();
     }
 
     /**
@@ -146,8 +162,10 @@ public class CollisionSurfaceTracker {
                 return;
             }
             updateSimulatedPlayer(transitions, new PlayerBoundsState(bboxTo));
+            disableMovingSurfacePacketMonitor();
             return;
         }
+        updateMovingSurfacePacketMonitor(viewer.getPlayer().getLocation().toVector());
 
         // Compute the Player OBB transition
         Vector position = viewer.getPlayer().getLocation().toVector();
@@ -234,14 +252,83 @@ public class CollisionSurfaceTracker {
         // actual position for purposes such as shulker spawning.
     }
 
+    private void updateMovingSurfacePacketMonitor(Vector playerPosition) {
+        if (viewer.getPlayer().getVehicle() != null) {
+            disableMovingSurfacePacketMonitor();
+            return;
+        }
+
+        boolean hasMovingSurfaceNearby = surfaces.stream().anyMatch(surface ->
+                surface.isSimulated() &&
+                surface.shape != null &&
+                surface.shape.getPosition().distanceSquared(playerPosition) <= MOVING_SURFACE_MONITOR_RANGE_SQUARED
+        );
+
+        if (hasMovingSurfaceNearby) {
+            if (movingSurfacePacketMonitor == null) {
+                movingSurfacePacketMonitor = viewer.createPacketListener(
+                        new MovingSurfacePacketMonitor(),
+                        PacketType.IN_POSITION,
+                        PacketType.IN_POSITION_LOOK
+                );
+            }
+            if (!movingSurfacePacketMonitor.isEnabled()) {
+                movingSurfacePacketMonitor.enable();
+            }
+        } else if (movingSurfacePacketMonitor != null) {
+            disableMovingSurfacePacketMonitor();
+        }
+    }
+
+    private void disableMovingSurfacePacketMonitor() {
+        if (movingSurfacePacketMonitor != null) {
+            movingSurfacePacketMonitor.getListener().reset();
+            movingSurfacePacketDelta.set(new Vector());
+            movingSurfacePacketMonitor.disable();
+        }
+    }
+
+    private final class MovingSurfacePacketMonitor implements PacketListener {
+        private final AtomicReference<Vector> lastKnownPosition = new AtomicReference<>(null);
+
+        public void reset() {
+            lastKnownPosition.set(null);
+        }
+
+        @Override
+        public void onPacketReceive(PacketReceiveEvent event) {
+            if (event.getType() == PacketType.IN_POSITION || event.getType() == PacketType.IN_POSITION_LOOK) {
+                ServerboundMovePlayerPacketHandle packet = ServerboundMovePlayerPacketHandle.createHandle(event.getPacket().getHandle());
+                Vector current = new Vector(packet.getX(), packet.getY(), packet.getZ());
+                Vector previous = lastKnownPosition.getAndSet(current);
+
+                Vector delta;
+                if (previous == null) {
+                    delta = new Vector();
+                } else {
+                    delta = current.clone().subtract(previous);
+                }
+                movingSurfacePacketDelta.set(delta);
+            }
+        }
+
+        @Override
+        public void onPacketSend(PacketSendEvent event) {
+        }
+    }
+
     private boolean startSimulatedPlayer(CollisionSurfaceImpl surface, Vector lastPosition, Vector position, Vector velocity) {
-        AttachmentViewer.MovementController controller = viewer.controlMovement();
+        Vector initialVelocity = computeInitialSimulatedVelocity(surface, velocity);
+        AttachmentViewer.MovementController controller = viewer.controlMovement(
+                AttachmentViewer.MovementController.Options.create()
+                        .initialMotion(initialVelocity)
+        );
         SimulatedPlayer simulatedPlayer = new SimulatedPlayer(
                 viewer,
                 controller,
                 lastPosition.clone(),
                 position.clone(),
-                velocity.clone(),
+                initialVelocity,
                 surface,
                 false
         );
@@ -255,7 +342,23 @@ public class CollisionSurfaceTracker {
         simulatedPlayer.lastJumpInput = controller.getInput().jumping();
         simulatedPlayer.viewLockNeedsReset = false;
         this.simulatedPlayer = simulatedPlayer;
+        disableMovingSurfacePacketMonitor();
         return true;
+    }
+
+    private Vector computeInitialSimulatedVelocity(CollisionSurfaceImpl surface, Vector fallbackVelocity) {
+        Vector initialVelocity = fallbackVelocity.clone();
+        if (surface == null || surface.shape == null) {
+            return initialVelocity;
+        }
+
+        OBBSurfaceState surfaceState = new OBBSurfaceState(surface.shape);
+        Vector packetDeltaVelocity = surfaceState.projectOntoNormalPlane(getMovingSurfacePacketDelta());
+        if (packetDeltaVelocity.lengthSquared() > 1e-12) {
+            return packetDeltaVelocity;
+        }
+
+        return surfaceState.projectOntoNormalPlane(initialVelocity);
     }
 
     private boolean tryStartSimulatedPlayerAfterDismount(
