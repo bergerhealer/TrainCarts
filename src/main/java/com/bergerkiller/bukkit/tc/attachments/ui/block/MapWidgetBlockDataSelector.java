@@ -8,7 +8,6 @@ import com.bergerkiller.bukkit.common.map.widgets.MapWidgetTabView;
 import com.bergerkiller.bukkit.common.resources.SoundEffect;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.common.wrappers.BlockData;
-import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetBlinkyButton;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetVerticalNavigableList;
 import org.bukkit.block.Block;
@@ -33,6 +32,28 @@ public abstract class MapWidgetBlockDataSelector extends MapWidget implements Bl
     private final MapWidgetBlockDataVariantList variantList;
     private final MapWidgetBlockGrid blockSelector;
 
+    /**
+     * Called when the user confirms the currently selected block data with ENTER while focused
+     * on either the variant selector or block selection grid.
+     * <br>
+     * Default behavior toggles back and forth between the block grid selection and the variant selector
+     */
+    public void onSelectionConfirmed() {
+        if (isBlockGridActivated()) {
+            focusVariantList();
+        } else {
+            activateBlockGrid();
+        }
+    }
+
+    /**
+     * Optional: is called when the brightness adjustment button is clicked.
+     * Should open some dialog where the display entity brightness levels can
+     * be adjusted.
+     */
+    public void onBrightnessClicked() {
+    }
+
     public MapWidgetBlockDataSelector() {
         this.setBounds(0, 0, 100, 103);
         this.setRetainChildWidgets(true);
@@ -45,11 +66,7 @@ public abstract class MapWidgetBlockDataSelector extends MapWidget implements Bl
 
             @Override
             public void onNavigated(MapKeyEvent event, Tab tab) {
-                if (tab.getIndex() == 0) {
-                    blockStateListTooltip.setVisible(true);
-                } else {
-                    blockStateListTooltip.setVisible(false);
-                }
+                blockStateListTooltip.setVisible(tab.getIndex() == 0);
             }
         });
         this.blockOptions.setBounds(0, 0, 100, 18);
@@ -68,7 +85,7 @@ public abstract class MapWidgetBlockDataSelector extends MapWidget implements Bl
             @Override
             public void onKeyPressed(MapKeyEvent event) {
                 if (event.getKey() == MapPlayerInput.Key.ENTER) {
-                    activateBlockGrid();
+                    onSelectionConfirmed();
                 } else {
                     super.onKeyPressed(event);
                 }
@@ -105,9 +122,10 @@ public abstract class MapWidgetBlockDataSelector extends MapWidget implements Bl
 
             @Override
             public void onKeyPressed(MapKeyEvent event) {
-                if (event.getKey() == MapPlayerInput.Key.BACK || event.getKey() == MapPlayerInput.Key.ENTER) {
-                    blockStateListTooltip.setVisible(true);
-                    variantList.focus();
+                if (event.getKey() == MapPlayerInput.Key.BACK) {
+                    focusVariantList();
+                } else if (event.getKey() == MapPlayerInput.Key.ENTER) {
+                    MapWidgetBlockDataSelector.this.onSelectionConfirmed();
                 } else {
                     super.onKeyPressed(event);
                 }
@@ -145,10 +163,29 @@ public abstract class MapWidgetBlockDataSelector extends MapWidget implements Bl
         blockOptions.getTab(1).addWidget(brightnessButton);
     }
 
-    private void activateBlockGrid() {
+    /**
+     * Gets whether the block grid is currently activated. Can be called during callback execution
+     * to see UI state at time of accepting a block.
+     *
+     * @return True if the block grid selector is activated
+     */
+    public boolean isBlockGridActivated() {
+        return blockSelector.isActivated();
+    }
+
+    /**
+     * Activates the block grid. Initially the variant list is focused. Call this after attaching
+     * to right away activate/focus the block grid instead.
+     */
+    public void activateBlockGrid() {
         blockStateListTooltip.setVisible(false);
         blockOptions.setSelectedIndex(0);
         blockSelector.activate();
+    }
+
+    private void focusVariantList() {
+        blockStateListTooltip.setVisible(true);
+        variantList.focus();
     }
 
     @Override
@@ -188,13 +225,5 @@ public abstract class MapWidgetBlockDataSelector extends MapWidget implements Bl
                 event.setUseInteractedBlock(Event.Result.DENY);
             }
         }
-    }
-
-    /**
-     * Optional: is called when the brightness adjustment button is clicked.
-     * Should open some dialog where the display entity brightness levels can
-     * be adjusted.
-     */
-    public void onBrightnessClicked() {
     }
 }
