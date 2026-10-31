@@ -57,6 +57,12 @@ public class CollisionSurfaceTracker {
     /** Distance within which packet-monitoring for moving surfaces is active */
     private static final double MOVING_SURFACE_MONITOR_RANGE = 10.0;
     private static final double MOVING_SURFACE_MONITOR_RANGE_SQUARED = MOVING_SURFACE_MONITOR_RANGE * MOVING_SURFACE_MONITOR_RANGE;
+    /** Number of ticks after which no incoming position packets is treated as stale state */
+    private static final int MOVING_SURFACE_PACKET_TIMEOUT_TICKS = 10;
+    /** Maximum allowed packet-derived movement length before state is reset */
+    private static final double MOVING_SURFACE_MAX_PACKET_DELTA = 3.0;
+    private static final double MOVING_SURFACE_MAX_PACKET_DELTA_SQUARED =
+            MOVING_SURFACE_MAX_PACKET_DELTA * MOVING_SURFACE_MAX_PACKET_DELTA;
     private final AttachmentViewer viewer;
     private final int shulkerViewDistance;
     private final PlayerPusher playerPusher;
@@ -69,7 +75,8 @@ public class CollisionSurfaceTracker {
     private Vector previousPlayerPosition = null;
     private final StepSoundTracker stepSoundTracker = new StepSoundTracker();
     private PlayerPacketListener<MovingSurfacePacketMonitor> movingSurfacePacketMonitor = null;
-    private final AtomicReference<Vector> movingSurfacePacketDelta = new AtomicReference<>(new Vector());
+    private final AtomicReference<MovingSurfacePacketState> movingSurfacePacketState =
+            new AtomicReference<>(MovingSurfacePacketState.reset());
 
     // Shared solver instance for this tracker class. Initialized with a logger that
     // routes messages to the plugin logger. Set disabled when not testing.
@@ -112,7 +119,7 @@ public class CollisionSurfaceTracker {
     }
 
     public Vector getMovingSurfacePacketDelta() {
-        return movingSurfacePacketDelta.get().clone();
+        return movingSurfacePacketState.get().delta.clone();
     }
 
     /**
@@ -275,6 +282,7 @@ public class CollisionSurfaceTracker {
             if (!movingSurfacePacketMonitor.isEnabled()) {
                 movingSurfacePacketMonitor.enable();
             }
+            movingSurfacePacketMonitor.getListener().resetIfTimedOut();
         } else if (movingSurfacePacketMonitor != null) {
             disableMovingSurfacePacketMonitor();
         }
@@ -283,24 +291,31 @@ public class CollisionSurfaceTracker {
     private void disableMovingSurfacePacketMonitor() {
         if (movingSurfacePacketMonitor != null) {
             movingSurfacePacketMonitor.getListener().reset();
-            movingSurfacePacketDelta.set(new Vector());
             movingSurfacePacketMonitor.disable();
         }
     }
 
     private final class MovingSurfacePacketMonitor implements PacketListener {
-        private final AtomicReference<Vector> lastKnownPosition = new AtomicReference<>(null);
-
         public void reset() {
-            lastKnownPosition.set(null);
+            movingSurfacePacketState.set(MovingSurfacePacketState.reset());
+        }
+
+        public void resetIfTimedOut() {
+            MovingSurfacePacketState state = movingSurfacePacketState.get();
+            if (state.lastPacketTick != Integer.MIN_VALUE &&
+                    (CommonUtil.getServerTicks() - state.lastPacketTick) > MOVING_SURFACE_PACKET_TIMEOUT_TICKS) {
+                reset();
+            }
         }
 
         @Override
         public void onPacketReceive(PacketReceiveEvent event) {
             if (event.getType() == PacketType.IN_POSITION || event.getType() == PacketType.IN_POSITION_LOOK) {
+                int tick = CommonUtil.getServerTicks();
+                MovingSurfacePacketState previousState = movingSurfacePacketState.get();
                 ServerboundMovePlayerPacketHandle packet = ServerboundMovePlayerPacketHandle.createHandle(event.getPacket().getHandle());
                 Vector current = new Vector(packet.getX(), packet.getY(), packet.getZ());
-                Vector previous = lastKnownPosition.getAndSet(current);
+                Vector previous = previousState.lastKnownPosition;
 
                 Vector delta;
                 if (previous == null) {
@@ -308,12 +323,34 @@ public class CollisionSurfaceTracker {
                 } else {
                     delta = current.clone().subtract(previous);
                 }
-                movingSurfacePacketDelta.set(delta);
+
+                if (delta.lengthSquared() > MOVING_SURFACE_MAX_PACKET_DELTA_SQUARED) {
+                    reset();
+                    return;
+                }
+
+                movingSurfacePacketState.set(new MovingSurfacePacketState(current, tick, delta));
             }
         }
 
         @Override
         public void onPacketSend(PacketSendEvent event) {
+        }
+    }
+
+    private static final class MovingSurfacePacketState {
+        final Vector lastKnownPosition;
+        final int lastPacketTick;
+        final Vector delta;
+
+        static MovingSurfacePacketState reset() {
+            return new MovingSurfacePacketState(null, Integer.MIN_VALUE, new Vector());
+        }
+
+        MovingSurfacePacketState(Vector lastKnownPosition, int lastPacketTick, Vector delta) {
+            this.lastKnownPosition = (lastKnownPosition == null) ? null : lastKnownPosition.clone();
+            this.lastPacketTick = lastPacketTick;
+            this.delta = delta.clone();
         }
     }
 
