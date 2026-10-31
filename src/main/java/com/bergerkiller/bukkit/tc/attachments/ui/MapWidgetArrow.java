@@ -30,7 +30,7 @@ public class MapWidgetArrow extends MapWidget {
         }
         this.direction = direction;
 
-        MapTexture tex = MapTexture.loadPluginResource(TrainCarts.plugin, "com/bergerkiller/bukkit/tc/textures/attachments/arrow.png");
+        MapTexture tex = MapTexture.loadResource(MapWidgetArrow.class, "/com/bergerkiller/bukkit/tc/textures/attachments/arrow.png");
         int w = tex.getWidth() / 3;
         int h = tex.getHeight();
         MapCanvas in_text_disabled = tex.getView(0, 0, w, h);

@@ -33,7 +33,7 @@ public abstract class MapWidgetBlockDataVariantList extends MapWidget implements
     private int variantIndex = 0;
 
     public MapWidgetBlockDataVariantList() {
-        this.background = MapTexture.loadPluginResource(TrainCarts.plugin, "com/bergerkiller/bukkit/tc/textures/attachments/item_selector_bg.png");
+        this.background = MapTexture.loadResource(MapWidgetBlockDataVariantList.class, "/com/bergerkiller/bukkit/tc/textures/attachments/item_selector_bg.png");
         this.setSize(100, 18);
         this.setFocusable(true);
         this.variants = new ArrayList<BlockData>(0);

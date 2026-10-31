@@ -86,7 +86,7 @@ public abstract class MapWidgetBlockDataSelector extends MapWidget implements Bl
         // Tab with additional block display options
         {
             MapWidgetTabView.Tab tab = blockOptions.addTab(new MapWidgetTabView.Tab() {
-                private final MapTexture bg_texture = MapTexture.loadPluginResource(TrainCarts.plugin, "com/bergerkiller/bukkit/tc/textures/attachments/item_options_bg.png");
+                private final MapTexture bg_texture = MapTexture.loadResource(MapWidgetBlockDataSelector.class, "/com/bergerkiller/bukkit/tc/textures/attachments/item_options_bg.png");
 
                 @Override
                 public void onDraw() {
