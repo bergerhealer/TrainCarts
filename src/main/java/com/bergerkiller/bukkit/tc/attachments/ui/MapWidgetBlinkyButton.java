@@ -2,6 +2,7 @@ package com.bergerkiller.bukkit.tc.attachments.ui;
 
 import com.bergerkiller.bukkit.common.events.map.MapKeyEvent;
 import com.bergerkiller.bukkit.common.map.MapBlendMode;
+import com.bergerkiller.bukkit.common.map.MapCanvas;
 import com.bergerkiller.bukkit.common.map.MapColorPalette;
 import com.bergerkiller.bukkit.common.map.MapPlayerInput;
 import com.bergerkiller.bukkit.common.map.MapTexture;
@@ -78,15 +79,28 @@ public abstract class MapWidgetBlinkyButton extends MapWidget {
         iconBlinkB.fill(MapColorPalette.getColor(80, 80, 0));
         iconBlinkB.setBlendMode(MapBlendMode.NONE);
 
-        for (int x = 0; x < iconIdle.getWidth(); x++) {
-            for (int y = 0; y < iconIdle.getHeight(); y++) {
-                byte code = iconIdle.readPixel(x, y);
-                if (MapColorPalette.isTransparent(code)) {
-                    iconDisabled.writePixel(x, y, code);
-                } else {
+        drawGreyscale(iconDisabled, iconIdle, 0, 0);
+    }
+
+    /**
+     * Draws a texture icon onto a canvas, but converts all colors to greyscale first.
+     *
+     * @param target Canvas to draw onto
+     * @param icon Icon (texture) to draw
+     * @param tx Target x-coordinate (top-left)
+     * @param ty Target y-coordinate (top-left)
+     */
+    protected static void drawGreyscale(MapCanvas target, MapCanvas icon, int tx, int ty) {
+        boolean writeTransparentPixels = target.getBlendMode() == MapBlendMode.NONE;
+        for (int x = 0; x < icon.getWidth(); x++) {
+            for (int y = 0; y < icon.getHeight(); y++) {
+                byte code = icon.readPixel(x, y);
+                if (!MapColorPalette.isTransparent(code)) {
                     java.awt.Color c = MapColorPalette.getRealColor(code);
                     int avg = (c.getRed() + c.getGreen() + c.getBlue()) / 3;
-                    iconDisabled.writePixel(x, y, MapColorPalette.getColor(avg, avg, avg));
+                    target.writePixel(tx + x, ty + y, MapColorPalette.getColor(avg, avg, avg));
+                } else if (writeTransparentPixels) {
+                    target.writePixel(tx + x, ty + y, code);
                 }
             }
         }
