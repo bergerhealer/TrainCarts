@@ -446,10 +446,17 @@ public class CollisionSurfaceTracker {
             return false;
         }
 
+        CollisionSurfaceImpl supportSurface = toSurfaceImpl(support.lastSurface);
+        if (supportSurface == null
+                || !supportSurface.usesShulkerGridWhenStationary()
+                || !supportSurface.didStartMovingThisTick()) {
+            return false;
+        }
+
         Vector solPos = support.state.feetPosition();
         Vector pinnedFromPos = null;
         Vector transformedToPos = null;
-        OBBSurfaceTransition<CollisionSurfaceImpl> transition = findTransition(transitions, support.lastSurface);
+        OBBSurfaceTransition<CollisionSurfaceImpl> transition = findTransition(transitions, supportSurface);
         if (transition != null) {
             // Handoff dance: pin on the old (from) surface at the player's previous-tick location,
             // then carry that contact point through to the new (to) surface state.
@@ -1066,6 +1073,7 @@ public class CollisionSurfaceTracker {
         private OrientedBoundingBox shape;
         private OrientedBoundingBox prevShape;
         private int moveDetectedAtCount = 0;
+        private int startMovingAtCount = Integer.MIN_VALUE;
         private boolean useShulkersWhenNotMoving = true;
         private boolean viewLock = false;
         private boolean isMoving = false;
@@ -1119,6 +1127,14 @@ public class CollisionSurfaceTracker {
                 isMoving = false;
             }
             ++updateCounter;
+        }
+
+        public boolean didStartMovingThisTick() {
+            return isMoving && startMovingAtCount == (updateCounter - 1);
+        }
+
+        public boolean usesShulkerGridWhenStationary() {
+            return useShulkersWhenNotMoving;
         }
 
         @Override
@@ -1194,6 +1210,9 @@ public class CollisionSurfaceTracker {
 
             // Shape changed position/orientation/size in a way that acts as a moving surface
             // This despawns shulkers / keeps shulkers de-spawned and switches to movement control
+            if (!this.isMoving) {
+                this.startMovingAtCount = this.updateCounter;
+            }
             this.moveDetectedAtCount = this.updateCounter;
             this.isMoving = true;
             this.shape.setPosition(shape.getPosition());
