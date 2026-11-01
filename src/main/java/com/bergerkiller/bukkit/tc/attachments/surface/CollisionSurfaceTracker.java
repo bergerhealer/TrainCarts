@@ -50,6 +50,11 @@ public class CollisionSurfaceTracker {
     private static final double GRAVITY_START_ANGLE = 50.0;
     /** Downward distance checked after a player dismounts to immediately pick up nearby surface control. */
     private static final double DISMOUNT_SURFACE_SUPPORT_DISTANCE = 1.0;
+    /**
+     * Maximum distance below the player's feet checked to immediately enter simulated mode
+     * when transitioning from shulker-grid collision onto a moving/simulated surface.
+     */
+    private static final double SHULKER_HANDOFF_SURFACE_SUPPORT_DISTANCE = 1.0;
     /** When true, pressing sneak forces surface collisions off. Useful for testing. */
     private static final boolean SNEAKING_DISABLES_SURFACE_COLLISIONS = false;
     /** Whether to log when the player bounds penetrate surfaces unexpectedly (solver bugs) */
@@ -137,42 +142,17 @@ public class CollisionSurfaceTracker {
             }
         }
 
-        // This actually spawns/moves/destroys the shulkers applied in the previous step
-        floorTiles.update();
-        wallTiles.values().removeIf(wallTiles -> {
-            wallTiles.update();
-            return wallTiles.isEmpty();
-        });
-        shulkerCache.update(viewer, playerPusher);
-
-        // If the surface the player was walking on turned into shulkers, exit simulation mode immediately
-        if (simulatedPlayer != null && simulatedPlayer.lastSurface != null && !simulatedPlayer.lastSurface.isSimulated()) {
-            stopSimulatedPlayer(null);
-        }
-
         // Compute all of the surface transitions
         List<OBBSurfaceTransition<CollisionSurfaceImpl>> transitions = this.surfaces.stream()
                 .filter(CollisionSurfaceImpl::isSimulated)
                 .map(s -> new OBBSurfaceTransition<>(s.prevShape, s.shape, s))
                 .collect(Collectors.toList());
 
-        surfaces.forEach(CollisionSurfaceImpl::savePrevShape);
-
         ServerPlayerHandle playerHandle = ServerPlayerHandle.fromBukkit(viewer.getPlayer());
         AABBHandle bboxTo = playerHandle.getBoundingBox();
         boolean isSeated = viewer.getPlayer().getVehicle() != null;
         boolean wasSeated = previousPlayerSeated != null && previousPlayerSeated;
         previousPlayerSeated = isSeated;
-        if (simulatedPlayer != null) {
-            if (SNEAKING_DISABLES_SURFACE_COLLISIONS && viewer.getPlayer().isSneaking()) {
-                stopSimulatedPlayer(viewer.getPlayer().getLocation().toVector());
-                return;
-            }
-            updateSimulatedPlayer(transitions, new PlayerBoundsState(bboxTo));
-            disableMovingSurfacePacketMonitor();
-            return;
-        }
-        updateMovingSurfacePacketMonitor(viewer.getPlayer().getLocation().toVector());
 
         // Compute the Player OBB transition
         Vector position = viewer.getPlayer().getLocation().toVector();
@@ -190,18 +170,52 @@ public class CollisionSurfaceTracker {
                 bboxTo.getMaxZ() - movement.getZ()
         );
         PlayerBoundsTransition playerTransition = new PlayerBoundsTransition(bboxFrom, bboxTo);
-
         MathUtil.setVector(previousPlayerPosition, position);
+
+        if (simulatedPlayer == null && !(SNEAKING_DISABLES_SURFACE_COLLISIONS && viewer.getPlayer().isSneaking())) {
+            boolean started = false;
+            if (wasSeated && !isSeated) {
+                started = tryStartSimulatedPlayerAfterDismount(transitions, new PlayerBoundsState(bboxTo), previousPosition, movement);
+            }
+            if (!started && !isSeated) {
+                started = tryStartSimulatedPlayerOnSupport(transitions, new PlayerBoundsState(bboxTo), previousPosition, movement);
+            }
+            if (started) {
+                surfaces.forEach(CollisionSurfaceImpl::savePrevShape);
+                disableMovingSurfacePacketMonitor();
+                return;
+            }
+        }
+
+        // This actually spawns/moves/destroys the shulkers applied in the previous step
+        floorTiles.update();
+        wallTiles.values().removeIf(wallTiles -> {
+            wallTiles.update();
+            return wallTiles.isEmpty();
+        });
+        shulkerCache.update(viewer, playerPusher);
+
+        // If the surface the player was walking on turned into shulkers, exit simulation mode immediately
+        if (simulatedPlayer != null && simulatedPlayer.lastSurface != null && !simulatedPlayer.lastSurface.isSimulated()) {
+            stopSimulatedPlayer(simulatedPlayer.position);
+        }
+
+        surfaces.forEach(CollisionSurfaceImpl::savePrevShape);
+
+        if (simulatedPlayer != null) {
+            if (SNEAKING_DISABLES_SURFACE_COLLISIONS && viewer.getPlayer().isSneaking()) {
+                stopSimulatedPlayer(viewer.getPlayer().getLocation().toVector());
+                return;
+            }
+            updateSimulatedPlayer(transitions, new PlayerBoundsState(bboxTo));
+            disableMovingSurfacePacketMonitor();
+            return;
+        }
+        updateMovingSurfacePacketMonitor(position);
 
         // Sneak debug mode, pretend surfaces aren't there so player can be freed from the surfaces.
         if (SNEAKING_DISABLES_SURFACE_COLLISIONS && viewer.getPlayer().isSneaking()) {
             return;
-        }
-
-        if (wasSeated && !isSeated) {
-            if (tryStartSimulatedPlayerAfterDismount(transitions, new PlayerBoundsState(bboxTo), previousPosition, movement)) {
-                return;
-            }
         }
 
         PlayerCollisionSolver.Result<CollisionSurfaceImpl> solution = PLAYER_COLLISION_SOLVER.solveDetailed(
@@ -417,12 +431,75 @@ public class CollisionSurfaceTracker {
         return startSimulatedPlayer(support.lastSurface, previousPosition, solPos, velocity);
     }
 
+    private boolean tryStartSimulatedPlayerOnSupport(
+            List<OBBSurfaceTransition<CollisionSurfaceImpl>> transitions,
+            PlayerBoundsState currentBounds,
+            Vector previousPosition,
+            Vector velocity
+    ) {
+        PlayerBoundsState loweredBounds = currentBounds.translate(0.0, -SHULKER_HANDOFF_SURFACE_SUPPORT_DISTANCE, 0.0);
+        PlayerCollisionSolver.Result<CollisionSurfaceImpl> support = PLAYER_COLLISION_SOLVER.solveDetailed(
+                transitions,
+                new PlayerBoundsTransition(currentBounds, loweredBounds)
+        );
+        if (support.lastCollisionMode != PlayerCollisionSolver.CollisionMode.FEET || support.lastSurface == null) {
+            return false;
+        }
+
+        Vector solPos = support.state.feetPosition();
+        Vector pinnedFromPos = null;
+        Vector transformedToPos = null;
+        OBBSurfaceTransition<CollisionSurfaceImpl> transition = findTransition(transitions, support.lastSurface);
+        if (transition != null) {
+            // Handoff dance: pin on the old (from) surface at the player's previous-tick location,
+            // then carry that contact point through to the new (to) surface state.
+            Vector actualFeet = currentBounds.feetPosition();
+            PlayerBoundsState oldBounds = currentBounds.translate(
+                    previousPosition.getX() - actualFeet.getX(),
+                    previousPosition.getY() - actualFeet.getY(),
+                    previousPosition.getZ() - actualFeet.getZ()
+            );
+            PlayerBoundsState oldBoundsPinned = transition.from.placeBoundsOnSurface(oldBounds);
+            pinnedFromPos = oldBoundsPinned.feetPosition();
+
+            Vector local = transition.from.worldToLocal(pinnedFromPos, new Vector());
+            local.setY(0.0);
+            transformedToPos = transition.to.localToWorld(local, new Vector());
+
+            PlayerBoundsState movedBounds = oldBoundsPinned.translate(
+                    transformedToPos.getX() - pinnedFromPos.getX(),
+                    transformedToPos.getY() - pinnedFromPos.getY(),
+                    transformedToPos.getZ() - pinnedFromPos.getZ()
+            );
+            solPos = transition.to.placeBoundsOnSurface(movedBounds).feetPosition();
+        }
+
+        return startSimulatedPlayer(support.lastSurface, previousPosition, solPos, velocity);
+    }
+
     private void stopSimulatedPlayer(Vector trackingPosition) {
-        if (this.simulatedPlayer != null && this.simulatedPlayer.pmc != null && !this.simulatedPlayer.pmc.hasStopped()) {
-            this.simulatedPlayer.pmc.stop();
+        SimulatedPlayer previousSimulatedPlayer = this.simulatedPlayer;
+        if (previousSimulatedPlayer != null && previousSimulatedPlayer.pmc != null && !previousSimulatedPlayer.pmc.hasStopped()) {
+            previousSimulatedPlayer.pmc.stop();
         }
         this.simulatedPlayer = null;
-        if (trackingPosition != null) {
+        // When the player is flying (jumped/walked off the moving surface), avoid applying
+        // the stop sync correction, as that can force the player into landed terrain.
+        if (trackingPosition != null && previousSimulatedPlayer != null && !previousSimulatedPlayer.flying) {
+            ServerPlayerHandle playerHandle = ServerPlayerHandle.fromBukkit(viewer.getPlayer());
+            playerHandle.setPositionRotation(
+                    trackingPosition.getX(),
+                    trackingPosition.getY(),
+                    trackingPosition.getZ(),
+                    viewer.getPlayer().getEyeLocation().getYaw(),
+                    viewer.getPlayer().getEyeLocation().getPitch()
+            );
+            playerHandle.setFallDistance(0.0f);
+            viewer.getPlayer().setVelocity(new Vector(0.0, PlayerPusher.PUSH_UP_VELOCITY, 0.0));
+            viewer.send(ClientboundPlayerPositionPacketHandle.createNew(
+                    trackingPosition.getX(), trackingPosition.getY(), trackingPosition.getZ(), 0.0f, 0.0f,
+                    0.0, PlayerPusher.PUSH_UP_VELOCITY, 0.0,
+                    RelativeFlags.ABSOLUTE_POSITION.withRelativeRotation().withAbsoluteDelta()));
             if (this.previousPlayerPosition == null) {
                 this.previousPlayerPosition = trackingPosition.clone();
             } else {
