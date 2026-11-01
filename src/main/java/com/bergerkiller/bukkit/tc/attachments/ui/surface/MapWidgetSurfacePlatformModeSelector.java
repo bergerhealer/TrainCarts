@@ -3,8 +3,11 @@ package com.bergerkiller.bukkit.tc.attachments.ui.surface;
 import com.bergerkiller.bukkit.common.map.MapTexture;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentPlatform;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetIconDropDown;
+import com.bergerkiller.bukkit.tc.attachments.ui.menus.AppearanceMenu;
 
-public abstract class MapWidgetSurfacePlatformModeSelector extends MapWidgetIconDropDown {
+public abstract class MapWidgetSurfacePlatformModeSelector extends MapWidgetIconDropDown
+        implements AppearanceMenu.PrimaryFocus
+{
     private static final int WIDTH = 13;
     private static final int HEIGHT = 13;
     private final MapTexture platformModeIconAtlas = MapTexture.loadResource(MapWidgetSurfacePlatformModeSelector.class,
