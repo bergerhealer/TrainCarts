@@ -252,6 +252,9 @@ public class TCListener implements Listener {
 
         boolean breakAny = ((attacker instanceof Player) && Permission.BREAK_MINECART_ANY.has((Player) attacker));
         if (mm.getProperties().isInvincible() && !breakAny) {
+            if (attacker instanceof Player) {
+                plugin.getPlayer((Player) attacker).editMember(mm);
+            }
             return true;
         }
         if (attacker instanceof Player) {
