@@ -129,7 +129,7 @@ public abstract class CartAttachmentPlatform extends CartAttachment {
                     surfaceAnimation.setPlatformMode(mode);
                     shulkerColorSelector.setEnabled(mode.isSpawningShulkerGrid() || mode == PlatformMode.SINGLE_SHULKER);
                     viewLockSelector.setEnabled(mode.isSimulated());
-                    surfaceMaterialSelector.setEnabled(mode.isSimulated());
+                    surfaceMaterialSelector.setEnabled(mode != PlatformMode.SINGLE_SHULKER);
                     if (display != null) {
                         attachment.getConfig().set("platformMode", mode);
                         sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
