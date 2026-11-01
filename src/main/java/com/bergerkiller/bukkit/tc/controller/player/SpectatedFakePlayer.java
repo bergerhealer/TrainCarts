@@ -17,7 +17,6 @@ import com.bergerkiller.bukkit.tc.attachments.control.seat.SeatedEntityHead;
 import com.bergerkiller.bukkit.tc.attachments.control.seat.spectator.PitchSwappedEntity;
 import com.bergerkiller.bukkit.common.utils.PlayerUtil;
 import com.bergerkiller.bukkit.tc.controller.player.interaction.SpectatorInteractionSimulator;
-import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundEntityPositionSyncPacketHandle;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundMoveEntityPacketHandle;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundSetCameraPacketHandle;
 import com.bergerkiller.generated.net.minecraft.server.level.ServerPlayerHandle;
@@ -46,6 +45,7 @@ public class SpectatedFakePlayer implements TrainCarts.Provider {
     private VirtualEntity playerMount = null;
     private int[] mountedEntityIds = NO_MOUNTS;
     private boolean useMinecartInterpolation = false;
+    private int steppedPositionSyncTicks = 0;
     private boolean visibleOnSpawn = false;
     private boolean forceAbsoluteSync = false;
     /** If true, then when the fake player is spawned head is already aligned the right way (since 1.20.2) */
@@ -97,6 +97,18 @@ public class SpectatedFakePlayer implements TrainCarts.Provider {
             return;
         }
         this.useMinecartInterpolation = useMinecartInterpolation;
+    }
+
+    public void setSteppedPositionSyncTicks(int steppedPositionSyncTicks) {
+        if (stopped) {
+            return;
+        }
+        this.steppedPositionSyncTicks = Math.max(0, steppedPositionSyncTicks);
+        if (fakePlayer != null) {
+            fakePlayer.entity.setSteppedPositionSyncTicks(this.steppedPositionSyncTicks);
+            fakePlayer.entityAlt.setSteppedPositionSyncTicks(this.steppedPositionSyncTicks);
+            fakePlayer.entityAltFlip.setSteppedPositionSyncTicks(this.steppedPositionSyncTicks);
+        }
     }
 
     public void setPlayerOffset(double x, double y, double z) {
@@ -412,6 +424,7 @@ public class SpectatedFakePlayer implements TrainCarts.Provider {
             this.setEntityType(EntityType.PLAYER);
             this.setSyncMode(SyncMode.NORMAL);
             this.setUseMinecartInterpolation(useMinecartInterpolation);
+            this.setSteppedPositionSyncTicks(steppedPositionSyncTicks);
             this.setRelativeOffset(offsetX, offsetY, offsetZ);
         }
 
