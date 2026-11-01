@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.tc.attachments;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.EnumMap;
 import java.util.EnumSet;
 import java.util.List;
@@ -24,6 +25,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
 import com.bergerkiller.bukkit.common.controller.EntityNetworkController;
+import com.bergerkiller.bukkit.common.internal.CommonBootstrap;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.math.Quaternion;
 import com.bergerkiller.bukkit.common.protocol.CommonPacket;
@@ -53,6 +55,8 @@ import com.bergerkiller.generated.net.minecraft.server.level.EntityTrackerEntryS
  * The entity can be spawned or destroyed for individual players.
  */
 public class VirtualEntity extends VirtualSpawnableObject {
+    private static final boolean SERVER_SUPPORTS_STEPPED_POSITION_SYNC = CommonBootstrap.evaluateMCVersion(">=", "26.3");
+
     /**
      * Add this offset to the sit butt offset and the position is exactly where the center of the head is.
      * This is where the player looks from.
@@ -96,6 +100,7 @@ public class VirtualEntity extends VirtualSpawnableObject {
     private int rotateCtr = 0;
     private SyncMode syncMode = SyncMode.NORMAL;
     private boolean minecartInterpolation = false;
+    private int steppedPositionSyncTicks = 0;
     private boolean useParentMetadata = false;
     private Vector yawPitchRoll = new Vector(0.0, 0.0, 0.0);
 
@@ -240,6 +245,24 @@ public class VirtualEntity extends VirtualSpawnableObject {
     @Override
     public void setUseMinecartInterpolation(boolean use) {
         this.minecartInterpolation = use;
+    }
+
+    /**
+     * Sets how many ticks to interpolation the movement on for the client. This only does anything for 26.3+ server and client
+     * versions.
+     *
+     * @param ticks Tick rate of interpolation (default 3 for armor stands, 5 for players)
+     */
+    public void setSteppedPositionSyncTicks(int ticks) {
+        this.steppedPositionSyncTicks = Math.max(ticks, 0);
+    }
+
+    public boolean isSteppedPositionSyncEnabled() {
+        return this.steppedPositionSyncTicks > 0;
+    }
+
+    public int getSteppedPositionSyncTicks() {
+        return this.steppedPositionSyncTicks;
     }
 
     public Vector getYawPitchRoll() {
@@ -601,6 +624,13 @@ public class VirtualEntity extends VirtualSpawnableObject {
         this.syncVel = this.liveVel;
     }
 
+    private static boolean useSteppedPositionSync(AttachmentViewer viewer, int steppedPositionSyncTicks) {
+        return SERVER_SUPPORTS_STEPPED_POSITION_SYNC &&
+               steppedPositionSyncTicks > 0 &&
+               viewer != null &&
+               viewer.supportsMultiStepMovement();
+    }
+
     @Override
     public void syncPosition(boolean absolute) {
         if (!this.hasViewers()) {
@@ -677,15 +707,19 @@ public class VirtualEntity extends VirtualSpawnableObject {
                 for (AttachmentViewer viewer : getViewers()) {
                     MathUtil.setVector(pos, liveAbsPos);
                     byViewerPositionAdjustment.adjust(viewer, pos);
-                    viewer.send(ClientboundEntityPositionSyncPacketHandle.createNew(this.entityId,
-                             pos.getX(), pos.getY(), pos.getZ(),
-                             this.liveYaw, this.livePitch, false));
+                    viewer.send(new PositionSyncByViewer(
+                            this.entityId,
+                            pos.getX(), pos.getY(), pos.getZ(),
+                            this.liveYaw, this.livePitch, false,
+                            steppedPositionSyncTicks).createPacketFor(viewer));
                 }
             } else {
-                // Same packet for everyone
-                broadcast(ClientboundEntityPositionSyncPacketHandle.createNew(this.entityId,
-                         this.liveAbsPos.getX(), this.liveAbsPos.getY(), this.liveAbsPos.getZ(),
-                         this.liveYaw, this.livePitch, false));
+                PositionSyncByViewer positionByViewer = new PositionSyncByViewer(
+                        this.entityId,
+                        this.liveAbsPos.getX(), this.liveAbsPos.getY(), this.liveAbsPos.getZ(),
+                        this.liveYaw, this.livePitch, false,
+                        steppedPositionSyncTicks);
+                positionByViewer.broadcast(getViewers());
             }
 
             syncPositionSilent();
@@ -731,33 +765,21 @@ public class VirtualEntity extends VirtualSpawnableObject {
 
         if (moved && rotated) {
             // Position and rotation changed
-            ClientboundMoveEntityPacketHandle.PositionChange change = ClientboundMoveEntityPacketHandle.PositionChange.encodeLinearChange(
-                    dx, dy, dz
-            );
-
-            PosRotHandle packet = PosRotHandle.createNew(
-                    this.entityId,
-                    change,
-                    this.liveYaw,
-                    this.livePitch,
-                    false);
-
-            this.syncYaw = packet.getYaw();
-            this.syncPitch = packet.getPitch();
-            MathUtil.addToVector(this.syncAbsPos, change.getDeltaX(), change.getDeltaY(), change.getDeltaZ());
-
-            broadcast(packet);
+            MovePacketByViewer packetByViewer = new MovePacketByViewer(
+                    this.entityId, dx, dy, dz, this.liveYaw, this.livePitch, true, steppedPositionSyncTicks);
+            packetByViewer.broadcast(getViewers());
+            PosRotHandle usedPacket = packetByViewer.anyPosRotPacket();
+            ClientboundMoveEntityPacketHandle.PositionChange usedChange = packetByViewer.any();
+            this.syncYaw = usedPacket.getYaw();
+            this.syncPitch = usedPacket.getPitch();
+            MathUtil.addToVector(this.syncAbsPos, usedChange.getDeltaX(), usedChange.getDeltaY(), usedChange.getDeltaZ());
         } else if (moved) {
             // Only position changed
-            ClientboundMoveEntityPacketHandle.PositionChange change = ClientboundMoveEntityPacketHandle.PositionChange.encodeLinearChange(
-                    dx, dy, dz
-            );
-            MathUtil.addToVector(this.syncAbsPos, change.getDeltaX(), change.getDeltaY(), change.getDeltaZ());
-
-            broadcast(PosHandle.createNew(
-                    this.entityId,
-                    change,
-                    false));
+            MovePacketByViewer packetByViewer = new MovePacketByViewer(
+                    this.entityId, dx, dy, dz, this.liveYaw, this.livePitch, false, steppedPositionSyncTicks);
+            packetByViewer.broadcast(getViewers());
+            ClientboundMoveEntityPacketHandle.PositionChange usedChange = packetByViewer.any();
+            MathUtil.addToVector(this.syncAbsPos, usedChange.getDeltaX(), usedChange.getDeltaY(), usedChange.getDeltaZ());
         } else if (rotated) {
             // Only rotation changed
             for (AttachmentViewer viewer : this.getViewers()) {
@@ -888,6 +910,163 @@ public class VirtualEntity extends VirtualSpawnableObject {
             return true;
         default:
             return false;
+        }
+    }
+
+    /**
+     * Handles creating the correct relative position update packet, depending on the viewer. This handles the 26.3+ only
+     * stepped update logic for custom interpolation tick rates.
+     */
+    private static final class PositionSyncByViewer {
+        private final int entityId;
+        private final double posX, posY, posZ;
+        private final float yaw, pitch;
+        private final boolean onGround;
+        private final int steppedPositionSyncTicks;
+        private ClientboundEntityPositionSyncPacketHandle.Position linear;
+        private ClientboundEntityPositionSyncPacketHandle.Position stepped;
+
+        public PositionSyncByViewer(
+                int entityId,
+                double posX,
+                double posY,
+                double posZ,
+                float yaw,
+                float pitch,
+                boolean onGround,
+                int steppedPositionSyncTicks
+        ) {
+            this.entityId = entityId;
+            this.posX = posX;
+            this.posY = posY;
+            this.posZ = posZ;
+            this.yaw = yaw;
+            this.pitch = pitch;
+            this.onGround = onGround;
+            this.steppedPositionSyncTicks = steppedPositionSyncTicks;
+        }
+
+        public ClientboundEntityPositionSyncPacketHandle.Position createFor(AttachmentViewer viewer) {
+            if (useSteppedPositionSync(viewer, steppedPositionSyncTicks)) {
+                if (stepped == null) {
+                    stepped = ClientboundEntityPositionSyncPacketHandle.Position.steppedBuilder()
+                            .addStep(posX, posY, posZ, steppedPositionSyncTicks);
+                }
+                return stepped;
+            } else {
+                if (linear == null) {
+                    linear = ClientboundEntityPositionSyncPacketHandle.Position.encodeLinear(posX, posY, posZ);
+                }
+                return linear;
+            }
+        }
+
+        public ClientboundEntityPositionSyncPacketHandle createPacketFor(AttachmentViewer viewer) {
+            return ClientboundEntityPositionSyncPacketHandle.createNew(entityId, createFor(viewer), yaw, pitch, onGround);
+        }
+
+        public void broadcast(Collection<AttachmentViewer> viewers) {
+            if (SERVER_SUPPORTS_STEPPED_POSITION_SYNC && steppedPositionSyncTicks > 0) {
+                for (AttachmentViewer viewer : viewers) {
+                    viewer.send(createPacketFor(viewer));
+                }
+            } else {
+                ClientboundEntityPositionSyncPacketHandle packet = ClientboundEntityPositionSyncPacketHandle.createNew(
+                        entityId,
+                        ClientboundEntityPositionSyncPacketHandle.Position.encodeLinear(posX, posY, posZ),
+                        yaw,
+                        pitch,
+                        onGround
+                );
+                for (AttachmentViewer viewer : viewers) {
+                    viewer.send(packet);
+                }
+            }
+        }
+    }
+
+    /**
+     * Handles creating the correct relative movement update packet, depending on the viewer. This handles the 26.3+ only
+     * stepped update logic for custom interpolation tick rates.
+     */
+    private static final class MovePacketByViewer {
+        private final int entityId;
+        private final double dx, dy, dz;
+        private final float yaw, pitch;
+        private final boolean includeRotation;
+        private final int steppedPositionSyncTicks;
+        private ClientboundMoveEntityPacketHandle.PositionChange linear;
+        private ClientboundMoveEntityPacketHandle.PositionChange stepped;
+        private PacketHandle linearPacket;
+        private PacketHandle steppedPacket;
+
+        public MovePacketByViewer(
+                int entityId,
+                double dx,
+                double dy,
+                double dz,
+                float yaw,
+                float pitch,
+                boolean includeRotation,
+                int steppedPositionSyncTicks
+        ) {
+            this.entityId = entityId;
+            this.dx = dx;
+            this.dy = dy;
+            this.dz = dz;
+            this.yaw = yaw;
+            this.pitch = pitch;
+            this.includeRotation = includeRotation;
+            this.steppedPositionSyncTicks = steppedPositionSyncTicks;
+        }
+
+        public PacketHandle createFor(AttachmentViewer viewer) {
+            if (useSteppedPositionSync(viewer, steppedPositionSyncTicks)) {
+                if (steppedPacket == null) {
+                    stepped = ClientboundMoveEntityPacketHandle.PositionChange.steppedBuilder()
+                            .addStep(dx, dy, dz, steppedPositionSyncTicks);
+                    steppedPacket = createPacket(stepped);
+                }
+                return steppedPacket;
+            } else {
+                if (linearPacket == null) {
+                    linear = ClientboundMoveEntityPacketHandle.PositionChange.encodeLinearChange(dx, dy, dz);
+                    linearPacket = createPacket(linear);
+                }
+                return linearPacket;
+            }
+        }
+
+        private PacketHandle createPacket(ClientboundMoveEntityPacketHandle.PositionChange change) {
+            if (includeRotation) {
+                return PosRotHandle.createNew(entityId, change, yaw, pitch, false);
+            } else {
+                return PosHandle.createNew(entityId, change, false);
+            }
+        }
+
+        public PosRotHandle anyPosRotPacket() {
+            return (PosRotHandle) ((linearPacket != null) ? linearPacket : steppedPacket);
+        }
+
+        public ClientboundMoveEntityPacketHandle.PositionChange any() {
+            return (linear != null) ? linear : stepped;
+        }
+
+        public void broadcast(Collection<AttachmentViewer> viewers) {
+            if (SERVER_SUPPORTS_STEPPED_POSITION_SYNC && steppedPositionSyncTicks > 0) {
+                for (AttachmentViewer viewer : viewers) {
+                    viewer.send(createFor(viewer));
+                }
+            } else {
+                if (linearPacket == null) {
+                    linear = ClientboundMoveEntityPacketHandle.PositionChange.encodeLinearChange(dx, dy, dz);
+                    linearPacket = createPacket(linear);
+                }
+                for (AttachmentViewer viewer : viewers) {
+                    viewer.send(linearPacket);
+                }
+            }
         }
     }
 
