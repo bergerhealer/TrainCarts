@@ -6,6 +6,7 @@ import com.bergerkiller.bukkit.common.resources.SoundEffect;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.common.wrappers.BlockData;
+import com.bergerkiller.bukkit.tc.Util;
 import org.bukkit.Location;
 
 /**
@@ -23,6 +24,36 @@ public interface CollisionSurfaceMaterial {
      * @return BlockData material
      */
     BlockData getMaterial();
+
+    /**
+     * Gets the friction factor of this surface material.
+     *
+     * @return friction factor
+     */
+    default float getFriction() {
+        BlockData material = getMaterial();
+        return (material == null) ? 0.6F : Util.BLOCK_DATA_MOVEMENT_PROPERTIES.getFriction(material);
+    }
+
+    /**
+     * Gets the speed factor of this surface material.
+     *
+     * @return speed factor
+     */
+    default float getSpeedFactor() {
+        BlockData material = getMaterial();
+        return (material == null) ? 1.0F : Util.BLOCK_DATA_MOVEMENT_PROPERTIES.getSpeedFactor(material);
+    }
+
+    /**
+     * Gets the jump factor of this surface material.
+     *
+     * @return jump factor
+     */
+    default float getJumpFactor() {
+        BlockData material = getMaterial();
+        return (material == null) ? 1.0F : Util.BLOCK_DATA_MOVEMENT_PROPERTIES.getJumpFactor(material);
+    }
 
     /**
      * Plays a step sound effect of walking on this surface material somewhere in the world

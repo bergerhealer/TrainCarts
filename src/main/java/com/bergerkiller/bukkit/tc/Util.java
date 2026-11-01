@@ -96,8 +96,47 @@ import com.bergerkiller.generated.net.minecraft.world.phys.AABBHandle;
 public class Util {
     public static final MaterialTypeProperty ISVERTRAIL = new MaterialTypeProperty(Material.LADDER);
     public static final MaterialTypeProperty ISTCRAIL = new MaterialTypeProperty(ISVERTRAIL, MaterialUtil.ISRAILS, MaterialUtil.ISPRESSUREPLATE);
+    public static final BlockDataMovementProperties BLOCK_DATA_MOVEMENT_PROPERTIES = Common.hasCapability("BlockData:JumpAndSpeedFactor")
+            ? new BlockDataMovementProperties() {
+                @Override
+                public float getFriction(BlockData blockData) {
+                    return blockData.getFriction();
+                }
+
+                @Override
+                public float getSpeedFactor(BlockData blockData) {
+                    return blockData.getSpeedFactor();
+                }
+
+                @Override
+                public float getJumpFactor(BlockData blockData) {
+                    return blockData.getJumpFactor();
+                }
+            }
+            : new BlockDataMovementProperties() {
+                @Override
+                public float getFriction(BlockData blockData) {
+                    return 0.6F;
+                }
+
+                @Override
+                public float getSpeedFactor(BlockData blockData) {
+                    return 1.0F;
+                }
+
+                @Override
+                public float getJumpFactor(BlockData blockData) {
+                    return 1.0F;
+                }
+            };
     private static final String SEPARATOR_REGEX = "[|/\\\\]";
     private static List<Block> blockbuff = new ArrayList<>();
+
+    public interface BlockDataMovementProperties {
+        float getFriction(BlockData blockData);
+        float getSpeedFactor(BlockData blockData);
+        float getJumpFactor(BlockData blockData);
+    }
 
     // Number format used by stringifyNumberBoxValue
     private static final NumberFormat numberBox_NumberFormat = createNumberFormat(1, 4);

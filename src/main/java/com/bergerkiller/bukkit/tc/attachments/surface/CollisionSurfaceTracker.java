@@ -737,6 +737,7 @@ public class CollisionSurfaceTracker {
 
         // These effects to velocity are applied after the velocity is used to move the player (post-tick)
         // The effects (such as gravity) are applied the next tick
+        simulatedPlayer.applyBlockSpeedFactor((activeTransition == null) ? null : activeTransition.to);
         if (simulatedPlayer.flying) {
             simulatedPlayer.applyGravity();
         }
