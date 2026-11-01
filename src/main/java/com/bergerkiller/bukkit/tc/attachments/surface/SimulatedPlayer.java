@@ -65,8 +65,51 @@ class SimulatedPlayer {
      * @return Ground slipperiness
      */
     public double getGroundSlipperiness() {
-        // Air / stone surface
-        return this.flying ? 1.0 : 0.6;
+        if (this.flying) {
+            return 1.0;
+        }
+
+        return getGroundSurfaceMaterial().getFriction();
+    }
+
+    /**
+     * Gets the speed factor of the surface the player is currently walking on.
+     *
+     * @return Ground speed factor
+     */
+    public double getGroundSpeedFactor() {
+        if (this.flying) {
+            return 1.0;
+        }
+
+        return getGroundSurfaceMaterial().getSpeedFactor();
+    }
+
+    /**
+     * Gets the jump factor of the surface the player is currently walking on.
+     *
+     * @return Ground jump factor
+     */
+    public double getGroundJumpFactor() {
+        if (this.flying) {
+            return 1.0;
+        }
+
+        return getGroundSurfaceMaterial().getJumpFactor();
+    }
+
+    private CollisionSurfaceMaterial getGroundSurfaceMaterial() {
+        CollisionSurface surface = this.lastSurface;
+        if (surface == null) {
+            return CollisionSurfaceMaterial.DEFAULT;
+        }
+
+        CollisionSurfaceMaterial material = surface.getMaterial();
+        if (material == null) {
+            return CollisionSurfaceMaterial.DEFAULT;
+        }
+
+        return material;
     }
 
     /**
@@ -97,7 +140,7 @@ class SimulatedPlayer {
      * Applies the velocity Y impulse effect of the player pressing the jump button
      */
     public void applyJumpImpulse() {
-        this.velocity.setY(this.velocity.getY() + SIMULATED_JUMP_IMPULSE);
+        this.velocity.setY(this.velocity.getY() + SIMULATED_JUMP_IMPULSE * getGroundSurfaceMaterial().getJumpFactor());
     }
 
     /**
@@ -112,6 +155,25 @@ class SimulatedPlayer {
 
         // Apply damping to the existing velocity first, then add acceleration.
         this.velocity.add(acceleration.clone().multiply(slipperinessFact));
+    }
+
+    /**
+     * Applies the block speed factor to horizontal movement velocity.
+     * Similar to vanilla, where this is applied as a separate multiplier
+     * from slipperiness/drag.
+     */
+    public void applyBlockSpeedFactor(OBBSurfaceState groundSurface) {
+        final double speedFactor = this.getGroundSpeedFactor();
+        if (!this.flying && groundSurface != null) {
+            // Sloped surfaces can have a Y component in tangential movement.
+            // Scale only the tangential component by speed factor.
+            Vector tangential = groundSurface.projectOntoNormalPlane(this.velocity);
+            Vector normal = this.velocity.clone().subtract(tangential);
+            this.velocity = tangential.multiply(speedFactor).add(normal);
+        } else {
+            this.velocity.setX(this.velocity.getX() * speedFactor);
+            this.velocity.setZ(this.velocity.getZ() * speedFactor);
+        }
     }
 
     /**
