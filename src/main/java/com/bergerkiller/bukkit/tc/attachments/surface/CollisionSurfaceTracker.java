@@ -935,7 +935,7 @@ public class CollisionSurfaceTracker {
     }
 
     private static OrientationMode getViewLockOrientationMode(CollisionSurfaceImpl surface, SimulatedPlayer simulatedPlayer) {
-        if (surface == null || !surface.viewLock || surface.getShape() == null) {
+        if (simulatedPlayer.flying || surface == null || !surface.viewLock || surface.getShape() == null) {
             return OrientationMode.NONE;
         }
         return simulatedPlayer.viewLockNeedsReset ? OrientationMode.ABSOLUTE_RESET : OrientationMode.ABSOLUTE;
