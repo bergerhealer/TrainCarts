@@ -1,11 +1,12 @@
 package com.bergerkiller.bukkit.tc.attachments.ui.block;
 
 import com.bergerkiller.bukkit.common.wrappers.BlockData;
+import com.bergerkiller.bukkit.tc.attachments.ui.BlockDataDropTarget;
 
 /**
  * A type of BlockData selector widget
  */
-public interface BlockDataSelector {
+public interface BlockDataSelector extends BlockDataDropTarget {
     /**
      * Called when the user selects a different type of block data. This is
      * <b>only</b> called when the user does so, not when
@@ -30,4 +31,10 @@ public interface BlockDataSelector {
      * @return this
      */
     BlockDataSelector setSelectedBlockData(BlockData blockData);
+
+    @Override
+    default boolean acceptBlockData(BlockData blockData) {
+        this.setSelectedBlockData(blockData);
+        return true;
+    }
 }

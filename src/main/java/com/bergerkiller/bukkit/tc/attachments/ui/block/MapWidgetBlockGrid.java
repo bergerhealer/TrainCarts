@@ -8,9 +8,8 @@ import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.wrappers.BlockData;
-import com.bergerkiller.bukkit.tc.attachments.ui.ItemDropTarget;
+import com.bergerkiller.bukkit.tc.attachments.ui.BlockDataDropTarget;
 import org.bukkit.Material;
-import org.bukkit.inventory.ItemStack;
 
 import java.awt.*;
 import java.util.ArrayList;
@@ -20,7 +19,7 @@ import java.util.List;
  * Shows a grid of blocks that can be selected using W/A/S/D. Only shows the
  * major Block materials, and the default block state of each.
  */
-public abstract class MapWidgetBlockGrid extends MapWidget implements ItemDropTarget, BlockDataSelector {
+public abstract class MapWidgetBlockGrid extends MapWidget implements BlockDataSelector {
     private int _columns = 4;
     private int _rows = 3;
     private int _itemSize = 16;
@@ -249,12 +248,12 @@ public abstract class MapWidgetBlockGrid extends MapWidget implements ItemDropTa
     }
 
     @Override
-    public boolean acceptItem(ItemStack item) {
-        if (this.parent instanceof ItemDropTarget) {
-            return ((ItemDropTarget) this.parent).acceptItem(item);
-        } else if (item.getType().isBlock()) {
+    public boolean acceptBlockData(BlockData blockData) {
+        if (this.parent instanceof BlockDataDropTarget) {
+            return ((BlockDataDropTarget) this.parent).acceptBlockData(blockData);
+        } else {
             // Find the item
-            int newIndex = this._blocks.indexOf(item.getType());
+            int newIndex = this._blocks.indexOf(blockData.getType());
             if (newIndex != -1) {
                 if (this._selectedIndex != newIndex) {
                     this._selectedIndex = newIndex;
@@ -263,9 +262,10 @@ public abstract class MapWidgetBlockGrid extends MapWidget implements ItemDropTa
                 this.scrollToSelection();
                 this.invalidate();
                 return true;
+            } else {
+                return false;
             }
         }
-        return false;
     }
 
     private int calcX(int col) {

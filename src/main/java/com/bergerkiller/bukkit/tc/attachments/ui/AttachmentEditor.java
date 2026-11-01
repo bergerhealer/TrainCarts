@@ -16,7 +16,10 @@ import com.bergerkiller.bukkit.common.map.MapDisplay;
 import com.bergerkiller.bukkit.common.map.MapDisplayProperties;
 import com.bergerkiller.bukkit.common.map.MapPlayerInput.Key;
 import com.bergerkiller.bukkit.common.map.MapSessionMode;
+import com.bergerkiller.bukkit.common.resources.SoundEffect;
+import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
+import com.bergerkiller.bukkit.common.wrappers.BlockData;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetText;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetWindow;
 import com.bergerkiller.bukkit.tc.Permission;
@@ -27,6 +30,10 @@ import com.bergerkiller.bukkit.tc.attachments.helper.HelperMethods;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetAttachmentNode.MenuItem;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
+import org.bukkit.block.Block;
+import org.bukkit.event.Event;
+import org.bukkit.event.block.Action;
+import org.bukkit.event.player.PlayerInteractEvent;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -325,9 +332,70 @@ public class AttachmentEditor extends MapDisplay {
             return false;
         }
 
+        MapWidget focused = this.getFocusedWidget();
+        if (this.tryAcceptItemDrop(focused, item)) {
+            return true;
+        }
+
         MapWidget activated = this.getActivatedWidget();
-        return (activated instanceof ItemDropTarget) ?
-                ((ItemDropTarget) activated).acceptItem(item) : false;
+        if (activated != focused && this.tryAcceptItemDrop(activated, item)) {
+            return true;
+        }
+
+        return false;
+    }
+
+    @Override
+    public void onBlockInteract(PlayerInteractEvent event) {
+        if (event.getAction() != Action.RIGHT_CLICK_BLOCK) {
+            return;
+        }
+
+        Block block = event.getClickedBlock();
+        if (block == null) {
+            return;
+        }
+
+        BlockData blockData = WorldUtil.getBlockData(block);
+        if (blockData == null || blockData == BlockData.AIR) {
+            return;
+        }
+
+        MapWidget focused = this.getFocusedWidget();
+        if (this.tryAcceptBlockData(focused, blockData, event)) {
+            return;
+        }
+
+        MapWidget activated = this.getActivatedWidget();
+        if (activated != focused) {
+            this.tryAcceptBlockData(activated, blockData, event);
+        }
+    }
+
+    private boolean tryAcceptItemDrop(MapWidget widget, ItemStack item) {
+        if (widget == null) {
+            return false;
+        }
+
+        if (widget instanceof ItemDropTarget && ((ItemDropTarget) widget).acceptItem(item)) {
+            this.playSound(SoundEffect.CLICK_WOOD);
+            return true;
+        }
+
+        BlockData blockData = BlockData.fromItemStack(item);
+        return blockData != null && blockData != BlockData.AIR &&
+               this.tryAcceptBlockData(widget, blockData, null);
+    }
+
+    private boolean tryAcceptBlockData(MapWidget widget, BlockData blockData, PlayerInteractEvent event) {
+        if (widget instanceof BlockDataDropTarget && ((BlockDataDropTarget) widget).acceptBlockData(blockData)) {
+            this.playSound(SoundEffect.CLICK_WOOD);
+            if (event != null) {
+                event.setUseInteractedBlock(Event.Result.DENY);
+            }
+            return true;
+        }
+        return false;
     }
 
     private void pauseBlinking(FocusMode mode, int time) {

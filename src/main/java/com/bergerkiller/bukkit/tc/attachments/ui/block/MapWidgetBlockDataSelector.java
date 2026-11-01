@@ -5,17 +5,10 @@ import com.bergerkiller.bukkit.common.map.MapPlayerInput;
 import com.bergerkiller.bukkit.common.map.MapTexture;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidgetTabView;
-import com.bergerkiller.bukkit.common.resources.SoundEffect;
-import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.common.wrappers.BlockData;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetBlinkyButton;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetVerticalNavigableList;
-import org.bukkit.block.Block;
-import org.bukkit.entity.Player;
-import org.bukkit.event.Event;
-import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerInteractEvent;
-import org.bukkit.inventory.ItemStack;
 
 /**
  * This widget allows a player to select BlockData in a menu showing all
@@ -90,11 +83,6 @@ public abstract class MapWidgetBlockDataSelector extends MapWidget implements Bl
                     super.onKeyPressed(event);
                 }
             }
-
-            @Override
-            public boolean onItemDrop(Player player, ItemStack item) {
-                return MapWidgetBlockDataSelector.this.onItemDrop(player, item);
-            }
         };
         this.variantList.setPosition(0, 0);
         this.blockOptions.addTab().addWidget(this.variantList);
@@ -129,16 +117,6 @@ public abstract class MapWidgetBlockDataSelector extends MapWidget implements Bl
                 } else {
                     super.onKeyPressed(event);
                 }
-            }
-
-            @Override
-            public boolean onItemDrop(Player player, ItemStack item) {
-                return MapWidgetBlockDataSelector.this.onItemDrop(player, item);
-            }
-
-            @Override
-            public void onBlockInteract(PlayerInteractEvent event) {
-                MapWidgetBlockDataSelector.this.onBlockInteract(event);
             }
         }).setDimensions(6, 4);
         this.blockSelector.addAllBlocks();
@@ -202,28 +180,12 @@ public abstract class MapWidgetBlockDataSelector extends MapWidget implements Bl
     }
 
     @Override
-    public boolean onItemDrop(Player player, ItemStack item) {
-        BlockData data = BlockData.fromItemStack(item);
-        if (data != null && data != BlockData.AIR) {
-            this.setSelectedBlockData(data);
-            display.playSound(SoundEffect.CLICK_WOOD);
-            this.onSelectedBlockDataChanged(data);
-            return true;
-        }
-        return false;
-    }
-
-    @Override
-    public void onBlockInteract(PlayerInteractEvent event) {
-        if (event.getAction() == Action.RIGHT_CLICK_BLOCK) {
-            Block block = event.getClickedBlock();
-            if (block != null) {
-                BlockData data = WorldUtil.getBlockData(block);
-                this.setSelectedBlockData(data);
-                display.playSound(SoundEffect.CLICK_WOOD);
-                this.onSelectedBlockDataChanged(data);
-                event.setUseInteractedBlock(Event.Result.DENY);
-            }
-        }
+    public boolean acceptBlockData(BlockData blockData) {
+        //TODO: setSelectedBlockData should really fire onSelectedBlockDataChanged as well.
+        // There is a new BKCommonLib API we can use in widgets, called 'isUserInteractable', that would
+        // work better to suppress init-time setting of block data. Do that in the future.
+        this.setSelectedBlockData(blockData);
+        this.onSelectedBlockDataChanged(getSelectedBlockData());
+        return true;
     }
 }

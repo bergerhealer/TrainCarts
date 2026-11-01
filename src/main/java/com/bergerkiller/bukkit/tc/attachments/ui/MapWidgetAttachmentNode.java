@@ -3,23 +3,20 @@ package com.bergerkiller.bukkit.tc.attachments.ui;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Supplier;
 
 import com.bergerkiller.bukkit.common.map.MapFont;
-import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.common.wrappers.BlockData;
+import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentManager;
 import com.bergerkiller.bukkit.tc.attachments.config.AttachmentConfig;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentBlock;
 import com.bergerkiller.bukkit.tc.controller.components.AttachmentControllerMember;
 import com.bergerkiller.bukkit.tc.utils.SetCallbackCollector;
 import org.bukkit.ChatColor;
-import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
-import org.bukkit.event.Event;
-import org.bukkit.event.block.Action;
-import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.ItemStack;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
@@ -47,7 +44,7 @@ import com.bergerkiller.bukkit.tc.controller.MinecartMember;
  * A single attachment node in the attachment node tree, containing
  * the configuration for the node.
  */
-public class MapWidgetAttachmentNode extends MapWidget implements ItemDropTarget {
+public class MapWidgetAttachmentNode extends MapWidget implements ItemDropTarget, BlockDataDropTarget {
     private static final int COL_WIDTH = 17;
     private final MapWidgetAttachmentTree tree;
     private static MapTexture expanded_icon = null;
@@ -491,24 +488,19 @@ public class MapWidgetAttachmentNode extends MapWidget implements ItemDropTarget
     }
 
     @Override
-    public void onBlockInteract(PlayerInteractEvent event) {
-        // If this is a block attachment, set the block
+    public boolean acceptBlockData(BlockData blockData) {
+        // If this is a block attachment, set the block data
         // TODO: Make this generic and part of the Type API
-        if (event.getAction() == Action.RIGHT_CLICK_BLOCK &&
-            this.getType() == CartAttachmentBlock.TYPE
-        ) {
-            Block block = event.getClickedBlock();
-            if (block != null) {
-                BlockData blockData = WorldUtil.getBlockData(block);
-                this.getConfig().set("blockData", blockData.serializeToString());
-                sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
+        if (this.getType() == CartAttachmentBlock.TYPE) {
+            Util.setConfigBlockDataOptional(this.getConfig(), "block", Optional.of(blockData));
+            sendStatusChange(MapEventPropagation.DOWNSTREAM, "changed");
 
-                // Redraw the appearance icon
-                this.resetIcon();
-                ((MapWidgetMenuButton) this.getWidget(0)).setIcon(getIcon());
-                event.setUseInteractedBlock(Event.Result.DENY);
-            }
+            // Redraw the appearance icon
+            this.resetIcon();
+            ((MapWidgetMenuButton) this.getWidget(0)).setIcon(getIcon());
+            return true;
         }
+        return false;
     }
 
     @Override

@@ -11,6 +11,7 @@ import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.common.wrappers.BlockData;
 import com.bergerkiller.bukkit.common.wrappers.BlockProperty;
 import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.attachments.ui.BlockDataDropTarget;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetArrow;
 import com.bergerkiller.bukkit.tc.attachments.ui.SetValueTarget;
 import org.bukkit.Material;
@@ -60,6 +61,16 @@ public abstract class MapWidgetBlockDataVariantList extends MapWidget implements
     public MapWidgetBlockDataVariantList setSelectedBlockData(BlockData blockData) {
         setSelectedBlockData(blockData, false);
         return this;
+    }
+
+    @Override
+    public boolean acceptBlockData(BlockData blockData) {
+        if (this.parent instanceof BlockDataDropTarget) {
+            return ((BlockDataDropTarget) this.parent).acceptBlockData(blockData);
+        } else {
+            setSelectedBlockData(blockData, true);
+            return true;
+        }
     }
 
     private void setSelectedBlockData(BlockData blockData, boolean fireEvent) {

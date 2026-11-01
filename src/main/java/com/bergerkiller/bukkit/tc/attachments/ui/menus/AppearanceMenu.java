@@ -12,6 +12,7 @@ import org.bukkit.inventory.ItemStack;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.map.MapColorPalette;
 import com.bergerkiller.bukkit.common.map.MapEventPropagation;
+import com.bergerkiller.bukkit.common.wrappers.BlockData;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentType;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentTypeRegistry;
@@ -19,8 +20,9 @@ import com.bergerkiller.bukkit.tc.attachments.ui.ItemDropTarget;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetAttachmentNode;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetMenu;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetSelectionBox;
+import com.bergerkiller.bukkit.tc.attachments.ui.BlockDataDropTarget;
 
-public class AppearanceMenu extends MapWidgetMenu implements ItemDropTarget {
+public class AppearanceMenu extends MapWidgetMenu implements ItemDropTarget, BlockDataDropTarget {
     private final MapWidgetTabView tabView = new MapWidgetTabView();
     private AttachmentTypeRegistry typeRegistry;
     private List<TypePage> pages;
@@ -131,7 +133,21 @@ public class AppearanceMenu extends MapWidgetMenu implements ItemDropTarget {
     @Override
     public boolean acceptItem(ItemStack item) {
         for (MapWidget widget : this.tabView.getSelectedTab().getWidgets()) {
-            if (widget instanceof ItemDropTarget && ((ItemDropTarget) widget).acceptItem(item)) {
+            if (widget instanceof ItemDropTarget &&
+                ((ItemDropTarget) widget).acceptItem(item))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @Override
+    public boolean acceptBlockData(BlockData blockData) {
+        for (MapWidget widget : this.tabView.getSelectedTab().getWidgets()) {
+            if (widget instanceof BlockDataDropTarget &&
+                ((BlockDataDropTarget) widget).acceptBlockData(blockData))
+            {
                 return true;
             }
         }
