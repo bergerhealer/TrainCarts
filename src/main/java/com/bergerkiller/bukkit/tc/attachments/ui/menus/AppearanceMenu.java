@@ -1,6 +1,9 @@
 package com.bergerkiller.bukkit.tc.attachments.ui.menus;
 
 import com.bergerkiller.bukkit.common.map.widgets.*;
+import com.bergerkiller.bukkit.common.events.map.MapKeyEvent;
+import com.bergerkiller.bukkit.common.map.MapPlayerInput;
+import com.bergerkiller.bukkit.common.map.util.MapWidgetNavigator;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -61,6 +64,33 @@ public class AppearanceMenu extends MapWidgetMenu implements ItemDropTarget, Blo
 
         // This widget is always visible: type selector
         MapWidgetSelectionBox typeSelectionBox = this.addWidget(new MapWidgetSelectionBox() {
+            @Override
+            public void onKeyPressed(MapKeyEvent event) {
+                if (event.getKey() == MapPlayerInput.Key.DOWN) {
+                    List<MapWidget> focusableWidgets = MapWidgetNavigator.getFocusableWidgets(AppearanceMenu.this);
+                    List<MapWidget> primaryFocusWidgets = new ArrayList<MapWidget>(focusableWidgets.size());
+                    for (MapWidget widget : focusableWidgets) {
+                        if (widget != this &&
+                            widget instanceof PrimaryFocus &&
+                            widget.isVisibleAndDisplayed() &&
+                            widget.isEnabled() &&
+                            widget.getAbsoluteY() > this.getAbsoluteY())
+                        {
+                            primaryFocusWidgets.add(widget);
+                        }
+                    }
+                    if (!primaryFocusWidgets.isEmpty()) {
+                        MapWidget nextFocus = MapWidgetNavigator.getNextWidget(primaryFocusWidgets, this, event.getKey());
+                        if (nextFocus != null && nextFocus != this) {
+                            nextFocus.focus();
+                            return;
+                        }
+                    }
+                }
+
+                super.onKeyPressed(event);
+            }
+
             @Override
             public void onSelectedItemChanged() {
                 int index = this.getSelectedIndex();
@@ -173,4 +203,11 @@ public class AppearanceMenu extends MapWidgetMenu implements ItemDropTarget, Blo
             this.appearanceCreated = false;
         }
     }
+
+    /**
+     * Marker interface that can be added to the widgets displayed on the main appearance tab of an attachment type.
+     * When the user presses DOWN (S) from the type selector, it will prioritize widgets that have this interface
+     * set. This helps in case the normal position-based logic selects a widget that is less ideal.
+     */
+    public interface PrimaryFocus {}
 }
