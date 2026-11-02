@@ -16,6 +16,7 @@ import com.bergerkiller.bukkit.common.wrappers.RelativeFlags;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer.MovementController.OrientationMode;
+import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentPlatform;
 import com.bergerkiller.bukkit.tc.controller.player.network.PlayerPacketListener;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundPlayerPositionPacketHandle;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.ServerboundMovePlayerPacketHandle;
@@ -1071,6 +1072,7 @@ public class CollisionSurfaceTracker {
         private int updateCounter = 0;
         private String debugName = null;
         private CollisionSurfaceMaterial material = CollisionSurfaceMaterial.DEFAULT;
+        private CartAttachmentPlatform.Color shulkerColor = CartAttachmentPlatform.Color.DEFAULT;
         private OrientedBoundingBox shape;
         private OrientedBoundingBox prevShape;
         private int moveDetectedAtCount = 0;
@@ -1093,6 +1095,16 @@ public class CollisionSurfaceTracker {
         @Override
         public void setViewLock(boolean viewLock) {
             this.viewLock = viewLock;
+        }
+
+        @Override
+        public CartAttachmentPlatform.Color getShulkerColor() {
+            return shulkerColor;
+        }
+
+        @Override
+        public void setShulkerColor(CartAttachmentPlatform.Color color) {
+            this.shulkerColor = color;
         }
 
         @Override

@@ -2,6 +2,7 @@ package com.bergerkiller.bukkit.tc.attachments.surface;
 
 import com.bergerkiller.bukkit.common.math.OrientedBoundingBox;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
+import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentPlatform;
 
 /**
  * A single collision surface. When first created the surface is cleared.
@@ -37,6 +38,15 @@ public interface CollisionSurface {
 
         @Override
         public void setViewLock(boolean viewLock) {
+        }
+
+        @Override
+        public CartAttachmentPlatform.Color getShulkerColor() {
+            return CartAttachmentPlatform.Color.DEFAULT;
+        }
+
+        @Override
+        public void setShulkerColor(CartAttachmentPlatform.Color color) {
         }
 
         @Override
@@ -121,6 +131,20 @@ public interface CollisionSurface {
      * @param viewLock True to lock the player's view with the movements of this surface
      */
     void setViewLock(boolean viewLock);
+
+    /**
+     * Gets the color shulker box to spawn if {@link #isShulkerGrid()} is true and this surface is not moving
+     *
+     * @return Shulker box color
+     */
+    CartAttachmentPlatform.Color getShulkerColor();
+
+    /**
+     * Sets the color shulker box to spawn if {@link #isShulkerGrid()} is true and this surface is not moving
+     *
+     * @param color Shulker box color
+     */
+    void setShulkerColor(CartAttachmentPlatform.Color color);
 
     /**
      * Gets the material this surface is made of
