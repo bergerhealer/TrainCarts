@@ -31,6 +31,7 @@ public class CartAttachmentPlatformSurfacePlane extends CartAttachmentPlatform {
     private final OrientedBoundingBox bbox = new OrientedBoundingBox();
     private PlatformMode platformMode = PlatformMode.SIMULATED_WITH_SHULKER_GRID;
     private boolean viewLock = false;
+    private Color shulkerColor = Color.DEFAULT;
     private BlockData surfaceMaterial = DEFAULT_SURFACE_MATERIAL;
     private final List<PlayerSurface> playerSurfaces = new ArrayList<>();
     private Plane plane = null; // Null if not spawned
@@ -41,6 +42,7 @@ public class CartAttachmentPlatformSurfacePlane extends CartAttachmentPlatform {
         bbox.setSize(new Vector(size.x, 0.0, size.z));
         platformMode = readPlatformMode(config);
         viewLock = config.getOrDefault("viewLock", true);
+        shulkerColor = config.getOrDefault("shulkerColor", Color.DEFAULT);
         surfaceMaterial = Util.getConfigBlockDataOptional(config, "surfaceMaterial").orElse(DEFAULT_SURFACE_MATERIAL);
         playerSurfaces.forEach(this::applySettings);
     }
@@ -84,6 +86,7 @@ public class CartAttachmentPlatformSurfacePlane extends CartAttachmentPlatform {
         surface.surface.setUseShulkerGrid(platformMode.isSpawningShulkerGrid());
         surface.surface.setViewLock(viewLock);
         surface.surface.setMaterial(() -> surfaceMaterial);
+        surface.surface.setShulkerColor(shulkerColor);
     }
 
     public void setPlaneColor(ChatColor color) {

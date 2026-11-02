@@ -4,8 +4,10 @@ import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.wrappers.DataWatcher;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
+import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentPlatform;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundEntityPositionSyncPacketHandle;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundAddMobPacketHandle;
+import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundSetEntityDataPacketHandle;
 import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
 import com.bergerkiller.generated.net.minecraft.world.entity.decoration.ArmorStandHandle;
 import com.bergerkiller.generated.net.minecraft.world.entity.monster.ShulkerHandle;
@@ -13,7 +15,6 @@ import com.bergerkiller.generated.net.minecraft.world.phys.AABBHandle;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.EntityType;
 
-import java.util.EnumMap;
 import java.util.UUID;
 
 /**
@@ -33,6 +34,8 @@ final class Shulker implements StationaryCollisionElement {
     public final int entityId = EntityUtil.getUniqueEntityId();
     /** The direction to push players during spawning if they are inside */
     public BlockFace pushDirection;
+    /** The color to spawn the shulker box as (first one wins) */
+    public CartAttachmentPlatform.Color shulkerColor;
     /** Last-calculated position for this shulker */
     public double x, y, z;
     /** Last position synchronized to the viewer */
@@ -47,6 +50,8 @@ final class Shulker implements StationaryCollisionElement {
     private boolean pendingSpawn = false;
     /** Whether this shulker requires a movement update */
     private boolean pendingMove = false;
+    /** Whether this shulker requires resending of updated shulker color metadata */
+    private boolean pendingColorChange = false;
 
     public Shulker(ShulkerTracker shulkerTracker) {
         this.shulkerTracker = shulkerTracker;
@@ -65,19 +70,28 @@ final class Shulker implements StationaryCollisionElement {
             .setByte(EntityHandle.DATA_FLAGS, EntityHandle.DATA_FLAG_INVISIBLE)
             .create().create();
 
-    private static final EnumMap<BlockFace, DataWatcher> SHULKER_METADATA_BY_FACE = new EnumMap<>(BlockFace.class);
+    /** Metadata only used to refresh shulker box color, no other fields are tracked/sent */
+    private static final DataWatcher.Prototype SHULKER_METADATA_PROTOTYPE_COLOR_ONLY = DataWatcher.Prototype.build()
+            .setClientByteDefault(ShulkerHandle.DATA_COLOR, (byte) CartAttachmentPlatform.Color.DEFAULT.ordinal())
+            .create();
+
+    private static final ShulkerMetaMap<DataWatcher> SHULKER_METADATA_MAP = new ShulkerMetaMap<>();
     static {
         DataWatcher.Prototype SHULKER_METADATA_PROTOTYPE = DataWatcher.Prototype.build()
                 .setClientByteDefault(EntityHandle.DATA_FLAGS, 0)
                 .setClientDefault(ShulkerHandle.DATA_FACE_DIRECTION, BlockFace.SOUTH)
                 .setFlag(EntityHandle.DATA_FLAGS, EntityHandle.DATA_FLAG_FLYING, true)
                 .setFlag(EntityHandle.DATA_FLAGS, EntityHandle.DATA_FLAG_INVISIBLE, INVISIBLE_SHULKERS)
+                .setClientByteDefault(ShulkerHandle.DATA_COLOR, (byte) CartAttachmentPlatform.Color.DEFAULT.ordinal())
                 .create();
 
-        for (BlockFace face : FaceUtil.BLOCK_SIDES) {
-            DataWatcher dw = SHULKER_METADATA_PROTOTYPE.create();
-            dw.set(ShulkerHandle.DATA_FACE_DIRECTION, face);
-            SHULKER_METADATA_BY_FACE.put(face, dw);
+        for (CartAttachmentPlatform.Color color : CartAttachmentPlatform.Color.values()) {
+            for (BlockFace face : FaceUtil.BLOCK_SIDES) {
+                DataWatcher dw = SHULKER_METADATA_PROTOTYPE.create();
+                dw.set(ShulkerHandle.DATA_FACE_DIRECTION, face);
+                dw.set(ShulkerHandle.DATA_COLOR, (byte) color.ordinal());
+                SHULKER_METADATA_MAP.put(face, color, dw);
+            }
         }
     }
 
@@ -105,6 +119,7 @@ final class Shulker implements StationaryCollisionElement {
             shulkerTracker.shulkersToDestroy.add(this);
         }
         pendingMove = false;
+        pendingColorChange = false;
     }
 
     /**
@@ -152,6 +167,16 @@ final class Shulker implements StationaryCollisionElement {
         }
     }
 
+    public void updateShulkerColor(CartAttachmentPlatform.Color shulkerColor) {
+        if (this.shulkerColor != shulkerColor) {
+            this.shulkerColor = shulkerColor;
+            if (!pendingSpawn) {
+                pendingColorChange = true;
+                scheduleMovement(); // Color change mechanism handled as a part of movement
+            }
+        }
+    }
+
     public void syncPositionSilent() {
         this.sync_x = x;
         this.sync_y = y;
@@ -164,6 +189,17 @@ final class Shulker implements StationaryCollisionElement {
 
             ClientboundEntityPositionSyncPacketHandle p = ClientboundEntityPositionSyncPacketHandle.createNew(
                     this.mountEntityId, x, y - 0.5, z, 0.0f, 0.0f, false);
+            viewer.send(p);
+        }
+
+        // Rarely, the color of a shulker box can change (like when the user is configuring it in the attachment editor)
+        // Because it is rare, I brought it over into syncPosition to keep things simple.
+        if (pendingColorChange) {
+            pendingColorChange = false;
+
+            DataWatcher dw = SHULKER_METADATA_PROTOTYPE_COLOR_ONLY.create();
+            dw.forceSet(ShulkerHandle.DATA_COLOR, (byte) shulkerColor.ordinal());
+            ClientboundSetEntityDataPacketHandle p = ClientboundSetEntityDataPacketHandle.createNew(this.entityId, dw, false);
             viewer.send(p);
         }
     }
@@ -210,9 +246,9 @@ final class Shulker implements StationaryCollisionElement {
 
         // Shulker metadata. We set the face in such a way that the shulker won't snap to blocks
         // behind it.
-        DataWatcher shulkerMeta = SHULKER_METADATA_BY_FACE.get(pushDirection);
+        DataWatcher shulkerMeta = SHULKER_METADATA_MAP.get(pushDirection, shulkerColor);
         if (shulkerMeta == null) {
-            throw new IllegalStateException("Invalid push direction: " + pushDirection);
+            throw new IllegalStateException("Invalid push direction and/or color: " + pushDirection + " / " + shulkerColor);
         }
 
         // Spawn shulker itself
@@ -235,5 +271,27 @@ final class Shulker implements StationaryCollisionElement {
 
         // Mount shulker into mount
         viewer.getVehicleMountController().mount(mountEntityId, entityId);
+    }
+
+    private static final class ShulkerMetaMap<T> {
+        public static final int NUM_BLOCK_FACES = 6;
+        public static final int NUM_SHULKER_COLORS = CartAttachmentPlatform.Color.values().length;
+
+        @SuppressWarnings("unchecked")
+        private final T[] values = (T[]) new Object[NUM_BLOCK_FACES * NUM_SHULKER_COLORS];
+
+        public T get(BlockFace face, CartAttachmentPlatform.Color color) {
+            return values[shulkerMetaKey(face, color)];
+        }
+
+        public void put(BlockFace face, CartAttachmentPlatform.Color color, T value) {
+            values[shulkerMetaKey(face, color)] = value;
+        }
+
+        private static int shulkerMetaKey(BlockFace face, CartAttachmentPlatform.Color color) {
+            int faceOrd = face.ordinal();
+            int colorOrd = color.ordinal();
+            return faceOrd | (colorOrd * NUM_BLOCK_FACES);
+        }
     }
 }
