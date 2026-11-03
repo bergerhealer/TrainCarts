@@ -97,7 +97,7 @@ public class TCConfig {
     public static int cacheVerificationTicks;
     public static int cacheExpireTicks;
     public static boolean enableCeilingBlockCollision = true; // whether to allow blocks above the minecart to collide
-    public static int collisionReEnterDelay = 100; // Delay before letting mobs/player enter again
+    public static int automatedEnterDelay = 100; // Delay before letting mobs/player automatically enter again
     public static boolean optimizeBlockActivation;
     public static boolean activatorEjectEnabled = true;
     public static boolean railTrackerDebugEnabled = false;
@@ -412,8 +412,11 @@ public class TCConfig {
         config.setHeader("allowNetherTeleport", "\nWhether trains can be teleported to the nether (or back) when rails are laid close to the portals");
         allowNetherTeleport = config.get("allowNetherTeleport", true);
 
-        config.setHeader("collisionReEnterDelay", "\nThe delay (in ticks) between ejecting and re-entering by collision (e.g. mobs auto-entering carts)");
-        collisionReEnterDelay = config.get("collisionReEnterDelay", collisionReEnterDelay);
+        config.setHeader("automatedEnterDelay", "\nThe delay (in ticks) between ejecting and automatic re-entering (e.g. collision enter)");
+        if (config.contains("collisionReEnterDelay") && !config.contains("automatedEnterDelay")) {
+            config.set("automatedEnterDelay", config.get("collisionReEnterDelay", automatedEnterDelay));
+        }
+        automatedEnterDelay = config.get("automatedEnterDelay", automatedEnterDelay);
 
         config.setHeader("logMutexConflicts", "\nLogs a message to server log when two trains are inside a mutex zone, when they shouldn't be");
         logMutexConflicts = config.get("logMutexConflicts", false);

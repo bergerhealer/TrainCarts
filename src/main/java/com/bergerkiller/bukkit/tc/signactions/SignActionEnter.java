@@ -100,7 +100,10 @@ public class SignActionEnter extends TrainCartsSignAction {
                 if (canEnter(entity, enterPlayers, enterMobs, enterMisc)) {
                     // Look for an Empty minecart to put him in
                     for (MinecartMember<?> member : members) {
-                        if (member.getAvailableSeatCount(entity) > 0 && member.addPassengerForced(entity)) {
+                        if (member.canAutomatedEnter(entity) &&
+                            member.getAvailableSeatCount(entity) > 0 &&
+                            member.addPassengerForced(entity))
+                        {
                             break;
                         }
                     }
@@ -121,6 +124,9 @@ public class SignActionEnter extends TrainCartsSignAction {
                             continue;
                         }
                         if (member.getAvailableSeatCount(entity) == 0) {
+                            continue;
+                        }
+                        if (!member.canAutomatedEnter(entity)) {
                             continue;
                         }
                         distance = member.getEntity().loc.distanceSquared(entity);

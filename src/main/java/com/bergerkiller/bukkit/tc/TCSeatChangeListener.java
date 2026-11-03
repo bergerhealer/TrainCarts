@@ -162,9 +162,9 @@ public class TCSeatChangeListener implements Listener {
             return;
         }
 
-        // Avoid rapid re-entering due to enter collision rule
+        // Avoid rapid re-entering from automatic enter behavior
         if (event.isMemberVehicleChange()) {
-            event.getMember().resetCollisionEnter();
+            event.getMember().resetAutomatedEnterTimer(event.getEntity());
         }
 
         // Ensure a properties changed notification occurs soon
