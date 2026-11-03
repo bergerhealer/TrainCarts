@@ -63,6 +63,7 @@ import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
@@ -73,10 +74,13 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.ConcurrentModificationException;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 
@@ -99,6 +103,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
     private int updateStepCount = 1;
     private int updateStepNr = 1;
     private boolean unloaded = false;
+    private final AutomatedEnterState automatedEnterState = new AutomatedEnterState();
 
     protected MinecartGroup(TrainCarts traincarts) {
         this.traincarts = traincarts;
@@ -140,6 +145,28 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
         }
         this.prop = properties;
         TrainPropertiesStore.bindGroupToProperties(this.prop, this);
+    }
+
+    /**
+     * Checks whether an entity is allowed to automatically enter any Minecart in this train.
+     * This state is tracked at group-level so all carts in this train share the same cooldown.
+     *
+     * @param entity Entity to check
+     * @return True if this entity can enter, False if not
+     */
+    public boolean canAutomatedEnter(Entity entity) {
+        return this.automatedEnterState.canEnter(entity);
+    }
+
+    /**
+     * Resets the automated enter timer for one entity, waiting the configured
+     * tick delay before that entity can automatically enter any Minecart in this train again.
+     * The cooldown applies to all members of this group.
+     *
+     * @param entity Entity for which to reset the automated enter timer
+     */
+    public void resetAutomatedEnterTimer(Entity entity) {
+        this.automatedEnterState.add(entity, TCConfig.automatedEnterDelay);
     }
 
     /**
@@ -564,6 +591,10 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
     private void onMemberAdded(MinecartMember<?> member) {
         onCompositionChanged();
         notifyPhysicsChange();
+        MinecartGroup previousGroup = member.group;
+        if (previousGroup != null && previousGroup != this) {
+            this.automatedEnterState.mergeFrom(previousGroup.automatedEnterState);
+        }
         member.setGroup(this);
         getSignTracker().updatePosition();
         getProperties().add(member.getProperties());
@@ -604,6 +635,7 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
             }
             gnew = MinecartGroupStore.createSplitFrom(this.getProperties(),
                     splitMembers.toArray(new MinecartMember[0]));
+            gnew.automatedEnterState.loadFrom(this.automatedEnterState);
         }
 
         //Remove this train if now empty
@@ -635,7 +667,9 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
                 mm.group = null;
 
                 // Create and assign a new group to this member with the properties already created earlier
-                mm.group = MinecartGroupStore.createSplitFrom(properties, mm);
+                MinecartGroup splitGroup = MinecartGroupStore.createSplitFrom(properties, mm);
+                splitGroup.automatedEnterState.loadFrom(this.automatedEnterState);
+                mm.group = splitGroup;
             }
         }
         super.clear();
@@ -1728,6 +1762,110 @@ public class MinecartGroup extends MinecartGroupStore implements IPropertiesHold
         // Do not do this for normal unloading logic, as that may unload the train in there (this should be later)
         if (this.getProperties().isKeepingChunksLoaded()) {
             this.updateChunkInformation(true, false);
+        }
+    }
+
+    /**
+     * Stores automated-enter cooldowns for entities by UUID.
+     * <p>
+     * Cooldowns are stored as absolute server tick deadlines using
+     * {@link CommonUtil#getServerTicks()}, avoiding per-tick decrement work.
+     * This state can be copied when groups split and merged when groups combine.
+     * When merging, the highest absolute deadline per entity is kept so cooldowns
+     * are never shortened by train recomposition.
+     */
+    private static final class AutomatedEnterState {
+        private final Map<UUID, Integer> blockedUntilTickByEntity = new HashMap<>();
+        private int nextCleanupTick = Integer.MIN_VALUE;
+
+        /**
+         * Checks whether an entity is currently not blocked by cooldown.
+         *
+         * @param entity Entity to check
+         * @return True if automated entering is currently allowed
+         */
+        public boolean canEnter(Entity entity) {
+            int currentTick = CommonUtil.getServerTicks();
+            this.cleanupExpired(currentTick);
+
+            UUID entityUUID = entity.getUniqueId();
+            Integer blockedUntilTick = blockedUntilTickByEntity.get(entityUUID);
+            if (blockedUntilTick == null) {
+                return true;
+            }
+            if (currentTick >= blockedUntilTick.intValue()) {
+                blockedUntilTickByEntity.remove(entityUUID);
+                return true;
+            }
+            return false;
+        }
+
+        /**
+         * Adds or refreshes cooldown for one entity.
+         * If the entity already has a cooldown, the farthest absolute deadline is kept.
+         *
+         * @param entity Entity to block from automated enter
+         * @param ticks Cooldown duration in ticks
+         */
+        public void add(Entity entity, int ticks) {
+            if (ticks <= 0) {
+                return;
+            }
+            int currentTick = CommonUtil.getServerTicks();
+            this.cleanupExpired(currentTick);
+
+            UUID entityUUID = entity.getUniqueId();
+            int blockedUntilTick = currentTick + ticks;
+            Integer previousBlockedUntilTick = blockedUntilTickByEntity.get(entityUUID);
+            if (previousBlockedUntilTick == null || blockedUntilTick > previousBlockedUntilTick.intValue()) {
+                blockedUntilTickByEntity.put(entityUUID, blockedUntilTick);
+            }
+        }
+
+        /**
+         * Removes entries with expired deadlines.
+         * This runs lazily at most once every 20 ticks.
+         */
+        private void cleanupExpired(int currentTick) {
+            if (currentTick < this.nextCleanupTick) {
+                return;
+            }
+            this.nextCleanupTick = currentTick + 20;
+
+            Iterator<Map.Entry<UUID, Integer>> iter = blockedUntilTickByEntity.entrySet().iterator();
+            while (iter.hasNext()) {
+                if (currentTick >= iter.next().getValue().intValue()) {
+                    iter.remove();
+                }
+            }
+        }
+
+        /**
+         * Replaces this state with a copy of another state's cooldown entries.
+         * Used when a group is split and the new group should inherit cooldowns.
+         *
+         * @param other State to copy from
+         */
+        public void loadFrom(AutomatedEnterState other) {
+            this.blockedUntilTickByEntity.clear();
+            this.blockedUntilTickByEntity.putAll(other.blockedUntilTickByEntity);
+            this.cleanupExpired(CommonUtil.getServerTicks());
+        }
+
+        /**
+         * Merges in cooldowns from another state.
+         * For entities present in both states, the highest absolute deadline is kept.
+         *
+         * @param other State to merge from
+         */
+        public void mergeFrom(AutomatedEnterState other) {
+            int currentTick = CommonUtil.getServerTicks();
+            this.cleanupExpired(currentTick);
+            for (Map.Entry<UUID, Integer> entry : other.blockedUntilTickByEntity.entrySet()) {
+                if (entry.getValue().intValue() > currentTick) {
+                    this.blockedUntilTickByEntity.merge(entry.getKey(), entry.getValue(), Math::max);
+                }
+            }
         }
     }
 

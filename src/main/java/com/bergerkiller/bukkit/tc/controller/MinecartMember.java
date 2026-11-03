@@ -127,7 +127,6 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
     private BlockFace directionTo;
     private BlockFace directionFrom = null;
     private boolean ignoreAllCollisions = false;
-    private Map<UUID, AtomicInteger> automatedEnterIgnoreTimes = new HashMap<>();
     private CartProperties properties;
     private final List<PersistentCartAttribute<? super T>> persistentCartAttributes = new ArrayList<>();
     private Map<UUID, AtomicInteger> collisionIgnoreTimes = new HashMap<>();
@@ -846,23 +845,25 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
 
     /**
      * Checks whether an entity is allowed to automatically enter this Minecart.
+     * The cooldown is tracked train-wide, across all carts in this member's group.
      *
      * @param entity Entity to check
      * @return True if this entity can enter, False if not
      */
     public boolean canAutomatedEnter(Entity entity) {
-        return !this.automatedEnterIgnoreTimes.containsKey(entity.getUniqueId());
+        return this.group == null || this.group.canAutomatedEnter(entity);
     }
 
     /**
      * Resets the automated enter timer for one entity, waiting the configured
-     * tick delay before that entity can enter this Minecart again through
-     * automatic enter behavior.
+     * tick delay before that entity can automatically enter this train again.
      *
      * @param entity Entity for which to reset the automated enter timer
      */
     public void resetAutomatedEnterTimer(Entity entity) {
-        this.automatedEnterIgnoreTimes.put(entity.getUniqueId(), new AtomicInteger(TCConfig.automatedEnterDelay));
+        if (this.group != null) {
+            this.group.resetAutomatedEnterTimer(entity);
+        }
     }
 
     /*
@@ -2038,13 +2039,6 @@ public abstract class MinecartMember<T extends CommonMinecart<?>> extends Entity
             if (times.next().decrementAndGet() <= 0)
                 times.remove();
         }
-        Iterator<AtomicInteger> automatedEnterTimes = automatedEnterIgnoreTimes.values().iterator();
-        while (automatedEnterTimes.hasNext()) {
-            if (automatedEnterTimes.next().decrementAndGet() <= 0) {
-                automatedEnterTimes.remove();
-            }
-        }
-
         // Prepare
         entity.vel.fixNaN();
         entity.last.set(entity.loc);
