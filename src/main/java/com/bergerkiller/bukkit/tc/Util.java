@@ -198,6 +198,35 @@ public class Util {
     }
 
     /**
+     * Checks whether two axis-aligned bounding boxes overlap in all 3 axes.
+     *
+     * @param a First bounds
+     * @param b Second bounds
+     * @return True if the bounds overlap
+     */
+    public static boolean intersects(AABBHandle a, AABBHandle b) {
+        return a.getMinX() < b.getMaxX() && a.getMaxX() > b.getMinX()
+                && a.getMinY() < b.getMaxY() && a.getMaxY() > b.getMinY()
+                && a.getMinZ() < b.getMaxZ() && a.getMaxZ() > b.getMinZ();
+    }
+
+    /**
+     * Checks whether two axis-aligned bounding boxes are exactly equal.
+     *
+     * @param a First bounds
+     * @param b Second bounds
+     * @return True if all min and max coordinates are equal
+     */
+    public static boolean sameAABB(AABBHandle a, AABBHandle b) {
+        return a.getMinX() == b.getMinX()
+                && a.getMinY() == b.getMinY()
+                && a.getMinZ() == b.getMinZ()
+                && a.getMaxX() == b.getMaxX()
+                && a.getMaxY() == b.getMaxY()
+                && a.getMaxZ() == b.getMaxZ();
+    }
+
+    /**
      * Snaps a block face to one of the 8 possible radial block faces (NESW/NE/etc.)
      *
      * @param face to snap to a nearby valid face

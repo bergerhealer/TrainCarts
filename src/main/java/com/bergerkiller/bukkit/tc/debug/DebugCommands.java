@@ -23,6 +23,7 @@ import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroupStore;
 import com.bergerkiller.bukkit.tc.controller.components.RailPiece;
 import com.bergerkiller.bukkit.tc.controller.components.RailState;
+import com.bergerkiller.bukkit.tc.controller.player.pmc.PlayerMovementController;
 import com.bergerkiller.bukkit.tc.pathfinding.PathNode;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundPlayerPositionPacketHandle;
 import org.bukkit.Bukkit;
@@ -466,7 +467,12 @@ public class DebugCommands {
 
                 AttachmentViewer.Input input = controller.getInput();
                 if (freeLook) {
-                    if (!controller.update(loc.toVector(), AttachmentViewer.MovementController.OrientationMode.ABSOLUTE, rotation, stopOnBlockCollision)) {
+                    if (!controller.update(
+                            loc.toVector(),
+                            AttachmentViewer.MovementController.OrientationMode.ABSOLUTE,
+                            rotation,
+                            stopOnBlockCollision ? PlayerMovementController.BlockCollisionEvent::stopSimulation : null
+                    )) {
                         stop();
                         return;
                     }
@@ -483,7 +489,10 @@ public class DebugCommands {
                         rotation.rotateX(turn);
                     }
                 } else {
-                    if (!controller.update(loc.toVector(), stopOnBlockCollision)) {
+                    if (!controller.update(
+                            loc.toVector(),
+                            stopOnBlockCollision ? PlayerMovementController.BlockCollisionEvent::stopSimulation : null
+                    )) {
                         stop();
                         return;
                     }
