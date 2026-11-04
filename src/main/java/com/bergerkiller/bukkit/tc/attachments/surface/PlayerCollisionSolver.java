@@ -373,7 +373,9 @@ class PlayerCollisionSolver {
 
                 // Process less level surfaces first so the most level surface wins when
                 // multiple surfaces block at the same theta.
-                bestCands.sort(Comparator.comparingDouble(a -> surfaceLevelScore(a.surfaceAtTheta)));
+                // For vertical walls, prefer the wall most directly opposed to the movement
+                // direction first, so edge-adjacent orthogonal faces don't spuriously win.
+                bestCands.sort(Comparator.comparingDouble(a -> candidatePriority(a, player)));
 
                 // Process all candidates that occur at the same earliest theta.
                 for (InteractionCandidate<T> bestCand : bestCands) {
@@ -599,7 +601,7 @@ class PlayerCollisionSolver {
                                                         CollisionContext<T> ctx, List<? extends OBBSurfaceTransition<T>> surfaces) {
         OBBSurfaceState surface = cand.surfaceAtTheta;
 
-        if (!surface.boxTouchesVerticalSurface(cand.playerAtTheta)) {
+        if (!surface.boxTouchesVerticalSurface(ctx.result) && !surface.boxTouchesVerticalSurface(cand.playerAtTheta)) {
             return;
         }
 
@@ -885,6 +887,23 @@ class PlayerCollisionSolver {
 
     private static double surfaceLevelScore(OBBSurfaceState surface) {
         return surface.groundNormal.getY();
+    }
+
+    private static double candidatePriority(InteractionCandidate<?> candidate, PlayerBoundsTransition player) {
+        if (!candidate.isVertical) {
+            return surfaceLevelScore(candidate.surfaceAtTheta);
+        }
+
+        Vector movement = player.to.center().clone().subtract(player.from.center());
+        double movementLengthSq = movement.lengthSquared();
+        if (movementLengthSq < 1e-20) {
+            return 0.0;
+        }
+
+        // Larger absolute normal component means the wall is more "head-on".
+        // Sort ascending, so negate to process highest alignment first.
+        movement.multiply(1.0 / Math.sqrt(movementLengthSq));
+        return -Math.abs(movement.dot(candidate.surfaceAtTheta.normal));
     }
 
     protected static Double crossingTheta(double signedFrom, double signedTo) {

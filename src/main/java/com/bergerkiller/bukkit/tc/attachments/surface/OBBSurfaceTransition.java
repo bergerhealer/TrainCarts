@@ -2,6 +2,9 @@ package com.bergerkiller.bukkit.tc.attachments.surface;
 
 import com.bergerkiller.bukkit.common.math.OrientedBoundingBox;
 import com.bergerkiller.bukkit.common.math.Quaternion;
+import com.bergerkiller.bukkit.common.utils.FaceUtil;
+import com.bergerkiller.generated.net.minecraft.world.phys.AABBHandle;
+import org.bukkit.block.BlockFace;
 import org.bukkit.util.Vector;
 
 import java.util.List;
@@ -40,6 +43,58 @@ public class OBBSurfaceTransition<T> {
         this.from = from;
         this.to = to;
         this.source = source;
+    }
+
+    /**
+     * Creates a stationary transition for a single flat face, with no source.
+     *
+     * @param center Center of the face
+     * @param forward Forward direction (along the face)
+     * @param up Normal direction of the face
+     * @param sizeX Size of the face along its x-axis
+     * @param sizeZ Size of the face along its z-axis
+     * @return Static face transition
+     */
+    public static <T> OBBSurfaceTransition<T> createStaticFace(
+            Vector center,
+            Vector forward,
+            Vector up,
+            double sizeX,
+            double sizeZ
+    ) {
+        Quaternion orientation = Quaternion.fromLookDirection(forward, up);
+        OBBSurfaceState state = new OBBSurfaceState(center, orientation, new Vector(sizeX, 1.0, sizeZ));
+        return new OBBSurfaceTransition<>(state, state, null);
+    }
+
+    /**
+     * Creates a stationary transition for a single face of an AABB.
+     *
+     * @param aabb Bounding box to create the face of
+     * @param face Face of the bounding box (any of the 6 axis-aligned faces)
+     * @return Static face transition
+     */
+    public static <T> OBBSurfaceTransition<T> createStaticFace(AABBHandle aabb, BlockFace face) {
+        double sizeX = aabb.getMaxX() - aabb.getMinX();
+        double sizeY = aabb.getMaxY() - aabb.getMinY();
+        double sizeZ = aabb.getMaxZ() - aabb.getMinZ();
+
+        Vector normal = FaceUtil.faceToVector(face);
+        Vector center = new Vector(
+                0.5 * (aabb.getMinX() + aabb.getMaxX() + normal.getX() * sizeX),
+                0.5 * (aabb.getMinY() + aabb.getMaxY() + normal.getY() * sizeY),
+                0.5 * (aabb.getMinZ() + aabb.getMaxZ() + normal.getZ() * sizeZ));
+        if (FaceUtil.isVertical(face)) {
+            // Top/bottom: lies flat, forward along z
+            return createStaticFace(center, new Vector(0.0, 0.0, 1.0), normal, sizeX, sizeZ);
+        } else {
+            // Side: the face is vertical, so its local x-axis (size x) is vertical (delta-y).
+            // Forward runs horizontally along the face: z for an east/west face (delta-z),
+            // x for a north/south face (delta-x).
+            Vector forward = new Vector(Math.abs(normal.getZ()), 0.0, Math.abs(normal.getX()));
+            double horizontalSize = (face.getModX() != 0) ? sizeZ : sizeX;
+            return createStaticFace(center, forward, normal, sizeY, horizontalSize);
+        }
     }
 
     /**

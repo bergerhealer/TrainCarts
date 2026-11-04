@@ -762,6 +762,29 @@ public class PlayerCollisionSolverTest {
         assertEquals("Tangential movement along Z should be preserved while flush against the wall", to.getMaxZ(), result.state.bounds.getMaxZ(), 1e-9);
     }
 
+    @Test
+    public void testWalkAlongVerticalSurfaceWithOrthogonalNeighborNotBlocked() {
+        OBBSurfaceTransition<String> primaryWall = createVerticalSurface(new Vector(0.0, 5.0, 0.0), 10.0, 10.0, true);
+        // Orthogonal wall shares an edge with primaryWall, but the player moves away from it along +Z.
+        OBBSurfaceTransition<String> orthogonalWall = createVerticalSurface(new Vector(0.0, 5.0, -0.3), 10.0, 10.0, false);
+
+        double halfWidth = 0.3;
+        double height = 1.8;
+        AABBHandle from = createAabb(new Vector(-0.3, 4.0, 0.0), halfWidth, height);
+        AABBHandle to = createAabb(new Vector(-0.25, 4.0, 1.0), halfWidth, height);
+
+        PlayerCollisionSolver.Result<String> result = TEST_SOLVER.solveDetailed(
+                Arrays.asList(primaryWall, orthogonalWall),
+                new PlayerBoundsTransition(from, to)
+        );
+
+        assertEquals("Primary wall should still keep the player flush along X", primaryWall.to.center.getX(), result.state.bounds.getMaxX(), 1e-9);
+        assertEquals("Orthogonal neighboring wall should not block tangential sliding along Z", to.getMinZ(), result.state.bounds.getMinZ(), 1e-9);
+        assertEquals("Orthogonal neighboring wall should not block tangential sliding along Z", to.getMaxZ(), result.state.bounds.getMaxZ(), 1e-9);
+        assertTrue("Sliding result should remain on the original side of the orthogonal wall",
+                maxSignedDistanceToPlane(orthogonalWall.to, result.state.bounds) >= -1e-9);
+    }
+
 
     /**
      * When the wall is slightly sloped and the player is supposed to slide/fall down alongside it, and to finally end up colliding with the
