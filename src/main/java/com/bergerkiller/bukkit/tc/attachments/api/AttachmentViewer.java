@@ -12,6 +12,7 @@ import com.bergerkiller.bukkit.tc.attachments.surface.CollisionSurface;
 import com.bergerkiller.bukkit.tc.controller.player.SpectatedFakePlayer;
 import com.bergerkiller.bukkit.tc.controller.player.SpectatedFakePlayerHead;
 import com.bergerkiller.bukkit.tc.controller.player.TrainCartsAttachmentViewer;
+import com.bergerkiller.bukkit.tc.controller.player.pmc.PlayerMovementController;
 import com.bergerkiller.bukkit.tc.controller.player.network.PlayerClientSynchronizer;
 import com.bergerkiller.bukkit.tc.controller.player.network.PlayerPacketListener;
 import com.bergerkiller.bukkit.common.math.Quaternion;
@@ -805,7 +806,12 @@ public interface AttachmentViewer extends TrainCarts.Provider {
             }
 
             @Override
-            public boolean update(Vector position, OrientationMode orientationMode, Quaternion orientation, boolean stopOnCollision) {
+            public boolean update(
+                    Vector position,
+                    OrientationMode orientationMode,
+                    Quaternion orientation,
+                    Consumer<PlayerMovementController.BlockCollisionEvent> onBlockCollision
+            ) {
                 return false;
             }
         };
@@ -841,25 +847,34 @@ public interface AttachmentViewer extends TrainCarts.Provider {
          * @param position New position for the Player viewer
          * @param orientationMode Mode by which the orientation parameter is used
          * @param orientation New look-orientation for the Player viewer.
-         * @param stopOnBlockCollision Whether to check for block collisions, and to stop movement
-         *                             control when such a block collision is identified.
+         * @param onBlockCollision Callback fired when movement collides with a block
+         *                         (or stationary collision element). The callback can call
+         *                         {@link PlayerMovementController.BlockCollisionEvent#stopSimulation()} to stop movement
+         *                         control and hand movement back.
          * @return True if the update was applied, False if the controller was/has been stopped
-         *         (due to block collision).
+         *         due to being stopped.
          */
-        boolean update(Vector position, OrientationMode orientationMode, Quaternion orientation, boolean stopOnBlockCollision);
+        boolean update(
+                Vector position,
+                OrientationMode orientationMode,
+                Quaternion orientation,
+                Consumer<PlayerMovementController.BlockCollisionEvent> onBlockCollision
+        );
 
         /**
          * Sends a new player position to the player. Look-orientation is not updated
          * and kept to the value of whatever it was before.
          *
          * @param position New position for the Player viewer
-         * @param stopOnBlockCollision Whether to check for block collisions, and to stop movement
-         *                             control when such a block collision is identified.
+         * @param onBlockCollision Callback fired when movement collides with a block
+         *                         (or stationary collision element). The callback can call
+         *                         {@link PlayerMovementController.BlockCollisionEvent#stopSimulation()} to stop movement
+         *                         control and hand movement back.
          * @return True if the update was applied, False if the controller was/has been stopped
-         *         (due to block collision).
+         *         due to being stopped.
          */
-        default boolean update(Vector position, boolean stopOnBlockCollision) {
-            return update(position, OrientationMode.NONE, null, stopOnBlockCollision);
+        default boolean update(Vector position, Consumer<PlayerMovementController.BlockCollisionEvent> onBlockCollision) {
+            return update(position, OrientationMode.NONE, null, onBlockCollision);
         }
 
         /**
@@ -873,7 +888,7 @@ public interface AttachmentViewer extends TrainCarts.Provider {
          * @return True if the update was applied, False if the controller was/has been stopped
          */
         default boolean update(Vector position, OrientationMode orientationMode, Quaternion orientation) {
-            return update(position, orientationMode, orientation, false);
+            return update(position, orientationMode, orientation, null);
         }
 
         /**
@@ -884,7 +899,7 @@ public interface AttachmentViewer extends TrainCarts.Provider {
          * @return True if the update was applied, False if the controller was/has been stopped
          */
         default boolean update(Vector position) {
-            return update(position, false);
+            return update(position, (Consumer<PlayerMovementController.BlockCollisionEvent>) null);
         }
 
         /**

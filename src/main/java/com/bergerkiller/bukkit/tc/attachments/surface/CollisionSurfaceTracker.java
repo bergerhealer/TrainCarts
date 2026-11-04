@@ -2,7 +2,6 @@ package com.bergerkiller.bukkit.tc.attachments.surface;
 
 import com.bergerkiller.bukkit.common.events.PacketReceiveEvent;
 import com.bergerkiller.bukkit.common.events.PacketSendEvent;
-import com.bergerkiller.bukkit.common.entity.type.CommonPlayer;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.math.OrientedBoundingBox;
 import com.bergerkiller.bukkit.common.protocol.PacketListener;
@@ -10,14 +9,16 @@ import com.bergerkiller.bukkit.common.protocol.PacketType;
 import com.bergerkiller.bukkit.common.math.Quaternion;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
+import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
-import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.common.wrappers.RelativeFlags;
 import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer.MovementController.OrientationMode;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentPlatform;
 import com.bergerkiller.bukkit.tc.controller.player.network.PlayerPacketListener;
+import com.bergerkiller.bukkit.tc.controller.player.pmc.PlayerMovementController;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundPlayerPositionPacketHandle;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.ServerboundMovePlayerPacketHandle;
 import com.bergerkiller.generated.net.minecraft.server.level.ServerPlayerHandle;
@@ -31,6 +32,7 @@ import java.util.EnumMap;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 /**
@@ -69,6 +71,8 @@ public class CollisionSurfaceTracker {
     private static final double MOVING_SURFACE_MAX_PACKET_DELTA = 3.0;
     private static final double MOVING_SURFACE_MAX_PACKET_DELTA_SQUARED =
             MOVING_SURFACE_MAX_PACKET_DELTA * MOVING_SURFACE_MAX_PACKET_DELTA;
+    private static final int MAX_BLOCK_COLLISION_RESIMULATION_ATTEMPTS = 8;
+    private static final int BLOCK_HANDOFF_RECAPTURE_COOLDOWN_TICKS = 6;
     private final AttachmentViewer viewer;
     private final int shulkerViewDistance;
     private final PlayerPusher playerPusher;
@@ -77,12 +81,14 @@ public class CollisionSurfaceTracker {
     private final EnumMap<BlockFace, CollisionWallTileGrid> wallTiles;
     private final List<CollisionSurfaceImpl> surfaces = new ArrayList<>();
     private SimulatedPlayer simulatedPlayer = null;
+    private int simulatedPlayerStartCooldownTicks = 0;
     private Boolean previousPlayerSeated = null;
     private Vector previousPlayerPosition = null;
     private final StepSoundTracker stepSoundTracker = new StepSoundTracker();
     private PlayerPacketListener<MovingSurfacePacketMonitor> movingSurfacePacketMonitor = null;
     private final AtomicReference<MovingSurfacePacketState> movingSurfacePacketState =
             new AtomicReference<>(MovingSurfacePacketState.reset());
+    private final CollisionSurfaceLogger collisionSurfaceLogger;
 
     // Shared solver instance for this tracker class. Initialized with a logger that
     // routes messages to the plugin logger. Set disabled when not testing.
@@ -97,6 +103,8 @@ public class CollisionSurfaceTracker {
         this.shulkerCache = new ShulkerTracker();
         this.floorTiles = new CollisionFloorTileGrid(shulkerCache);
         this.wallTiles = new EnumMap<>(BlockFace.class);
+        // Set to `new CollisionSurfaceLoggerImpl(viewer)` to enable surface tracker debug logging.
+        this.collisionSurfaceLogger = CollisionSurfaceLogger.DISABLED;
     }
 
     public CollisionSurface findSurfaceLookingAt() {
@@ -173,7 +181,12 @@ public class CollisionSurfaceTracker {
         PlayerBoundsTransition playerTransition = new PlayerBoundsTransition(bboxFrom, bboxTo);
         MathUtil.setVector(previousPlayerPosition, position);
 
-        if (simulatedPlayer == null && !(SNEAKING_DISABLES_SURFACE_COLLISIONS && viewer.getPlayer().isSneaking())) {
+        if (simulatedPlayerStartCooldownTicks > 0) {
+            simulatedPlayerStartCooldownTicks--;
+        }
+        if (simulatedPlayer == null
+                && simulatedPlayerStartCooldownTicks <= 0
+                && !(SNEAKING_DISABLES_SURFACE_COLLISIONS && viewer.getPlayer().isSneaking())) {
             boolean started = false;
             if (wasSeated && !isSeated) {
                 started = tryStartSimulatedPlayerAfterDismount(transitions, new PlayerBoundsState(bboxTo), previousPosition, movement);
@@ -385,8 +398,15 @@ public class CollisionSurfaceTracker {
                 false
         );
         simulatedPlayer.viewLockNeedsReset = surface != null && surface.viewLock;
+        InitialSimulationCollisionContext collisionContext = new InitialSimulationCollisionContext(simulatedPlayer);
+        collisionContext.configure(position.getY(), simulatedPlayer.flying, simulatedPlayer.velocity.getY());
 
-        if (!controller.update(position, getViewLockOrientationMode(surface, simulatedPlayer), getViewLockOrientation(surface), true)) {
+        if (!controller.update(
+                position,
+                getViewLockOrientationMode(surface, simulatedPlayer),
+                getViewLockOrientation(surface),
+                collisionContext.createBlockCollisionHandler()
+        )) {
             controller.stop();
             return false;
         }
@@ -666,96 +686,30 @@ public class CollisionSurfaceTracker {
             }
         }
 
-        PlayerCollisionSolver.Result<CollisionSurfaceImpl> solution = PLAYER_COLLISION_SOLVER.solveDetailed(
+        SimulatedCollisionPassContext passContext = new SimulatedCollisionPassContext(
+                simulatedPlayer,
                 transitions,
-                new PlayerBoundsTransition(bboxFrom, bboxTo)
+                bboxFrom,
+                bboxTo,
+                justWalkedOffSurface,
+                activeTransition,
+                currentPosition,
+                nextPosition
         );
 
-        if (VERIFY_LOG_PENETRATIONS) {
-            boolean hasCornerPassedThrough = false;
-            for (OBBSurfaceTransition<CollisionSurfaceImpl> surface : transitions) {
-                if (surface.hasCornerPassedThrough(new PlayerBoundsTransition(bboxFrom, solution.state))) {
-                    if (!solution.involvedTransitions.contains(surface)) {
-                        solution.involvedTransitions.add(surface);
-                    }
-                    TrainCarts.plugin.getLogger().info("CORNER PASSED THROUGH [" + CommonUtil.getServerTicks() + "] surface=" + surface.source);
-                    TrainCarts.plugin.getLogger().info("SOLUTION BOUNDS: " + solution.state.bounds);
-                    hasCornerPassedThrough = true;
-                } else if ( surface.to.isClippingThrough(new PlayerBoundsState(solution.state.bounds))) {
-                    if (!solution.involvedTransitions.contains(surface)) {
-                        solution.involvedTransitions.add(surface);
-                    }
-                    TrainCarts.plugin.getLogger().info("SURFACE CLIPPING [" + CommonUtil.getServerTicks() + "] surface=" + surface.source);
-                    hasCornerPassedThrough = true;
-                }
+        for (int attempt = 0; attempt < MAX_BLOCK_COLLISION_RESIMULATION_ATTEMPTS; attempt++) {
+            SimulatedCollisionPassResult passResult = passContext.runSimulatedCollisionPass();
+            if (passResult.stopped) {
+                return;
             }
-            if (hasCornerPassedThrough) {
-                TrainCarts.plugin.getLogger().info("DEBUG OUTPUT:\n" + solution.printDebugTest());
 
-                if (simulatedPlayer.lastDebugState != null) {
-                    StringBuilder str = new StringBuilder();
-                    simulatedPlayer.lastDebugState.printDebugCreate(str, "");
-                    TrainCarts.plugin.getLogger().info("PREV STATE:\n" + str.toString());
-                }
+            passContext.nextPositionAfterPass = passResult.nextPosition;
+            passContext.solution = passResult.solution;
+            if (!passResult.needsResimulation) {
+                break;
             }
         }
-
-        boolean hasSurfaceCollision = !solution.state.equals(bboxTo);
-        if (!hasSurfaceCollision && justWalkedOffSurface) {
-            solution = PLAYER_COLLISION_SOLVER.solveBelowFeetDetailed(transitions, bboxTo);
-            hasSurfaceCollision = solution.hasCollision();
-        }
-        if (hasSurfaceCollision) {
-            nextPosition = solution.state.feetPosition();
-            boolean wasFlying = simulatedPlayer.flying;
-            if (solution.lastSurface != null && isFloorLikeLanding(solution)) {
-                CollisionSurfaceImpl landedSurface = toSurfaceImpl(solution.lastSurface);
-                boolean surfaceChanged = simulatedPlayer.lastSurface != solution.lastSurface;
-                simulatedPlayer.lastSurface = solution.lastSurface;
-                simulatedPlayer.flying = false;
-                simulatedPlayer.velocity.setX(0.0);
-                simulatedPlayer.velocity.setY(0.0);
-                simulatedPlayer.velocity.setZ(0.0);
-                simulatedPlayer.viewLockNeedsReset = landedSurface != null
-                        && landedSurface.viewLock
-                        && (wasFlying || surfaceChanged);
-            } else if (!simulatedPlayer.flying) {
-                simulatedPlayer.velocity = removeIntoSurfaceVelocity(
-                        simulatedPlayer.velocity,
-                        solution.lastCollisionMode,
-                        solution.lastSurfaceToState
-                );
-            } else {
-                /*
-                simulatedPlayer.velocity = removeIntoSurfaceVelocity(
-                        simulatedPlayer.velocity,
-                        solution.lastCollisionMode,
-                        solution.lastSurfaceToState
-                );
-                 */
-            }
-        }
-
-        // These effects to velocity are applied after the velocity is used to move the player (post-tick)
-        // The effects (such as gravity) are applied the next tick
-        simulatedPlayer.applyBlockSpeedFactor((activeTransition == null) ? null : activeTransition.to);
-        if (simulatedPlayer.flying) {
-            simulatedPlayer.applyGravity();
-        }
-        simulatedPlayer.applyDrag();
-        simulatedPlayer.applyMinimumSpeed();
-
-        currentSurface = toSurfaceImpl(simulatedPlayer.lastSurface);
-        OrientationMode orientationMode = getViewLockOrientationMode(currentSurface, simulatedPlayer);
-        Quaternion orientation = getViewLockOrientation(currentSurface);
-
-        if (!simulatedPlayer.pmc.update(nextPosition, orientationMode, orientation, true)) {
-            stopSimulatedPlayer(currentPosition);
-            return;
-        }
-        if (orientationMode != OrientationMode.NONE) {
-            simulatedPlayer.viewLockNeedsReset = false;
-        }
+        nextPosition = passContext.nextPositionAfterPass;
 
         if (simulatedPlayer.flying) {
             stepSoundTracker.noStep();
@@ -769,7 +723,9 @@ public class CollisionSurfaceTracker {
         }
 
         simulatedPlayer.lastPosition = currentPosition;
-        simulatedPlayer.lastDebugState = solution.state;
+        if (passContext.solution != null) {
+            simulatedPlayer.lastDebugState = passContext.solution.state;
+        }
         simulatedPlayer.position = nextPosition;
         simulatedPlayer.lastJumpInput = input.jumping();
     }
@@ -932,6 +888,401 @@ public class CollisionSurfaceTracker {
         }
     }
 
+    /**
+     * Common state and collision policy for PMC block-collision callbacks in simulation mode.
+     */
+    private abstract class SimulatedBlockCollisionContext {
+        protected final SimulatedPlayer simulatedPlayer;
+        protected CollidedSolidFaceSet collidedSolidBlockFaces;
+        protected boolean canResimulate;
+        protected double simulationFeetY;
+        protected boolean simulationFlying;
+        protected double simulationVelocityY;
+        protected Vector stopSimulationPosition;
+        protected boolean needsResimulation;
+        protected PlayerMovementController.BlockCollisionEvent collisionEvent;
+
+        protected SimulatedBlockCollisionContext(SimulatedPlayer simulatedPlayer) {
+            this.simulatedPlayer = simulatedPlayer;
+        }
+
+        protected void configure(
+                CollidedSolidFaceSet collidedSolidBlockFaces,
+                boolean canResimulate,
+                double simulationFeetY,
+                boolean simulationFlying,
+                double simulationVelocityY
+        ) {
+            this.collidedSolidBlockFaces = collidedSolidBlockFaces;
+            this.canResimulate = canResimulate;
+            this.simulationFeetY = simulationFeetY;
+            this.simulationFlying = simulationFlying;
+            this.simulationVelocityY = simulationVelocityY;
+            this.stopSimulationPosition = null;
+            this.needsResimulation = false;
+            this.collisionEvent = null;
+        }
+
+        protected void configure(double simulationFeetY, boolean simulationFlying, double simulationVelocityY) {
+            configure(null, false, simulationFeetY, simulationFlying, simulationVelocityY);
+        }
+
+        public Consumer<PlayerMovementController.BlockCollisionEvent> createBlockCollisionHandler() {
+            return event -> {
+                collisionEvent = event;
+
+                AABBHandle blockBounds = event.getBlockBounds();
+                if (blockBounds == null) {
+                    return;
+                }
+
+                double feetY = event.getCollisionPosition().getY();
+                double stopThreshold = simulationFlying ? simulationFeetY : (simulationFeetY + 0.5);
+                collisionSurfaceLogger.debugBlockCollisionEvent(
+                        event.getFace(),
+                        event.getTheta(),
+                        feetY,
+                        blockBounds,
+                        stopThreshold,
+                        simulationFeetY,
+                        simulationFlying
+                );
+                boolean shouldTryStop;
+                if (simulationFlying) {
+                    // Flying/airborne: only treat true top-face collisions as landings.
+                    // This avoids side-wall contacts falsely promoting to "landed",
+                    // while still allowing proper handoff when descending onto block tops.
+                    shouldTryStop = (event.getFace() == BlockFace.UP) && (blockBounds.getMaxY() <= (feetY + 1e-10));
+                } else {
+                    // Grounded: keep 0.5 step-up allowance relative to the simulated feet Y.
+                    shouldTryStop = (blockBounds.getMaxY() <= (stopThreshold + 1e-10));
+
+                    // Stepping up onto a block that has something solid above it is obstructed
+                    if (shouldTryStop && event.getBlockAboveBounds() != null
+                            && blockBounds.getMaxY() > simulationFeetY + 1e-6) {
+                        shouldTryStop = false;
+                        collisionSurfaceLogger.debug("event step-up obstructed by block above");
+                    }
+                }
+                if (shouldTryStop) {
+                    Vector stopPosition = event.getCollisionPosition();
+                    stopPosition.setY(blockBounds.getMaxY());
+                    boolean canStand = canStandAt(simulatedPlayer, stopPosition, blockBounds);
+                    collisionSurfaceLogger.debugDefer(() -> "event topCandidate stopPos=" + stopPosition + " canStand=" + canStand);
+                    if (canStand) {
+                        event.stopSimulation();
+                        stopSimulationPosition = stopPosition;
+                        collisionSurfaceLogger.debug("event -> stopSimulation");
+                        return;
+                    }
+
+                    // While airborne, a top-face hit at theta ~= 0 can be a degenerate
+                    // "starting from stale top contact" collision. Cancel it once and
+                    // retry from the updated PMC position so movement can continue.
+                    if (simulationFlying
+                            && simulationVelocityY >= -1e-9
+                            && event.getTheta() <= 1e-9
+                            && canResimulate) {
+                        event.cancelCollisionHandling();
+                        needsResimulation = true;
+                        collisionSurfaceLogger.debug("event topCandidate theta0 -> cancel+resim");
+                        return;
+                    }
+                }
+
+                if (collidedSolidBlockFaces != null && canResimulate) {
+                    if (!FaceUtil.isVertical(event.getFace())) {
+                        if (simulationFlying) {
+                            // In airborne/jump mode, let PMC's own swept collision clamp side hits.
+                            // Exception: theta ~= 0 means sweep starts in immediate contact; retry
+                            // with a synthetic side-face so we preserve the wall constraint while
+                            // re-anchoring movement state.
+                            boolean addedFace = (event.getTheta() <= 1e-9)
+                                    && collidedSolidBlockFaces.addIfAbsent(blockBounds, event.getFace());
+                            if (event.getTheta() <= 1e-9 && addedFace) {
+                                event.cancelCollisionHandling();
+                                needsResimulation = true;
+                                collisionSurfaceLogger.debugDefer(() -> "event side-face theta0 while flying -> cancel+resim syntheticBlocks="
+                                        + collidedSolidBlockFaces.size());
+                            } else {
+                                collisionSurfaceLogger.debug("event side-face while flying -> keep PMC handling");
+                            }
+                        } else {
+                            if (collidedSolidBlockFaces.addIfAbsent(blockBounds, event.getFace())) {
+                                event.cancelCollisionHandling();
+                                needsResimulation = true;
+                                collisionSurfaceLogger.debugDefer(() -> "event -> cancel+resim syntheticBlocks=" + collidedSolidBlockFaces.size());
+                            } else {
+                                collisionSurfaceLogger.debug("event duplicate synthetic block -> keep PMC handling");
+                            }
+                        }
+                    } else {
+                        collisionSurfaceLogger.debug("event non-side face -> keep PMC handling");
+                    }
+                }
+            };
+        }
+    }
+
+    private final class InitialSimulationCollisionContext extends SimulatedBlockCollisionContext {
+        InitialSimulationCollisionContext(SimulatedPlayer simulatedPlayer) {
+            super(simulatedPlayer);
+        }
+    }
+
+    /**
+     * Mutable state for retrying a single simulated-player movement update against
+     * dynamic surfaces plus an accumulated set of collided static block faces.
+     * <p>
+     * Captures the baseline simulated player state once, then runs one or more
+     * pass attempts from that baseline while adding newly discovered solid block
+     * collisions to {@link #collidedSolidBlockFaces}. This avoids ping-ponging
+     * between multiple wall blocks and keeps all retry-related side effects scoped.
+     */
+    private final class SimulatedCollisionPassContext extends SimulatedBlockCollisionContext {
+        final List<OBBSurfaceTransition<CollisionSurfaceImpl>> transitions;
+        final PlayerBoundsState bboxFrom;
+        final PlayerBoundsState bboxTo;
+        final boolean justWalkedOffSurface;
+        final OBBSurfaceTransition<CollisionSurfaceImpl> activeTransition;
+        final Vector currentPosition;
+        final Vector baseNextPosition;
+        final Vector baseVelocity;
+        final CollisionSurface baseLastSurface;
+        final boolean baseFlying;
+        final boolean baseViewLockNeedsReset;
+        final CollidedSolidFaceSet collidedSolidBlockFaces = new CollidedSolidFaceSet();
+        Vector nextPositionAfterPass;
+        PlayerCollisionSolver.Result<CollisionSurfaceImpl> solution = null;
+        int attemptCounter = 0;
+
+        SimulatedCollisionPassContext(
+                SimulatedPlayer simulatedPlayer,
+                List<OBBSurfaceTransition<CollisionSurfaceImpl>> transitions,
+                PlayerBoundsState bboxFrom,
+                PlayerBoundsState bboxTo,
+                boolean justWalkedOffSurface,
+                OBBSurfaceTransition<CollisionSurfaceImpl> activeTransition,
+                Vector currentPosition,
+                Vector nextPosition
+        ) {
+            super(simulatedPlayer);
+            this.transitions = transitions;
+            this.bboxFrom = bboxFrom;
+            this.bboxTo = bboxTo;
+            this.justWalkedOffSurface = justWalkedOffSurface;
+            this.activeTransition = activeTransition;
+            this.currentPosition = currentPosition;
+            this.baseNextPosition = nextPosition.clone();
+            this.baseVelocity = simulatedPlayer.velocity.clone();
+            this.baseLastSurface = simulatedPlayer.lastSurface;
+            this.baseFlying = simulatedPlayer.flying;
+            this.baseViewLockNeedsReset = simulatedPlayer.viewLockNeedsReset;
+            this.nextPositionAfterPass = this.baseNextPosition.clone();
+        }
+
+        SimulatedCollisionPassResult runSimulatedCollisionPass() {
+            final int attempt = ++attemptCounter;
+            Vector nextPosition = baseNextPosition.clone();
+            simulatedPlayer.velocity = baseVelocity.clone();
+            simulatedPlayer.lastSurface = baseLastSurface;
+            simulatedPlayer.flying = baseFlying;
+            simulatedPlayer.viewLockNeedsReset = baseViewLockNeedsReset;
+            collisionSurfaceLogger.debugDefer(() -> "pass#" + attempt
+                    + " start baseNext=" + baseNextPosition
+                    + " baseVel=" + baseVelocity
+                    + " baseFlying=" + baseFlying
+                    + " syntheticBlocks=" + collidedSolidBlockFaces.size());
+
+            List<OBBSurfaceTransition<CollisionSurfaceImpl>> solverTransitions =
+                    collidedSolidBlockFaces.withTransitions(transitions);
+
+            PlayerCollisionSolver.Result<CollisionSurfaceImpl> solution = PLAYER_COLLISION_SOLVER.solveDetailed(
+                    solverTransitions,
+                    new PlayerBoundsTransition(bboxFrom, bboxTo)
+            );
+
+            if (VERIFY_LOG_PENETRATIONS) {
+                boolean hasCornerPassedThrough = false;
+                final PlayerCollisionSolver.Result<CollisionSurfaceImpl> verifyResult = solution;
+                for (OBBSurfaceTransition<CollisionSurfaceImpl> surface : solverTransitions) {
+                    if (surface.hasCornerPassedThrough(new PlayerBoundsTransition(bboxFrom, verifyResult.state))) {
+                        if (!verifyResult.involvedTransitions.contains(surface)) {
+                            verifyResult.involvedTransitions.add(surface);
+                        }
+                        collisionSurfaceLogger.debugDefer(() -> "verify corner-passed-through surface=" + surface.source);
+                        collisionSurfaceLogger.debugDefer(() -> "verify solution-bounds=" + verifyResult.state.bounds);
+                        hasCornerPassedThrough = true;
+                    } else if (surface.to.isClippingThrough(new PlayerBoundsState(verifyResult.state.bounds))) {
+                        if (!verifyResult.involvedTransitions.contains(surface)) {
+                            verifyResult.involvedTransitions.add(surface);
+                        }
+                        collisionSurfaceLogger.debugDefer(() -> "verify surface-clipping surface=" + surface.source);
+                        hasCornerPassedThrough = true;
+                    }
+                }
+                if (hasCornerPassedThrough) {
+                    collisionSurfaceLogger.debugDefer(() -> "verify solver-debug-output:\n" + verifyResult.printDebugTest());
+
+                    if (simulatedPlayer.lastDebugState != null) {
+                        StringBuilder str = new StringBuilder();
+                        simulatedPlayer.lastDebugState.printDebugCreate(str, "");
+                        collisionSurfaceLogger.debug("verify prev-state:\n" + str);
+                    }
+                }
+            }
+
+            boolean hasSurfaceCollision = !solution.state.equals(bboxTo);
+            if (!hasSurfaceCollision && justWalkedOffSurface) {
+                solution = PLAYER_COLLISION_SOLVER.solveBelowFeetDetailed(solverTransitions, bboxTo);
+                hasSurfaceCollision = solution.hasCollision();
+            }
+            final boolean hasSurfaceCollisionFinal = hasSurfaceCollision;
+            final PlayerCollisionSolver.Result<CollisionSurfaceImpl> solvedResult = solution;
+            collisionSurfaceLogger.debugDefer(() -> "pass#" + attempt
+                    + " solver hasSurfaceCollision=" + hasSurfaceCollisionFinal
+                    + " mode=" + solvedResult.lastCollisionMode
+                    + " lastSurfaceType=" + ((solvedResult.lastSurface == null) ? "null" : solvedResult.lastSurface.getClass().getSimpleName())
+                    + " solvedFeetY=" + solvedResult.state.feetPosition().getY()
+                    + " desiredFeetY=" + bboxTo.feetPosition().getY());
+            if (hasSurfaceCollision) {
+                nextPosition = solution.state.feetPosition();
+                double desiredFeetY = bboxTo.feetPosition().getY();
+                CollisionSurfaceImpl collisionSurface = toSurfaceImpl(solution.lastSurface);
+                if (collisionSurface == null && nextPosition.getY() > (desiredFeetY + 1e-10)) {
+                    // If the solver did not resolve against a real moving surface, never
+                    // allow the collision response to step the simulated player upward.
+                    // This includes synthetic block constraints and null-surface FEET responses.
+                    final double oldY = nextPosition.getY();
+                    final PlayerCollisionSolver.Result<CollisionSurfaceImpl> nonSurfaceUpClampResult = solution;
+                    collisionSurfaceLogger.debugDefer(() -> "pass#" + attempt + " nonSurfaceUpClamp oldY=" + oldY + " -> " + desiredFeetY
+                            + " mode=" + nonSurfaceUpClampResult.lastCollisionMode
+                            + " lastSurfaceType=" + ((nonSurfaceUpClampResult.lastSurface == null) ? "null" : nonSurfaceUpClampResult.lastSurface.getClass().getSimpleName()));
+                    nextPosition.setY(desiredFeetY);
+                }
+
+                boolean wasFlying = simulatedPlayer.flying;
+                if (collisionSurface != null && isFloorLikeLanding(solution)) {
+                    CollisionSurfaceImpl landedSurface = collisionSurface;
+                    boolean surfaceChanged = simulatedPlayer.lastSurface != solution.lastSurface;
+                    collisionSurfaceLogger.debugDefer(() -> "pass#" + attempt + " landing on real surface surfaceChanged=" + surfaceChanged
+                            + " flyingBefore=" + wasFlying);
+                    simulatedPlayer.lastSurface = solution.lastSurface;
+                    simulatedPlayer.flying = false;
+                    simulatedPlayer.velocity.setX(0.0);
+                    simulatedPlayer.velocity.setY(0.0);
+                    simulatedPlayer.velocity.setZ(0.0);
+                    simulatedPlayer.viewLockNeedsReset = landedSurface != null
+                            && landedSurface.viewLock
+                            && (wasFlying || surfaceChanged);
+                } else if (!simulatedPlayer.flying) {
+                    final PlayerCollisionSolver.CollisionMode collisionMode = solution.lastCollisionMode;
+                    collisionSurfaceLogger.debugDefer(() -> "pass#" + attempt + " removeIntoSurfaceVelocity mode=" + collisionMode);
+                    simulatedPlayer.velocity = removeIntoSurfaceVelocity(
+                            simulatedPlayer.velocity,
+                            solution.lastCollisionMode,
+                            solution.lastSurfaceToState
+                    );
+                }
+            }
+
+            simulatedPlayer.applyBlockSpeedFactor((activeTransition == null) ? null : activeTransition.to);
+            if (simulatedPlayer.flying) {
+                simulatedPlayer.applyGravity();
+            }
+            simulatedPlayer.applyDrag();
+            simulatedPlayer.applyMinimumSpeed();
+
+            CollisionSurfaceImpl currentSurface = toSurfaceImpl(simulatedPlayer.lastSurface);
+            OrientationMode orientationMode = getViewLockOrientationMode(currentSurface, simulatedPlayer);
+            Quaternion orientation = getViewLockOrientation(currentSurface);
+            // The last pass must be accepted as-is, otherwise nothing is ever synced
+            configure(
+                    (attempt < MAX_BLOCK_COLLISION_RESIMULATION_ATTEMPTS) ? collidedSolidBlockFaces : null,
+                    attempt < MAX_BLOCK_COLLISION_RESIMULATION_ATTEMPTS,
+                    nextPosition.getY(),
+                    simulatedPlayer.flying,
+                    simulatedPlayer.velocity.getY()
+            );
+            if (!simulatedPlayer.pmc.update(
+                    nextPosition,
+                    orientationMode,
+                    orientation,
+                    createBlockCollisionHandler()
+            )) {
+                Vector stopPosition = stopSimulationPosition;
+                if (stopPosition != null) {
+                    simulatedPlayerStartCooldownTicks = BLOCK_HANDOFF_RECAPTURE_COOLDOWN_TICKS;
+                    collisionSurfaceLogger.debugDefer(() -> "pass#" + attempt + " block-handoff cooldown=" + simulatedPlayerStartCooldownTicks);
+                }
+                collisionSurfaceLogger.debugDefer(() -> "pass#" + attempt + " pmc stopped stopPos=" + stopPosition);
+                stopSimulatedPlayer(stopPosition == null ? currentPosition : stopPosition);
+                return SimulatedCollisionPassResult.stopped();
+            }
+            if (orientationMode != OrientationMode.NONE) {
+                simulatedPlayer.viewLockNeedsReset = false;
+            }
+            boolean resim = needsResimulation;
+            PlayerMovementController.BlockCollisionEvent clampEvent = collisionEvent;
+            if (clampEvent != null && !resim
+                    && !clampEvent.isCollisionHandlingCancelled() && !clampEvent.isStopSimulationRequested()) {
+                // The PMC clamped the player against a block. Continue the simulation from
+                // the clamped position and drop the velocity going into the block, otherwise
+                // the simulated position runs away from the position the player is at.
+                Vector clamped = clampEvent.getCollisionPosition().clone();
+                final Vector nextPositionBeforeClamp = nextPosition;
+                collisionSurfaceLogger.debugDefer(() -> "pass#" + attempt + " adopting PMC clamp " + clamped + " (was " + nextPositionBeforeClamp + ")");
+                nextPosition = clamped;
+                switch (clampEvent.getFace()) {
+                    case EAST: case WEST: simulatedPlayer.velocity.setX(0.0); break;
+                    case NORTH: case SOUTH: simulatedPlayer.velocity.setZ(0.0); break;
+                    case UP: if (simulatedPlayer.velocity.getY() < 0.0) simulatedPlayer.velocity.setY(0.0); break;
+                    case DOWN: if (simulatedPlayer.velocity.getY() > 0.0) simulatedPlayer.velocity.setY(0.0); break;
+                    default: break;
+                }
+            }
+            final Vector appliedNextPosition = nextPosition;
+            final boolean resimFinal = resim;
+            collisionSurfaceLogger.debugDefer(() -> "pass#" + attempt + " pmc applied nextPos=" + appliedNextPosition
+                    + " resim=" + resimFinal + " syntheticBlocks=" + collidedSolidBlockFaces.size());
+            return new SimulatedCollisionPassResult(nextPosition, solution, resim, false);
+        }
+    }
+
+    /**
+     * Outcome of one {@link SimulatedCollisionPassContext#runSimulatedCollisionPass()}
+     * attempt.
+     * <ul>
+     * <li>{@link #nextPosition}: position accepted for this pass</li>
+     * <li>{@link #solution}: solver result used for debug/landing state updates</li>
+     * <li>{@link #needsResimulation}: whether another pass should be run with newly
+     *     accumulated block collision surfaces</li>
+     * <li>{@link #stopped}: whether movement control was stopped during PMC update</li>
+     * </ul>
+     */
+    private static final class SimulatedCollisionPassResult {
+        final Vector nextPosition;
+        final PlayerCollisionSolver.Result<CollisionSurfaceImpl> solution;
+        final boolean needsResimulation;
+        final boolean stopped;
+
+        SimulatedCollisionPassResult(
+                Vector nextPosition,
+                PlayerCollisionSolver.Result<CollisionSurfaceImpl> solution,
+                boolean needsResimulation,
+                boolean stopped
+        ) {
+            this.nextPosition = nextPosition;
+            this.solution = solution;
+            this.needsResimulation = needsResimulation;
+            this.stopped = stopped;
+        }
+
+        static SimulatedCollisionPassResult stopped() {
+            return new SimulatedCollisionPassResult(new Vector(), null, false, true);
+        }
+    }
+
     private static CollisionSurfaceImpl toSurfaceImpl(CollisionSurface surface) {
         return (surface instanceof CollisionSurfaceImpl) ? (CollisionSurfaceImpl) surface : null;
     }
@@ -945,6 +1296,116 @@ public class CollisionSurfaceTracker {
 
     private static Quaternion getViewLockOrientation(CollisionSurfaceImpl surface) {
         return (surface == null || surface.getShape() == null) ? null : surface.getShape().getOrientation().clone();
+    }
+
+    private static boolean canStandAt(SimulatedPlayer simulatedPlayer, Vector feetPosition, AABBHandle supportBlockBounds) {
+        AABBHandle playerBboxNow = ServerPlayerHandle.fromBukkit(simulatedPlayer.viewer.getPlayer()).getBoundingBox();
+        double sizeX = playerBboxNow.getMaxX() - playerBboxNow.getMinX();
+        double sizeY = playerBboxNow.getMaxY() - playerBboxNow.getMinY();
+        double sizeZ = playerBboxNow.getMaxZ() - playerBboxNow.getMinZ();
+        double halfSizeX = 0.5 * sizeX;
+        double halfSizeZ = 0.5 * sizeZ;
+
+        AABBHandle standingBounds = AABBHandle.createNew(
+                feetPosition.getX() - halfSizeX,
+                feetPosition.getY(),
+                feetPosition.getZ() - halfSizeZ,
+                feetPosition.getX() + halfSizeX,
+                feetPosition.getY() + sizeY,
+                feetPosition.getZ() + halfSizeZ
+        );
+
+        int minX = MathUtil.floor(standingBounds.getMinX());
+        int minY = MathUtil.floor(standingBounds.getMinY());
+        int minZ = MathUtil.floor(standingBounds.getMinZ());
+        int maxX = MathUtil.ceil(standingBounds.getMaxX());
+        int maxY = MathUtil.ceil(standingBounds.getMaxY());
+        int maxZ = MathUtil.ceil(standingBounds.getMaxZ());
+
+        for (int x = minX; x <= maxX; x++) {
+            for (int y = minY; y <= maxY; y++) {
+                for (int z = minZ; z <= maxZ; z++) {
+                    AABBHandle blockBounds = BlockUtil.getBoundingBox(simulatedPlayer.viewer.getPlayer().getWorld().getBlockAt(x, y, z));
+                    if (blockBounds == null) {
+                        continue;
+                    }
+                    blockBounds = blockBounds.translate(x, y, z);
+                    if (Util.sameAABB(blockBounds, supportBlockBounds)) {
+                        continue;
+                    }
+                    if (Util.intersects(standingBounds, blockBounds)) {
+                        return false;
+                    }
+                }
+            }
+        }
+
+        final boolean[] blockedByStationary = new boolean[] { false };
+        simulatedPlayer.viewer.forAllStationaryCollisionElements(minX, minY, minZ, maxX, maxY, maxZ, element -> {
+            if (!blockedByStationary[0] && Util.intersects(standingBounds, element.getBoundingBox())) {
+                blockedByStationary[0] = true;
+            }
+        });
+        return !blockedByStationary[0];
+    }
+
+    /**
+     * Tracks a set of solid faces that were encountered during movement processing.
+     */
+    private static final class CollidedSolidFaceSet {
+        private final List<CollidedSolidFace> values = new ArrayList<>();
+
+        public boolean addIfAbsent(AABBHandle candidateBounds, BlockFace candidateFace) {
+            for (CollidedSolidFace existing : values) {
+                if (existing.face == candidateFace && Util.sameAABB(existing.bounds, candidateBounds)) {
+                    return false;
+                }
+            }
+            values.add(new CollidedSolidFace(candidateBounds, candidateFace));
+            return true;
+        }
+
+        public int size() {
+            return values.size();
+        }
+
+        public boolean isEmpty() {
+            return values.isEmpty();
+        }
+
+        public List<OBBSurfaceTransition<CollisionSurfaceImpl>> withTransitions(
+                List<OBBSurfaceTransition<CollisionSurfaceImpl>> transitions
+        ) {
+            if (values.isEmpty()) {
+                return transitions;
+            }
+
+            List<OBBSurfaceTransition<CollisionSurfaceImpl>> result = new ArrayList<>(
+                    transitions.size() + values.size()
+            );
+            result.addAll(transitions);
+            for (CollidedSolidFace face : values) {
+                // Only side faces; top/bottom faces are handled by the PMC
+                if (face.face.getModY() == 0) {
+                    result.add(OBBSurfaceTransition.createStaticFace(face.bounds, face.face));
+                }
+            }
+            return result;
+        }
+    }
+
+    /**
+     * A single face of a block, shulker box or otherwise that a player collided with during movement
+     * handling.
+     */
+    private static final class CollidedSolidFace {
+        final AABBHandle bounds;
+        final BlockFace face;
+
+        CollidedSolidFace(AABBHandle bounds, BlockFace face) {
+            this.bounds = bounds;
+            this.face = face;
+        }
     }
 
     /**

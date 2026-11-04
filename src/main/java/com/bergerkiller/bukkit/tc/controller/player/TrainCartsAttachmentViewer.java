@@ -513,8 +513,13 @@ public final class TrainCartsAttachmentViewer implements AttachmentViewer {
         }
 
         @Override
-        public boolean update(Vector position, OrientationMode orientationMode, Quaternion orientation, boolean stopOnCollision) {
-            return controller.get().update(position, orientationMode, orientation, stopOnCollision);
+        public boolean update(
+                Vector position,
+                OrientationMode orientationMode,
+                Quaternion orientation,
+                Consumer<PlayerMovementController.BlockCollisionEvent> onBlockCollision
+        ) {
+            return controller.get().update(position, orientationMode, orientation, onBlockCollision);
         }
 
     }
