@@ -15,7 +15,7 @@ final class PlayerPusher {
     /** A small extra amount added to the push to ensure a small distance between shulker and player */
     private static final double PUSH_EXTRA = 1e-4;
     /** Extra upwards velocity given to negate gravity when pushing the player up */
-    public static final double PUSH_UP_VELOCITY = 0.04;
+    public static final double PUSH_UP_VELOCITY = 0.05;
 
     private final AttachmentViewer viewer;
     private final ServerPlayerHandle handle;
