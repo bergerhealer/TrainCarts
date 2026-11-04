@@ -59,6 +59,8 @@ public class CollisionSurfaceTracker {
      * when transitioning from shulker-grid collision onto a moving/simulated surface.
      */
     private static final double SHULKER_HANDOFF_SURFACE_SUPPORT_DISTANCE = 1.0;
+    /** Maximum per-tick downward movement to keep representing a surface with shulkers */
+    private static final double SHULKER_MAX_DOWNWARD_SPEED = 0.0625;
     /** When true, pressing sneak forces surface collisions off. Useful for testing. */
     private static final boolean SNEAKING_DISABLES_SURFACE_COLLISIONS = false;
     /** Whether to log when the player bounds penetrate surfaces unexpectedly (solver bugs) */
@@ -1701,9 +1703,13 @@ public class CollisionSurfaceTracker {
                         // No change at all. Ignore.
                         return;
                     } else if (newPos.getY() < oldPos.getY()) {
-                        // Moving downwards
-                        this.shape.setPosition(newPos);
-                        return;
+                        // Moving downwards: keep shulkers for small deltas, but if the surface drops
+                        // too fast switch to simulated mode so players are carried down reliably.
+                        double downwardSpeed = oldPos.getY() - newPos.getY();
+                        if (downwardSpeed <= SHULKER_MAX_DOWNWARD_SPEED) {
+                            this.shape.setPosition(newPos);
+                            return;
+                        }
                     }
                 }
             }
