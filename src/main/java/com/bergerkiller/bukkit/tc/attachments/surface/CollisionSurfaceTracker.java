@@ -23,6 +23,7 @@ import com.bergerkiller.generated.net.minecraft.network.protocol.game.Clientboun
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.ServerboundMovePlayerPacketHandle;
 import com.bergerkiller.generated.net.minecraft.server.level.ServerPlayerHandle;
 import com.bergerkiller.generated.net.minecraft.world.phys.AABBHandle;
+import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.block.BlockFace;
 import org.bukkit.util.Vector;
@@ -183,6 +184,13 @@ public class CollisionSurfaceTracker {
 
         if (simulatedPlayerStartCooldownTicks > 0) {
             simulatedPlayerStartCooldownTicks--;
+        }
+        if (viewer.getPlayer().getGameMode() == GameMode.SPECTATOR) {
+            if (simulatedPlayer != null) {
+                stopSimulatedPlayer(null, false);
+            }
+            disableMovingSurfacePacketMonitor();
+            return;
         }
         if (simulatedPlayer == null
                 && simulatedPlayerStartCooldownTicks <= 0
@@ -506,6 +514,10 @@ public class CollisionSurfaceTracker {
     }
 
     private void stopSimulatedPlayer(Vector trackingPosition) {
+        stopSimulatedPlayer(trackingPosition, true);
+    }
+
+    private void stopSimulatedPlayer(Vector trackingPosition, boolean applyStopSyncCorrection) {
         SimulatedPlayer previousSimulatedPlayer = this.simulatedPlayer;
         if (previousSimulatedPlayer != null && previousSimulatedPlayer.pmc != null && !previousSimulatedPlayer.pmc.hasStopped()) {
             previousSimulatedPlayer.pmc.stop();
@@ -513,7 +525,7 @@ public class CollisionSurfaceTracker {
         this.simulatedPlayer = null;
         // When the player is flying (jumped/walked off the moving surface), avoid applying
         // the stop sync correction, as that can force the player into landed terrain.
-        if (trackingPosition != null && previousSimulatedPlayer != null && !previousSimulatedPlayer.flying) {
+        if (applyStopSyncCorrection && trackingPosition != null && previousSimulatedPlayer != null && !previousSimulatedPlayer.flying) {
             ServerPlayerHandle playerHandle = ServerPlayerHandle.fromBukkit(viewer.getPlayer());
             playerHandle.setPositionRotation(
                     trackingPosition.getX(),
@@ -539,6 +551,10 @@ public class CollisionSurfaceTracker {
     private void updateSimulatedPlayer(List<OBBSurfaceTransition<CollisionSurfaceImpl>> transitions, final PlayerBoundsState actualBounds) {
         SimulatedPlayer simulatedPlayer = this.simulatedPlayer;
         if (simulatedPlayer == null) {
+            return;
+        }
+        if (viewer.getPlayer().getGameMode() == GameMode.SPECTATOR) {
+            stopSimulatedPlayer(null, false);
             return;
         }
         if (simulatedPlayer.pmc == null || simulatedPlayer.pmc.hasStopped() || viewer.getPlayer().getVehicle() != null) {
