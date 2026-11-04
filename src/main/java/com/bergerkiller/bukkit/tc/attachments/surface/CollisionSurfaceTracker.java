@@ -105,6 +105,7 @@ public class CollisionSurfaceTracker {
         this.floorTiles = new CollisionFloorTileGrid(shulkerCache);
         this.wallTiles = new EnumMap<>(BlockFace.class);
         // Set to `new CollisionSurfaceLoggerImpl(viewer)` to enable surface tracker debug logging.
+        //this.collisionSurfaceLogger = new CollisionSurfaceLoggerImpl(viewer);
         this.collisionSurfaceLogger = CollisionSurfaceLogger.DISABLED;
     }
 
@@ -972,6 +973,15 @@ public class CollisionSurfaceTracker {
                 } else {
                     // Grounded: keep 0.5 step-up allowance relative to the simulated feet Y.
                     shouldTryStop = (blockBounds.getMaxY() <= (stopThreshold + 1e-10));
+
+                    // Side-face contact starting at theta ~= 0 is flush wall contact, not a
+                    // true "step onto block top" event. Do not hand off simulation for this.
+                    if (shouldTryStop
+                            && !FaceUtil.isVertical(event.getFace())
+                            && event.getTheta() <= 1e-9) {
+                        shouldTryStop = false;
+                        collisionSurfaceLogger.debug("event side-face theta0 -> no stopSimulation");
+                    }
 
                     // Stepping up onto a block that has something solid above it is obstructed
                     if (shouldTryStop && event.getBlockAboveBounds() != null
