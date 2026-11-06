@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.tc.attachments.surface;
 
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
+import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentPlatform;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundRemoveEntitiesPacketHandle;
 import org.bukkit.block.BlockFace;
 
@@ -26,9 +27,10 @@ final class ShulkerTracker {
      *
      * @param pushDirection The direction to push players if they happen to be
      *                      inside the bbox of this shulker during spawning.
+     * @param shulkerColor The color shulker box to spawn
      * @return Shulker ready to be used
      */
-    public Shulker spawn(BlockFace pushDirection) {
+    public Shulker spawn(BlockFace pushDirection, CartAttachmentPlatform.Color shulkerColor) {
         Shulker[] cache = this.cache;
         int pos = this.pos--;
         if (pos < 0) {
@@ -42,6 +44,7 @@ final class ShulkerTracker {
         }
         Shulker shulker = cache[pos];
         shulker.pushDirection = pushDirection;
+        shulker.shulkerColor = shulkerColor;
         shulker.scheduleSpawn();
         return shulker;
     }

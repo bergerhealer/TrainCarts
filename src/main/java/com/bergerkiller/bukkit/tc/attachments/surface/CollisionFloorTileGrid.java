@@ -3,6 +3,8 @@ package com.bergerkiller.bukkit.tc.attachments.surface;
 import com.bergerkiller.bukkit.common.collections.FastTrackedUpdateSet;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.wrappers.LongHashMap;
+import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentPlatform;
+import com.bergerkiller.generated.net.minecraft.world.phys.AABBHandle;
 import org.bukkit.block.BlockFace;
 
 import java.util.ArrayList;
@@ -22,12 +24,52 @@ import java.util.function.Predicate;
  * as the surface shapes change.
  */
 class CollisionFloorTileGrid {
+    private static final double FLOOR_WALK_THRESHOLD = 0.5;
+    private static final double PLAYER_HALF_WIDTH = 0.3;
     private final ShulkerTracker shulkerCache;
     private final LongHashMap<TileColumn> columns = new LongHashMap<>();
     private final FastTrackedUpdateSet<TileColumn> changedColumns = new FastTrackedUpdateSet<>();
 
     public CollisionFloorTileGrid(ShulkerTracker shulkerCache) {
         this.shulkerCache = shulkerCache;
+    }
+
+    /**
+     * Gets the floor material that sits the the player position x/y/z specified. Returns
+     * null if there is no floor here (or the material is (jumping) above it).
+     *
+     * @param x Foot x-coordinate
+     * @param y Foot y-coordinate
+     * @param z Foot z-coordinate
+     * @return CollisionSurfaceMaterial, or null if there is no surface here
+     */
+    public CollisionSurfaceMaterial getWalkingOn(double x, double y, double z) {
+        int center_tile_x = MathUtil.floor(x);
+        int center_tile_z = MathUtil.floor(z);
+        TileColumn column = columns.get(MathUtil.longHashToLong(center_tile_x, center_tile_z));
+        if (column != null && column.isWalkingOn(x, y, z)) {
+            return column.shapes.getSurfaceMaterial();
+        }
+
+        int min_x = MathUtil.floor(x - PLAYER_HALF_WIDTH);
+        int max_x = MathUtil.floor(x + PLAYER_HALF_WIDTH);
+        int min_z = MathUtil.floor(z - PLAYER_HALF_WIDTH);
+        int max_z = MathUtil.floor(z + PLAYER_HALF_WIDTH);
+        for (int tile_x = min_x; tile_x <= max_x; tile_x++) {
+            for (int tile_z = min_z; tile_z <= max_z; tile_z++) {
+                if (tile_x == center_tile_x && tile_z == center_tile_z) {
+                    continue;
+                }
+
+                column = columns.get(MathUtil.longHashToLong(tile_x, tile_z));
+                if (column != null && column.isWalkingOn(x, y, z)) {
+                    return column.shapes.getSurfaceMaterial();
+                }
+            }
+        }
+
+        // Not on top of a shulker
+        return null;
     }
 
     /**
@@ -114,6 +156,25 @@ class CollisionFloorTileGrid {
             this.tracker = changedColumns.track(this);
         }
 
+        public boolean isWalkingOn(double x, double y, double z) {
+            for (Shulker shulker : shulkers) {
+                AABBHandle bbox = shulker.getBoundingBox();
+                if ( (x + PLAYER_HALF_WIDTH) < bbox.getMinX()
+                        || (x - PLAYER_HALF_WIDTH) > bbox.getMaxX()
+                        || (z + PLAYER_HALF_WIDTH) < bbox.getMinZ()
+                        || (z - PLAYER_HALF_WIDTH) > bbox.getMaxZ()
+                ) {
+                    continue;
+                }
+
+                if (y >= (bbox.getMinY() + 0.5) && y <= (bbox.getMaxY() + FLOOR_WALK_THRESHOLD)) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         public void notifyChanged() {
             tracker.set(true);
         }
@@ -151,7 +212,7 @@ class CollisionFloorTileGrid {
             // If not enough shulkers, add more
             // Give them an initial position that makes them unfavored for selecting
             while (requestedCount > currentCount) {
-                Shulker shulker = shulkerCache.spawn(BlockFace.UP);
+                Shulker shulker = shulkerCache.spawn(BlockFace.UP, CartAttachmentPlatform.Color.DEFAULT);
                 shulker.x = Double.NaN;
                 shulker.y = -Double.MAX_VALUE;
                 shulker.z = Double.NaN;
@@ -197,6 +258,7 @@ class CollisionFloorTileGrid {
                 Shulker shulker = iter.next();
                 if (shulker.picked) {
                     shulker.picked = false; // Reset for next time
+                    shulker.updateShulkerColor(shapes.getShulkerColor());
                     shulker.scheduleMovement(); // Sync position later (if not spawned)
                 } else {
                     shulkerCache.destroy(shulker);
@@ -215,6 +277,16 @@ class CollisionFloorTileGrid {
             @Override
             public CollisionFloorTileShape getShape() {
                 throw new IllegalStateException("There are no tiles at this column");
+            }
+
+            @Override
+            public CollisionSurfaceMaterial getSurfaceMaterial() {
+                return CollisionSurfaceMaterial.AIR;
+            }
+
+            @Override
+            public CartAttachmentPlatform.Color getShulkerColor() {
+                return CartAttachmentPlatform.Color.DEFAULT;
             }
 
             @Override
@@ -241,6 +313,20 @@ class CollisionFloorTileGrid {
          * @return top merged CollisionFloorTileShape
          */
         CollisionFloorTileShape getShape();
+
+        /**
+         * Gets the surface material the floor is made of
+         *
+         * @return CollisionSurfaceMaterial
+         */
+        CollisionSurfaceMaterial getSurfaceMaterial();
+
+        /**
+         * Gets the color shulker box the floor spawns as
+         *
+         * @return Shulker box color
+         */
+        CartAttachmentPlatform.Color getShulkerColor();
 
         /**
          * Removes tile shapes tied to surfaces that have been cleared,
@@ -290,6 +376,16 @@ class CollisionFloorTileGrid {
         }
 
         @Override
+        public CollisionSurfaceMaterial getSurfaceMaterial() {
+            return surface.getMaterial();
+        }
+
+        @Override
+        public CartAttachmentPlatform.Color getShulkerColor() {
+            return surface.getShulkerColor();
+        }
+
+        @Override
         public TileColumnShapes cleanupClearedTiles(TileColumn column) {
             if (this.isClearedFromSurface()) {
                 column.notifyChanged();
@@ -312,8 +408,7 @@ class CollisionFloorTileGrid {
         @Override
         public TileColumnShapes add(TileColumn column, CollisionSurface surface, CollisionFloorTileShape shape) {
             if (surface == this.surface) {
-                boolean changed = !this.shape.equals(shape);
-                this.updateShape(shape);
+                boolean changed = this.updateShapeAndColor(shape, surface.getShulkerColor());
                 if (changed) {
                     column.notifyChanged();
                 }
@@ -358,6 +453,18 @@ class CollisionFloorTileGrid {
         }
 
         @Override
+        public CollisionSurfaceMaterial getSurfaceMaterial() {
+            getShape();
+            return slots.isEmpty() ? CollisionSurfaceMaterial.AIR : slots.get(0).surface.getMaterial();
+        }
+
+        @Override
+        public CartAttachmentPlatform.Color getShulkerColor() {
+            getShape();
+            return slots.isEmpty() ? CartAttachmentPlatform.Color.DEFAULT : slots.get(0).shulkerColor;
+        }
+
+        @Override
         public TileColumnShapes cleanupClearedTiles(TileColumn column) {
             return remove(column, ShapeSlot::isClearedFromSurface);
         }
@@ -389,8 +496,7 @@ class CollisionFloorTileGrid {
             // Update existing
             for (ShapeSlot slot : slots) {
                 if (slot.surface == surface) {
-                    boolean changed = !slot.shape.equals(shape);
-                    slot.updateShape(shape);
+                    boolean changed = slot.updateShapeAndColor(shape, surface.getShulkerColor());
                     if (changed) {
                         combinedShape = null;
                         column.notifyChanged();
@@ -412,17 +518,20 @@ class CollisionFloorTileGrid {
      */
     private static class ShapeSlot implements Comparable<ShapeSlot> {
         public final CollisionSurface surface;
+        public CartAttachmentPlatform.Color shulkerColor;
         public CollisionFloorTileShape shape;
         public int token;
 
         public ShapeSlot(ShapeSlot copy) {
             this.surface = copy.surface;
+            this.shulkerColor = copy.shulkerColor;
             this.shape = copy.shape;
             this.token = copy.token;
         }
 
         public ShapeSlot(CollisionSurface surface, CollisionFloorTileShape shape) {
             this.surface = surface;
+            this.shulkerColor = surface.getShulkerColor();
             this.shape = shape;
             this.token = surface.getUpdateCounter();
         }
@@ -431,9 +540,12 @@ class CollisionFloorTileGrid {
             return this.token != surface.getUpdateCounter();
         }
 
-        protected void updateShape(CollisionFloorTileShape shape) {
+        protected boolean updateShapeAndColor(CollisionFloorTileShape shape, CartAttachmentPlatform.Color shulkerColor) {
+            boolean changed = !this.shape.equals(shape) || this.shulkerColor != shulkerColor;
             this.shape = shape;
+            this.shulkerColor = shulkerColor;
             this.token = this.surface.getUpdateCounter();
+            return changed;
         }
 
         @Override
