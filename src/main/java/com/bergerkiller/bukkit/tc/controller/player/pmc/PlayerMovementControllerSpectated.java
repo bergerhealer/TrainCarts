@@ -49,7 +49,6 @@ class PlayerMovementControllerSpectated extends PlayerMovementController {
         super(type, viewer);
         this.fakePlayer = viewer.createSpectatedFakePlayer();
         this.useClientTickEndPacket = HAS_CLIENT_TICK_END_PACKET && viewer.evaluateGameVersion(">=", "1.21.2");
-        this.fakePlayer.setSteppedPositionSyncTicks(1);
         this.fakePlayer.setForceAbsoluteSync(true);
 
         wasForwardPressed = input.forwards();
@@ -94,7 +93,7 @@ class PlayerMovementControllerSpectated extends PlayerMovementController {
             fakePlayer.syncPosition(true);
 
             ServerPlayerHandle sp = ServerPlayerHandle.fromBukkit(player);
-            sp.setPositionRotation(requestedPosition.getX(), requestedPosition.getY(), requestedPosition.getZ(), viewRotation.yaw, viewRotation.pitch);
+            sp.setPositionRotation(position.getX(), position.getY(), position.getZ(), viewRotation.yaw, viewRotation.pitch);
         }
     }
 
@@ -125,7 +124,7 @@ class PlayerMovementControllerSpectated extends PlayerMovementController {
         synchronized (stateLock) {
             if (started) {
                 started = false;
-                fakePlayer.stop();
+                fakePlayer.stop(false);
             }
             trackerToStop = viewRotationTracker;
             viewRotationTracker = null;

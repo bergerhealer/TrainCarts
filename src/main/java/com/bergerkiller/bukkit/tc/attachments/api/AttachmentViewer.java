@@ -964,8 +964,9 @@ public interface AttachmentViewer extends TrainCarts.Provider {
 
             /**
              * Sets whether position updates are synchronized as if the player is an Armorstand entity.
-             * This makes it so that the player moves in sync with surrounding armor stand entities.
-             * This is true by default.
+             * This makes it so that the client view moves in sync with surrounding armor stand entities.
+             * This applies to predicted movement controllers; spectated movement uses the normal
+             * client interpolation of virtual entities. This is true by default.
              *
              * @param sync Whether to sync as armorstand. True by default.
              * @return this

@@ -28,6 +28,7 @@ abstract class PlayerMovementControllerPredicted extends PlayerMovementControlle
     protected static final MovementFrictionUpdate FRICTION_UPDATE = new MovementFrictionUpdate();
     protected final SentPositionChain sentPositions = new SentPositionChain();
     protected boolean isSynchronized = false;
+    private final ArmorStandPositionInterpolation clientPositionInterpolation = new ArmorStandPositionInterpolation();
 
     /** Last position requested through the movement controller API */
     protected final AtomicReference<RequestedPosition> lastRequestedPosition = new AtomicReference<>(null);
@@ -41,6 +42,12 @@ abstract class PlayerMovementControllerPredicted extends PlayerMovementControlle
             // Make command available
             DebugUtil.getBooleanValue("testcase", false);
         }
+    }
+
+    @Override
+    public void setOptions(AttachmentViewer.MovementController.Options options) {
+        super.setOptions(options);
+        clientPositionInterpolation.setEnabled(options.isSyncAsArmorStand());
     }
 
     @Override
@@ -81,7 +88,8 @@ abstract class PlayerMovementControllerPredicted extends PlayerMovementControlle
     protected final void syncPosition(Vector position, OrientationUpdate orientationUpdate) {
         // Place the new position + orientation for consumption
         // If orientation is never specified, it will remain null
-        this.lastRequestedPosition.set(computeNextRequestedPosition(position, orientationUpdate));
+        this.lastRequestedPosition.set(computeNextRequestedPosition(
+                clientPositionInterpolation.update(position), orientationUpdate));
 
         // TODO: Fake receive() the player position packet, so the server right away positions
         // the player here as if the player sent it. This way laggy players don't appear to lag
