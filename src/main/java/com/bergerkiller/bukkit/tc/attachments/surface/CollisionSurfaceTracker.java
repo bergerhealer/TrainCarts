@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.tc.attachments.surface;
 
+import com.bergerkiller.bukkit.common.Common;
 import com.bergerkiller.bukkit.common.events.PacketReceiveEvent;
 import com.bergerkiller.bukkit.common.events.PacketSendEvent;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
@@ -8,9 +9,11 @@ import com.bergerkiller.bukkit.common.protocol.PacketListener;
 import com.bergerkiller.bukkit.common.protocol.PacketType;
 import com.bergerkiller.bukkit.common.math.Quaternion;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
+import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
+import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.common.wrappers.RelativeFlags;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
@@ -22,10 +25,13 @@ import com.bergerkiller.bukkit.tc.controller.player.pmc.PlayerMovementController
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundPlayerPositionPacketHandle;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.ServerboundMovePlayerPacketHandle;
 import com.bergerkiller.generated.net.minecraft.server.level.ServerPlayerHandle;
+import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
 import com.bergerkiller.generated.net.minecraft.world.phys.AABBHandle;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.block.BlockFace;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
 import java.util.ArrayList;
@@ -61,6 +67,8 @@ public class CollisionSurfaceTracker {
     private static final double SHULKER_HANDOFF_SURFACE_SUPPORT_DISTANCE = 1.0;
     /** Maximum per-tick downward movement to keep representing a surface with shulkers */
     private static final double SHULKER_MAX_DOWNWARD_SPEED = 0.0625;
+    private static final boolean HAS_ENTITY_PUSHABLE_BY = Common.hasCapability("Common:EntityUtil:isPushableBy");
+    private static final boolean HAS_PLAYER_COLLIDABLE = Common.evaluateMCVersion(">=", "1.9");
     /** When true, pressing sneak forces surface collisions off. Useful for testing. */
     private static final boolean SNEAKING_DISABLES_SURFACE_COLLISIONS = false;
     /** Whether to log when the player bounds penetrate surfaces unexpectedly (solver bugs) */
@@ -567,6 +575,7 @@ public class CollisionSurfaceTracker {
 
         Vector currentPosition = simulatedPlayer.position.clone();
         Vector nextPosition = currentPosition.clone();
+        Vector entityPush = computeNearbyEntityPush(simulatedPlayer, actualBounds);
         Vector surfaceCarryVelocity = new Vector(); // carry velocity of the surface the player is on; zero when not on a surface
         CollisionSurfaceImpl currentSurface = toSurfaceImpl(simulatedPlayer.lastSurface);
         OBBSurfaceTransition<CollisionSurfaceImpl> activeTransition = null; // transition for the surface the player is standing on (null if flying/no surface)
@@ -578,6 +587,7 @@ public class CollisionSurfaceTracker {
             // Simulate flying / falling off surfaces
             WalkInput walkInput = createWalkInput(simulatedPlayer, null, input);
             simulatedPlayer.applyWalkingVelocity(walkInput.acceleration);
+            simulatedPlayer.velocity.add(entityPush);
             nextPosition.add(simulatedPlayer.velocity);
         } else if (currentSurface != null) {
             OBBSurfaceTransition<CollisionSurfaceImpl> transition = findTransition(transitions, currentSurface);
@@ -651,6 +661,8 @@ public class CollisionSurfaceTracker {
                     // Carry is applied to nextPosition separately; velocity is pure player movement (downhill slide)
                     simulatedPlayer.velocity = downhillVel.clone();
                 }
+
+                simulatedPlayer.velocity.add(entityPush);
 
                 // Advance position: first carry the player with the moving surface, then add player's own velocity.
                 // For jump/walk-off the carry was already folded into velocity above; surfaceCarryVelocity is zeroed.
@@ -747,6 +759,54 @@ public class CollisionSurfaceTracker {
         }
         simulatedPlayer.position = nextPosition;
         simulatedPlayer.lastJumpInput = input.jumping();
+    }
+
+    private Vector computeNearbyEntityPush(SimulatedPlayer simulatedPlayer, PlayerBoundsState actualBounds) {
+        Player player = viewer.getPlayer();
+        EntityHandle playerHandle = EntityHandle.fromBukkit(player);
+        Vector push = new Vector();
+        if (playerHandle.isNoclip() || playerHandle.isVehicle() || player.isDead()
+                || (HAS_PLAYER_COLLIDABLE && !isPlayerCollidable(player))) {
+            return push;
+        }
+
+        Vector feet = actualBounds.feetPosition();
+        AABBHandle bounds = actualBounds.bounds.translate(
+                simulatedPlayer.position.getX() - feet.getX(),
+                simulatedPlayer.position.getY() - feet.getY(),
+                simulatedPlayer.position.getZ() - feet.getZ());
+        List<Entity> nearby = WorldUtil.getEntities(player.getWorld(), player,
+                bounds.getMinX(), bounds.getMinY(), bounds.getMinZ(),
+                bounds.getMaxX(), bounds.getMaxY(), bounds.getMaxZ());
+        for (Entity entity : nearby) {
+            EntityHandle other = EntityHandle.fromBukkit(entity);
+            if (other.isNoclip() || playerHandle.isInSameVehicle(other)
+                    || !Util.intersects(bounds, other.getBoundingBox())
+                    || (HAS_ENTITY_PUSHABLE_BY && !isPushableBy(player, entity))) {
+                continue;
+            }
+            addEntityPush(push, simulatedPlayer.position.getX() - other.getLocX(),
+                    simulatedPlayer.position.getZ() - other.getLocZ());
+        }
+        return push;
+    }
+
+    private static boolean isPushableBy(Entity pusher, Entity candidate) {
+        return EntityUtil.isPushableBy(pusher, candidate);
+    }
+
+    private static boolean isPlayerCollidable(Player player) {
+        return player.isCollidable();
+    }
+
+    static void addEntityPush(Vector velocity, double dx, double dz) {
+        double distance = Math.max(Math.abs(dx), Math.abs(dz));
+        if (distance >= (double) 0.01F) {
+            double root = Math.sqrt(distance);
+            double scale = Math.min(1.0, 1.0 / root) / root * (double) 0.05F;
+            velocity.setX(velocity.getX() + dx * scale);
+            velocity.setZ(velocity.getZ() + dz * scale);
+        }
     }
 
     private WalkInput createWalkInput(SimulatedPlayer simulatedPlayer, OBBSurfaceState surface, AttachmentViewer.Input input) {
