@@ -12,6 +12,31 @@ import static org.junit.Assert.assertTrue;
 
 public class CollisionSurfaceTrackerTest {
     @Test
+    public void testEntityPushUsesVanillaHorizontalImpulse() {
+        Vector velocity = new Vector(0.2, 0.4, -0.3);
+        CollisionSurfaceTracker.addEntityPush(velocity, 0.25, -0.1);
+        assertEquals(0.2 + 0.5 * (double) 0.05F, velocity.getX(), 1e-12);
+        assertEquals(0.4, velocity.getY(), 1e-12);
+        assertEquals(-0.3 - 0.2 * (double) 0.05F, velocity.getZ(), 1e-12);
+
+        CollisionSurfaceTracker.addEntityPush(velocity, -4.0, 1.0);
+        assertEquals(0.2 + 0.5 * (double) 0.05F - (double) 0.05F, velocity.getX(), 1e-12);
+        assertEquals(-0.3 - 0.2 * (double) 0.05F + 0.25 * (double) 0.05F, velocity.getZ(), 1e-12);
+    }
+
+    @Test
+    public void testEntityPushMinimumSeparation() {
+        Vector velocity = new Vector(0.0, 1.0, 0.0);
+        CollisionSurfaceTracker.addEntityPush(velocity, 0.009, -0.009);
+        assertEquals(0.0, velocity.getX(), 0.0);
+        assertEquals(0.0, velocity.getZ(), 0.0);
+
+        CollisionSurfaceTracker.addEntityPush(velocity, (double) 0.01F, 0.0);
+        assertEquals(Math.sqrt((double) 0.01F) * (double) 0.05F, velocity.getX(), 1e-12);
+        assertEquals(1.0, velocity.getY(), 0.0);
+    }
+
+    @Test
     public void testUphillWalkSpeedFactorUnaffectedUpToNormalWalkAngle() {
         assertEquals(1.0, CollisionSurfaceTracker.computeUphillWalkSpeedFactor(0.0), 1e-12);
         assertEquals(1.0, CollisionSurfaceTracker.computeUphillWalkSpeedFactor(30.0), 1e-12);
