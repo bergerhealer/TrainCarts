@@ -39,10 +39,8 @@ public abstract class PlayerMovementController implements AttachmentViewer.Movem
     private final ControllerType type;
     protected final AttachmentViewer viewer;
     protected final Player player;
-    private boolean syncAsArmorstand = true;
     private Vector initialMotion = null;
     private Vector prevPos = null;
-    private Vector lastSyncPos = null;
     private Quaternion lastAbsoluteOrientation = null;
     protected volatile boolean translateVehicleSteer = false;
     protected boolean isFlightForced = false;
@@ -66,11 +64,7 @@ public abstract class PlayerMovementController implements AttachmentViewer.Movem
 
     public void setOptions(AttachmentViewer.MovementController.Options options) {
         this.translateVehicleSteer = options.isPreserveInput();
-        this.syncAsArmorstand = options.isSyncAsArmorStand();
         this.initialMotion = options.getInitialMotion();
-        if (!this.syncAsArmorstand) {
-            lastSyncPos = null;
-        }
     }
 
     protected final Vector getInitialMotion() {
@@ -144,10 +138,6 @@ public abstract class PlayerMovementController implements AttachmentViewer.Movem
         // Important player is set to fly mode regularly
         setFlightForced(true);
 
-        // Block collisions are swept along the actual (simulated) target path. Only the
-        // position that is synchronized to the player is interpolated like an armorstand.
-        // Sweeping the interpolated position instead lags behind the target and lets the
-        // collision check run at a different height/position than the simulation.
         final Vector targetPosition = position.clone();
 
         // Ensure not null
@@ -171,29 +161,10 @@ public abstract class PlayerMovementController implements AttachmentViewer.Movem
             }
             Vector collisionPosition = collisionEvent.getCollisionPosition();
             MathUtil.setVector(prevPos, collisionPosition);
-            if (syncAsArmorstand) {
-                // Wall clamps do not teleport the player. The simulation already adopted the
-                // clamped position, so just keep gliding towards it like during normal movement.
-                if (lastSyncPos == null) {
-                    lastSyncPos = collisionPosition.clone();
-                } else {
-                    lastSyncPos.add(collisionPosition.clone().subtract(lastSyncPos).multiply(1.0 / 3.0));
-                }
-                position = lastSyncPos;
-            } else {
-                position = collisionPosition;
-            }
+            position = collisionPosition;
         } else {
             MathUtil.setVector(prevPos, targetPosition);
-            if (syncAsArmorstand) {
-                // If synchronizing as armor stand, move 1/3rd towards the target
-                if (lastSyncPos == null) {
-                    lastSyncPos = targetPosition.clone();
-                } else {
-                    lastSyncPos.add(targetPosition.clone().subtract(lastSyncPos).multiply(1.0 / 3.0));
-                }
-                position = lastSyncPos;
-            }
+            position = targetPosition;
         }
 
         syncPosition(position, orientationUpdate);

@@ -179,12 +179,21 @@ public class SpectatedFakePlayer implements TrainCarts.Provider {
     }
 
     public void stop() {
+        stop(true);
+    }
+
+    /**
+     * Stops spectating, optionally restoring the server player to the fake player's position.
+     *
+     * @param restorePlayerPosition Whether to restore the server player position
+     */
+    public void stop(boolean restorePlayerPosition) {
         if (stopped) {
             return;
         }
         stopped = true;
         equipmentUpdateTask.stop();
-        stopRealPlayerMount();
+        stopRealPlayerMount(restorePlayerPosition);
         if (blindRespawn != null) {
             blindRespawn.despawn();
             blindRespawn = null;
@@ -320,7 +329,7 @@ public class SpectatedFakePlayer implements TrainCarts.Provider {
         player.getVehicleMountController().mount(playerMount.getEntityId(), player.getEntityId());
     }
 
-    private void stopRealPlayerMount() {
+    private void stopRealPlayerMount(boolean restorePlayerPosition) {
         if (playerMount != null) {
             player.getVehicleMountController().unmount(playerMount.getEntityId(), player.getEntityId());
             playerMount.destroy(player);
@@ -329,7 +338,7 @@ public class SpectatedFakePlayer implements TrainCarts.Provider {
             // After unmounting, make sure the real player is restored to where the spectated
             // fake player was, instead of being left up at the off-screen mount altitude.
             VirtualEntity entity = (fakePlayer != null) ? fakePlayer.entity : null;
-            if (entity != null) {
+            if (restorePlayerPosition && entity != null) {
                 Vector pos = entity.getSyncPos();
                 ServerPlayerHandle playerHandle = ServerPlayerHandle.fromBukkit(player.getPlayer());
                 playerHandle.setPositionRotation(pos.getX(), pos.getY(), pos.getZ(),
