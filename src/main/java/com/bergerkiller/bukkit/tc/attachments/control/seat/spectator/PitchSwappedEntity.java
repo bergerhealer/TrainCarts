@@ -219,8 +219,7 @@ public class PitchSwappedEntity<E extends VirtualEntity> {
         // then the player camera probably inverted suddenly.
         return MathUtil.getAngleDifference(entity.getLiveYaw(), newRot.yaw) > 90.0f &&
                 MathUtil.getAngleDifference(entity.getLivePitch(),
-                                            newRotFlipped.pitch) < MathUtil.getAngleDifference(entity.getLivePitch(),
-                                                                                               entity.getLiveYaw());
+                                            newRotFlipped.pitch) < MathUtil.getAngleDifference(entity.getLivePitch(), newRot.pitch);
     }
 
     public void syncPosition(boolean absolute) {
