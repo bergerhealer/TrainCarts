@@ -6,6 +6,7 @@ import com.bergerkiller.bukkit.common.controller.VehicleMountController;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.protocol.CommonPacket;
 import com.bergerkiller.bukkit.common.protocol.PacketType;
+import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
@@ -21,6 +22,7 @@ import com.bergerkiller.generated.net.minecraft.network.protocol.game.Clientboun
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundSetCameraPacketHandle;
 import com.bergerkiller.generated.net.minecraft.server.level.ServerPlayerHandle;
 import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
+import com.bergerkiller.generated.net.minecraft.world.entity.LivingEntityHandle;
 import org.bukkit.entity.EntityType;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
@@ -51,7 +53,7 @@ public class SpectatedFakePlayer implements TrainCarts.Provider {
     /** If true, then when the fake player is spawned head is already aligned the right way (since 1.20.2) */
     private final boolean canSpawnWithoutHeadAnimation;
     private final EnumMap<EquipmentSlot, ItemStack> equipmentState = new EnumMap<>(EquipmentSlot.class);
-    private final Task equipmentUpdateTask;
+    private final Task mirroredStateUpdateTask;
     private double offsetX = 0.0;
     private double offsetY = 0.0;
     private double offsetZ = 0.0;
@@ -67,9 +69,10 @@ public class SpectatedFakePlayer implements TrainCarts.Provider {
         this.player = player;
         this.spectatorInteractionSimulator = new SpectatorInteractionSimulator(this, player);
         this.manager = manager;
-        this.equipmentUpdateTask = new Task(player.getTrainCarts()) {
+        this.mirroredStateUpdateTask = new Task(player.getTrainCarts()) {
             @Override
             public void run() {
+                updateMirroredHealth();
                 updateMirroredEquipment();
             }
         };
@@ -173,8 +176,8 @@ public class SpectatedFakePlayer implements TrainCarts.Provider {
         this.startRealPlayerMount(syncTransform);
         if (!isHeadOnly()) {
             initializeMirroredEquipmentState();
-            equipmentUpdateTask.start(1, 1);
         }
+        mirroredStateUpdateTask.start(1, 1);
         this.player.onSpectatedFakePlayerActive(this, true);
     }
 
@@ -192,7 +195,7 @@ public class SpectatedFakePlayer implements TrainCarts.Provider {
             return;
         }
         stopped = true;
-        equipmentUpdateTask.stop();
+        mirroredStateUpdateTask.stop();
         stopRealPlayerMount(restorePlayerPosition);
         if (blindRespawn != null) {
             blindRespawn.despawn();
@@ -362,6 +365,21 @@ public class SpectatedFakePlayer implements TrainCarts.Provider {
             }
             player.sendSilent(Util.createPlayerEquipmentPacket(entityId, slot, item));
         }
+    }
+
+    private void updateMirroredHealth() {
+        if (fakePlayer == null || !player.isConnected()) {
+            return;
+        }
+        float health = EntityUtil.getDataWatcher(player.getPlayer()).get(LivingEntityHandle.DATA_HEALTH);
+        updateMirroredHealth(fakePlayer.entity, health);
+        updateMirroredHealth(fakePlayer.entityAlt, health);
+        updateMirroredHealth(fakePlayer.entityAltFlip, health);
+    }
+
+    private void updateMirroredHealth(FakeVirtualPlayer target, float health) {
+        target.getMetaData().set(LivingEntityHandle.DATA_HEALTH, health);
+        target.syncMetadata();
     }
 
     private void updateMirroredEquipment() {

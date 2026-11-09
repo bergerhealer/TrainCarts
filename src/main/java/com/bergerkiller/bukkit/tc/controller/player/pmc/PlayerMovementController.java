@@ -8,6 +8,7 @@ import com.bergerkiller.bukkit.common.protocol.PacketListener;
 import com.bergerkiller.bukkit.common.protocol.PacketType;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
+import com.bergerkiller.bukkit.common.wrappers.PlayerAbilities;
 import com.bergerkiller.bukkit.common.wrappers.RelativeFlags;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundPlayerPositionPacketHandle;
@@ -91,6 +92,32 @@ public abstract class PlayerMovementController implements AttachmentViewer.Movem
     @Override
     public final boolean hasStopped() {
         return stopped;
+    }
+
+    /**
+     * Runs server-side landing logic without the flight permission this controller
+     * temporarily granted. Does not change a player's own flight permission.
+     */
+    @Override
+    public final void runWithoutForcedFlight(Runnable action) {
+        if (!isFlightForced || stopped) {
+            action.run();
+            return;
+        }
+
+        PlayerAbilities abilities = ServerPlayerHandle.fromBukkit(player).getAbilities();
+        if (!abilities.canFly()) {
+            action.run();
+            return;
+        }
+        abilities.setCanFly(false);
+        try {
+            action.run();
+        } finally {
+            if (isFlightForced && !stopped && !player.isDead() && abilities.isFlying() && !abilities.canFly()) {
+                abilities.setCanFly(true);
+            }
+        }
     }
 
     @Override

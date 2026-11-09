@@ -832,6 +832,16 @@ public interface AttachmentViewer extends TrainCarts.Provider {
         boolean hasStopped();
 
         /**
+         * Runs server-side logic without a flight permission temporarily granted
+         * by this controller.
+         *
+         * @param action Logic to run
+         */
+        default void runWithoutForcedFlight(Runnable action) {
+            action.run();
+        }
+
+        /**
          * Gets the latest input received from the player while controlling it. If this
          * controller {@link #hasStopped()}, returns no more inputs.
          *

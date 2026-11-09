@@ -6,6 +6,7 @@ import com.bergerkiller.bukkit.common.wrappers.LongHashMap;
 import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentPlatform;
 import com.bergerkiller.generated.net.minecraft.world.phys.AABBHandle;
 import org.bukkit.block.BlockFace;
+import org.bukkit.util.Vector;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -70,6 +71,61 @@ class CollisionFloorTileGrid {
 
         // Not on top of a shulker
         return null;
+    }
+
+    /**
+     * Finds the first shulker top crossed by a descending player's feet.
+     */
+    Landing findLanding(Vector from, Vector to) {
+        if (to.getY() >= from.getY()) {
+            return null;
+        }
+        Landing best = null;
+        int minX = MathUtil.floor(Math.min(from.getX(), to.getX()) - PLAYER_HALF_WIDTH);
+        int maxX = MathUtil.floor(Math.max(from.getX(), to.getX()) + PLAYER_HALF_WIDTH);
+        int minZ = MathUtil.floor(Math.min(from.getZ(), to.getZ()) - PLAYER_HALF_WIDTH);
+        int maxZ = MathUtil.floor(Math.max(from.getZ(), to.getZ()) + PLAYER_HALF_WIDTH);
+        for (TileColumn column : columns.values()) {
+            if (column.tile_x < minX || column.tile_x > maxX || column.tile_z < minZ || column.tile_z > maxZ) {
+                continue;
+            }
+            for (Shulker shulker : column.shulkers) {
+                Landing landing = findLanding(from, to, shulker.getBoundingBox(), column.shapes.getSurfaceMaterial());
+                if (landing != null && (best == null || landing.theta < best.theta)) {
+                    best = landing;
+                }
+            }
+        }
+        return best;
+    }
+
+    static Landing findLanding(Vector from, Vector to, AABBHandle bounds, CollisionSurfaceMaterial material) {
+        double top = bounds.getMaxY();
+        if (to.getY() >= from.getY() || top > from.getY() || top < to.getY()) {
+            return null;
+        }
+        double theta = (from.getY() - top) / (from.getY() - to.getY());
+        double px = from.getX() + theta * (to.getX() - from.getX());
+        double pz = from.getZ() + theta * (to.getZ() - from.getZ());
+        if (px + PLAYER_HALF_WIDTH < bounds.getMinX()
+                || px - PLAYER_HALF_WIDTH > bounds.getMaxX()
+                || pz + PLAYER_HALF_WIDTH < bounds.getMinZ()
+                || pz - PLAYER_HALF_WIDTH > bounds.getMaxZ()) {
+            return null;
+        }
+        return new Landing(new Vector(px, top, pz), material, theta);
+    }
+
+    static final class Landing {
+        final Vector position;
+        final CollisionSurfaceMaterial material;
+        final double theta;
+
+        Landing(Vector position, CollisionSurfaceMaterial material, double theta) {
+            this.position = position;
+            this.material = material;
+            this.theta = theta;
+        }
     }
 
     /**

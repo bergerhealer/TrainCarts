@@ -508,6 +508,11 @@ public final class TrainCartsAttachmentViewer implements AttachmentViewer {
         }
 
         @Override
+        public void runWithoutForcedFlight(Runnable action) {
+            controller.get().runWithoutForcedFlight(action);
+        }
+
+        @Override
         public Input getInput() {
             return controller.get().getInput();
         }
