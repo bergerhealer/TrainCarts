@@ -13,6 +13,7 @@ import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
+import com.bergerkiller.bukkit.common.utils.PlayerUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.common.wrappers.RelativeFlags;
 import com.bergerkiller.bukkit.tc.TrainCarts;
@@ -70,6 +71,7 @@ public class CollisionSurfaceTracker {
     /** Maximum per-tick downward movement to keep representing a surface with shulkers */
     private static final double SHULKER_MAX_DOWNWARD_SPEED = 0.0625;
     private static final boolean HAS_ENTITY_PUSHABLE_BY = Common.hasCapability("Common:EntityUtil:isPushableBy");
+    private static final boolean HAS_RESET_FLYING_KICK_COUNTER = Common.hasCapability("Common:PlayerUtil:resetFlyingKickCounter");
     private static final boolean HAS_PLAYER_COLLIDABLE = Common.evaluateMCVersion(">=", "1.9");
     /** When true, pressing sneak forces surface collisions off. Useful for testing. */
     private static final boolean SNEAKING_DISABLES_SURFACE_COLLISIONS = false;
@@ -298,8 +300,13 @@ public class CollisionSurfaceTracker {
             CollisionSurfaceMaterial shulkerStep = floorTiles.getWalkingOn(pos.getX(), pos.getY(), pos.getZ());
             if (shulkerStep == null) {
                 stepSoundTracker.noStep();
-            } else if (stepSoundTracker.step(pos) && !viewer.getPlayer().isSneaking()) {
-                shulkerStep.playStepSound(pos.toLocation(viewer.getPlayer().getWorld()));
+            } else {
+                if (!isSeated && HAS_RESET_FLYING_KICK_COUNTER) {
+                    resetFlyingKickCounter(viewer.getPlayer());
+                }
+                if (stepSoundTracker.step(pos) && !viewer.getPlayer().isSneaking()) {
+                    shulkerStep.playStepSound(pos.toLocation(viewer.getPlayer().getWorld()));
+                }
             }
         }
 
@@ -435,6 +442,10 @@ public class CollisionSurfaceTracker {
         simulatedPlayer.lastJumpInput = controller.getInput().jumping();
         simulatedPlayer.viewLockNeedsReset = false;
         this.simulatedPlayer = simulatedPlayer;
+        viewer.getPlayer().setFallDistance(0.0f);
+        if (HAS_RESET_FLYING_KICK_COUNTER) {
+            resetFlyingKickCounter(viewer.getPlayer());
+        }
         disableMovingSurfacePacketMonitor();
         return true;
     }
@@ -536,6 +547,11 @@ public class CollisionSurfaceTracker {
             previousSimulatedPlayer.pmc.stop();
         }
         this.simulatedPlayer = null;
+        if (previousSimulatedPlayer != null && previousSimulatedPlayer.flying
+                && viewer.getPlayer().getVehicle() == null
+                && viewer.getPlayer().getGameMode() != GameMode.SPECTATOR) {
+            viewer.getPlayer().setFallDistance(previousSimulatedPlayer.fallDistance);
+        }
         // When the player is flying (jumped/walked off the moving surface), avoid applying
         // the stop sync correction, as that can force the player into landed terrain.
         if (applyStopSyncCorrection && trackingPosition != null && previousSimulatedPlayer != null && !previousSimulatedPlayer.flying) {
@@ -744,9 +760,16 @@ public class CollisionSurfaceTracker {
         }
         nextPosition = passContext.nextPositionAfterPass;
 
+        simulatedPlayer.updateFallDistance(currentPosition.getY(), nextPosition.getY(),
+                EntityHandle.fromBukkit(viewer.getPlayer()).isInWaterUpdate());
+        viewer.getPlayer().setFallDistance(simulatedPlayer.fallDistance);
+
         if (simulatedPlayer.flying) {
             stepSoundTracker.noStep();
         } else {
+            if (HAS_RESET_FLYING_KICK_COUNTER) {
+                resetFlyingKickCounter(viewer.getPlayer());
+            }
             CollisionSurfaceImpl steppedOnSurface = toSurfaceImpl(simulatedPlayer.lastSurface);
             if (steppedOnSurface == null) {
                 stepSoundTracker.noStep();
@@ -798,6 +821,10 @@ public class CollisionSurfaceTracker {
 
     private static boolean isPushableBy(Entity pusher, Entity candidate) {
         return EntityUtil.isPushableBy(pusher, candidate);
+    }
+
+    private static void resetFlyingKickCounter(Player player) {
+        PlayerUtil.resetFlyingKickCounter(player);
     }
 
     private static boolean isPlayerCollidable(Player player) {
