@@ -74,6 +74,7 @@ public class CollisionSurfaceTracker {
     private static final boolean HAS_ENTITY_PUSHABLE_BY = Common.hasCapability("Common:EntityUtil:isPushableBy");
     private static final boolean HAS_RESET_FLYING_KICK_COUNTER = Common.hasCapability("Common:PlayerUtil:resetFlyingKickCounter");
     private static final boolean HAS_BLOCK_DATA_FALL_ON = Common.hasCapability("BlockData:FallOn");
+    private static final boolean HAS_PLAYER_GLIDING = Common.evaluateMCVersion(">=", "1.9");
     private static final boolean HAS_PLAYER_COLLIDABLE = Common.evaluateMCVersion(">=", "1.9");
     /** When true, pressing sneak forces surface collisions off. Useful for testing. */
     private static final boolean SNEAKING_DISABLES_SURFACE_COLLISIONS = false;
@@ -306,6 +307,9 @@ public class CollisionSurfaceTracker {
                 if (!isSeated && HAS_RESET_FLYING_KICK_COUNTER) {
                     resetFlyingKickCounter(viewer.getPlayer());
                 }
+                if (HAS_PLAYER_GLIDING && !isSeated && viewer.getPlayer().isOnGround()) {
+                    stopGliding(viewer.getPlayer());
+                }
                 CollisionFloorTileGrid.Landing landing = !isSeated && HAS_BLOCK_DATA_FALL_ON
                         && viewer.getPlayer().isOnGround() && viewer.getPlayer().getFallDistance() > 0.0f
                         ? floorTiles.findLanding(previousPosition, pos) : null;
@@ -455,6 +459,9 @@ public class CollisionSurfaceTracker {
         simulatedPlayer.viewLockNeedsReset = false;
         this.simulatedPlayer = simulatedPlayer;
         viewer.getPlayer().setFallDistance(0.0f);
+        if (landing && HAS_PLAYER_GLIDING) {
+            stopGliding(viewer.getPlayer());
+        }
         if (landing && fallDistance > 0.0f && HAS_BLOCK_DATA_FALL_ON) {
             runSimulatedFallOn(simulatedPlayer, surface.getMaterial(), fallDistance);
             if (this.simulatedPlayer != simulatedPlayer || controller.hasStopped()) {
@@ -794,6 +801,9 @@ public class CollisionSurfaceTracker {
             simulatedPlayer.flying = false;
             simulatedPlayer.fallDistance = 0.0f;
             simulatedPlayer.position = shulkerLanding.position;
+            if (HAS_PLAYER_GLIDING) {
+                stopGliding(viewer.getPlayer());
+            }
             stopSimulatedPlayer(shulkerLanding.position);
             if (fallDistance > 0.0f && HAS_BLOCK_DATA_FALL_ON) {
                 fallOnFakeBlock(shulkerLanding.material, viewer.getPlayer(), fallDistance);
@@ -802,6 +812,9 @@ public class CollisionSurfaceTracker {
         }
 
         if (passContext.baseFlying && !simulatedPlayer.flying) {
+            if (HAS_PLAYER_GLIDING) {
+                stopGliding(viewer.getPlayer());
+            }
             double fallDistance = inWater ? 0.0 : simulatedPlayer.fallDistance
                     + Math.max(0.0, currentPosition.getY() - nextPosition.getY());
             simulatedPlayer.fallDistance = 0.0f;
@@ -822,6 +835,9 @@ public class CollisionSurfaceTracker {
         if (simulatedPlayer.flying) {
             stepSoundTracker.noStep();
         } else {
+            if (HAS_PLAYER_GLIDING) {
+                stopGliding(viewer.getPlayer());
+            }
             if (HAS_RESET_FLYING_KICK_COUNTER) {
                 resetFlyingKickCounter(viewer.getPlayer());
             }
@@ -876,6 +892,13 @@ public class CollisionSurfaceTracker {
 
     private static boolean isPushableBy(Entity pusher, Entity candidate) {
         return EntityUtil.isPushableBy(pusher, candidate);
+    }
+
+    /** Ends elytra gliding mode, so the player returns to walking after landing on a surface */
+    private static void stopGliding(Player player) {
+        if (player.isGliding()) {
+            player.setGliding(false);
+        }
     }
 
     private static void resetFlyingKickCounter(Player player) {
