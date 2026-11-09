@@ -34,7 +34,7 @@ class OBBSurfaceContext {
     public final Vector projectedPos = new Vector();
     public final Vector projectedPosOnPlane = new Vector();
 
-    public OBBSurfaceContext(OrientedBoundingBox surfaceBbox, Vector playerPos, int playerViewRange) {
+    public OBBSurfaceContext(OrientedBoundingBox surfaceBbox, Vector playerPos, int playerViewRange, boolean gliding) {
         this.position = surfaceBbox.getPosition();
         this.halfSize = surfaceBbox.getSize().clone().multiply(0.5);
         this.orientation = surfaceBbox.getOrientation();
@@ -74,7 +74,10 @@ class OBBSurfaceContext {
             // the surface exists within. When the player is above/below that, fix isBackSide based
             // on that. This eliminates an issue that far away horizontally surfaces appear as ceilings,
             // which hinders player movement.
-            if (playerPos.getY() > (planeMax.getY() - 1.0)) {
+            // A gliding player has no step-up ability, so a surface only counts as a floor
+            // when the player is actually above it. Otherwise flying up into it would pass through.
+            double floorMargin = gliding ? 0.0 : 1.0;
+            if (playerPos.getY() > (planeMax.getY() - floorMargin)) {
                 this.isBackSide = normal.getY() < 0.0;
             } else if (playerPos.getY() < planeMin.getY()) {
                 this.isBackSide = normal.getY() > 0.0;
