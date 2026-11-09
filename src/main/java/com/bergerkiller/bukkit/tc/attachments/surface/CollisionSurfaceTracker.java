@@ -31,6 +31,7 @@ import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.Minecart;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
@@ -779,6 +780,9 @@ public class CollisionSurfaceTracker {
                 bounds.getMinX(), bounds.getMinY(), bounds.getMinZ(),
                 bounds.getMaxX(), bounds.getMaxY(), bounds.getMaxZ());
         for (Entity entity : nearby) {
+            if (entity instanceof Minecart) {
+                continue;
+            }
             EntityHandle other = EntityHandle.fromBukkit(entity);
             if (other.isNoclip() || playerHandle.isInSameVehicle(other)
                     || !Util.intersects(bounds, other.getBoundingBox())
