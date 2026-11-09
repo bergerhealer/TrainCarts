@@ -30,6 +30,7 @@ import com.bergerkiller.generated.net.minecraft.world.phys.AABBHandle;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.block.BlockFace;
+import org.bukkit.entity.Boat;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Minecart;
 import org.bukkit.entity.Player;
@@ -780,7 +781,7 @@ public class CollisionSurfaceTracker {
                 bounds.getMinX(), bounds.getMinY(), bounds.getMinZ(),
                 bounds.getMaxX(), bounds.getMaxY(), bounds.getMaxZ());
         for (Entity entity : nearby) {
-            if (entity instanceof Minecart) {
+            if (entity instanceof Minecart || entity instanceof Boat || entity.getType().name().equals("SHULKER")) {
                 continue;
             }
             EntityHandle other = EntityHandle.fromBukkit(entity);
