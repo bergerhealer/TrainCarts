@@ -63,6 +63,7 @@ public class SpectatedFakePlayer implements TrainCarts.Provider {
     private double offsetZ = 0.0;
     private ItemStack skullItem = null;
     private boolean stopped = false;
+    private boolean sneaking = false;
 
     public SpectatedFakePlayer(TrainCartsAttachmentViewer player) {
         this(player, null);
@@ -125,6 +126,35 @@ public class SpectatedFakePlayer implements TrainCarts.Provider {
         this.offsetX = x;
         this.offsetY = y;
         this.offsetZ = z;
+    }
+
+    /**
+     * Sets whether the fake player is displayed sneaking (crouching)
+     *
+     * @param sneaking Whether sneaking
+     */
+    public void setSneaking(boolean sneaking) {
+        if (stopped || this.sneaking == sneaking) {
+            return;
+        }
+        this.sneaking = sneaking;
+        if (fakePlayer != null) {
+            applySneaking(fakePlayer.entity);
+            applySneaking(fakePlayer.entityAlt);
+            applySneaking(fakePlayer.entityAltFlip);
+        }
+    }
+
+    private void applySneaking(FakeVirtualPlayer target) {
+        applySneaking(target.getMetaData(), sneaking);
+        target.syncMetadata();
+    }
+
+    private static void applySneaking(DataWatcher metadata, boolean sneaking) {
+        metadata.setFlag(EntityHandle.DATA_FLAGS, EntityHandle.DATA_FLAG_SNEAKING, sneaking);
+        if (HAS_ENTITY_POSE) {
+            metadata.set(EntityHandle.DATA_POSE, sneaking ? EntityPose.CROUCHING : EntityPose.STANDING);
+        }
     }
 
     public void setForceAbsoluteSync(boolean forceAbsoluteSync) {
@@ -493,6 +523,9 @@ public class SpectatedFakePlayer implements TrainCarts.Provider {
                 meta.set(EntityHandle.DATA_NO_GRAVITY, true);
                 if (HAS_GLIDING) {
                     suppressGliding(meta);
+                }
+                if (sneaking) {
+                    applySneaking(meta, true);
                 }
                 FakeVirtualPlayer.this.metaData = meta;
             });

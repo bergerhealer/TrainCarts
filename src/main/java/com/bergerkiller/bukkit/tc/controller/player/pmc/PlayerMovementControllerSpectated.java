@@ -163,6 +163,9 @@ class PlayerMovementControllerSpectated extends PlayerMovementController {
                     currInput = currInput.withSprinting(true);
                 }
                 input = currInput;
+                if (started) {
+                    fakePlayer.setSneaking(currInput.sneaking());
+                }
                 if (translateVehicleSteer) {
                     event.setPacket(input.createSteerPacket());
                 }
