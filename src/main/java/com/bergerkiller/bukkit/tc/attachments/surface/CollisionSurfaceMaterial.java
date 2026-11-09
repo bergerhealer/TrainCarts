@@ -19,7 +19,8 @@ public interface CollisionSurfaceMaterial {
 
     /**
      * Gets the block material the surface is made of. This is used for deciding on the
-     * step sound the material makes when walking on it.
+     * step sound the material makes when walking on it and the behavior when
+     * landing on it.
      *
      * @return BlockData material
      */

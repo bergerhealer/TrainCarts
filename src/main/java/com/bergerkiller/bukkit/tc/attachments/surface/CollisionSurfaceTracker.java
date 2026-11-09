@@ -15,6 +15,7 @@ import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.PlayerUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
+import com.bergerkiller.bukkit.common.wrappers.BlockData;
 import com.bergerkiller.bukkit.common.wrappers.RelativeFlags;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
@@ -72,6 +73,7 @@ public class CollisionSurfaceTracker {
     private static final double SHULKER_MAX_DOWNWARD_SPEED = 0.0625;
     private static final boolean HAS_ENTITY_PUSHABLE_BY = Common.hasCapability("Common:EntityUtil:isPushableBy");
     private static final boolean HAS_RESET_FLYING_KICK_COUNTER = Common.hasCapability("Common:PlayerUtil:resetFlyingKickCounter");
+    private static final boolean HAS_BLOCK_DATA_FALL_ON = Common.hasCapability("BlockData:FallOn");
     private static final boolean HAS_PLAYER_COLLIDABLE = Common.evaluateMCVersion(">=", "1.9");
     /** When true, pressing sneak forces surface collisions off. Useful for testing. */
     private static final boolean SNEAKING_DISABLES_SURFACE_COLLISIONS = false;
@@ -268,7 +270,7 @@ public class CollisionSurfaceTracker {
 
             if (solution.lastCollisionMode == PlayerCollisionSolver.CollisionMode.FEET
                     && solution.lastSurface != null
-                    && startSimulatedPlayer(solution.lastSurface, previousPosition, solPos, movement)) {
+                    && startSimulatedPlayer(solution.lastSurface, previousPosition, solPos, movement, true)) {
                 return;
             }
 
@@ -303,6 +305,14 @@ public class CollisionSurfaceTracker {
             } else {
                 if (!isSeated && HAS_RESET_FLYING_KICK_COUNTER) {
                     resetFlyingKickCounter(viewer.getPlayer());
+                }
+                CollisionFloorTileGrid.Landing landing = !isSeated && HAS_BLOCK_DATA_FALL_ON
+                        && viewer.getPlayer().isOnGround() && viewer.getPlayer().getFallDistance() > 0.0f
+                        ? floorTiles.findLanding(previousPosition, pos) : null;
+                if (landing != null) {
+                    float fallDistance = viewer.getPlayer().getFallDistance();
+                    viewer.getPlayer().setFallDistance(0.0f);
+                    fallOnFakeBlock(landing.material, viewer.getPlayer(), fallDistance);
                 }
                 if (stepSoundTracker.step(pos) && !viewer.getPlayer().isSneaking()) {
                     shulkerStep.playStepSound(pos.toLocation(viewer.getPlayer().getWorld()));
@@ -410,7 +420,9 @@ public class CollisionSurfaceTracker {
         }
     }
 
-    private boolean startSimulatedPlayer(CollisionSurfaceImpl surface, Vector lastPosition, Vector position, Vector velocity) {
+    private boolean startSimulatedPlayer(CollisionSurfaceImpl surface, Vector lastPosition, Vector position, Vector velocity,
+                                         boolean landing) {
+        float fallDistance = viewer.getPlayer().getFallDistance();
         Vector initialVelocity = computeInitialSimulatedVelocity(surface, velocity);
         AttachmentViewer.MovementController controller = viewer.controlMovement(
                 AttachmentViewer.MovementController.Options.create()
@@ -443,6 +455,12 @@ public class CollisionSurfaceTracker {
         simulatedPlayer.viewLockNeedsReset = false;
         this.simulatedPlayer = simulatedPlayer;
         viewer.getPlayer().setFallDistance(0.0f);
+        if (landing && fallDistance > 0.0f && HAS_BLOCK_DATA_FALL_ON) {
+            runSimulatedFallOn(simulatedPlayer, surface.getMaterial(), fallDistance);
+            if (this.simulatedPlayer != simulatedPlayer || controller.hasStopped()) {
+                return true;
+            }
+        }
         if (HAS_RESET_FLYING_KICK_COUNTER) {
             resetFlyingKickCounter(viewer.getPlayer());
         }
@@ -481,7 +499,7 @@ public class CollisionSurfaceTracker {
         }
 
         Vector solPos = support.state.feetPosition();
-        return startSimulatedPlayer(support.lastSurface, previousPosition, solPos, velocity);
+        return startSimulatedPlayer(support.lastSurface, previousPosition, solPos, velocity, false);
     }
 
     private boolean tryStartSimulatedPlayerOnSupport(
@@ -534,7 +552,7 @@ public class CollisionSurfaceTracker {
             solPos = transition.to.placeBoundsOnSurface(movedBounds).feetPosition();
         }
 
-        return startSimulatedPlayer(support.lastSurface, previousPosition, solPos, velocity);
+        return startSimulatedPlayer(support.lastSurface, previousPosition, solPos, velocity, false);
     }
 
     private void stopSimulatedPlayer(Vector trackingPosition) {
@@ -714,6 +732,13 @@ public class CollisionSurfaceTracker {
             }
         }
 
+        if (simulatedPlayer.flying) {
+            CollisionFloorTileGrid.Landing landing = floorTiles.findLanding(currentPosition, nextPosition);
+            if (landing != null) {
+                nextPosition = landing.position.clone();
+            }
+        }
+
         Vector actualFeetPosition = actualBounds.feetPosition();
         PlayerBoundsState bboxFrom = actualBounds.translate(
                 currentPosition.getX() - actualFeetPosition.getX(),
@@ -760,8 +785,38 @@ public class CollisionSurfaceTracker {
         }
         nextPosition = passContext.nextPositionAfterPass;
 
+        boolean inWater = EntityHandle.fromBukkit(viewer.getPlayer()).isInWaterUpdate();
+        CollisionFloorTileGrid.Landing shulkerLanding = passContext.baseFlying
+                ? floorTiles.findLanding(currentPosition, nextPosition) : null;
+        if (shulkerLanding != null) {
+            simulatedPlayer.updateFallDistance(currentPosition.getY(), shulkerLanding.position.getY(), inWater);
+            float fallDistance = simulatedPlayer.fallDistance;
+            simulatedPlayer.flying = false;
+            simulatedPlayer.fallDistance = 0.0f;
+            simulatedPlayer.position = shulkerLanding.position;
+            stopSimulatedPlayer(shulkerLanding.position);
+            if (fallDistance > 0.0f && HAS_BLOCK_DATA_FALL_ON) {
+                fallOnFakeBlock(shulkerLanding.material, viewer.getPlayer(), fallDistance);
+            }
+            return;
+        }
+
+        if (passContext.baseFlying && !simulatedPlayer.flying) {
+            double fallDistance = inWater ? 0.0 : simulatedPlayer.fallDistance
+                    + Math.max(0.0, currentPosition.getY() - nextPosition.getY());
+            simulatedPlayer.fallDistance = 0.0f;
+            viewer.getPlayer().setFallDistance(0.0f);
+            simulatedPlayer.position = nextPosition;
+            CollisionSurfaceImpl landedSurface = toSurfaceImpl(simulatedPlayer.lastSurface);
+            if (landedSurface != null && fallDistance > 0.0 && HAS_BLOCK_DATA_FALL_ON) {
+                runSimulatedFallOn(simulatedPlayer, landedSurface.getMaterial(), fallDistance);
+                if (this.simulatedPlayer != simulatedPlayer || simulatedPlayer.pmc.hasStopped()) {
+                    return;
+                }
+            }
+        }
         simulatedPlayer.updateFallDistance(currentPosition.getY(), nextPosition.getY(),
-                EntityHandle.fromBukkit(viewer.getPlayer()).isInWaterUpdate());
+                inWater);
         viewer.getPlayer().setFallDistance(simulatedPlayer.fallDistance);
 
         if (simulatedPlayer.flying) {
@@ -825,6 +880,18 @@ public class CollisionSurfaceTracker {
 
     private static void resetFlyingKickCounter(Player player) {
         PlayerUtil.resetFlyingKickCounter(player);
+    }
+
+    private void runSimulatedFallOn(SimulatedPlayer simulatedPlayer, CollisionSurfaceMaterial material, double distance) {
+        simulatedPlayer.pmc.runWithoutForcedFlight(() -> fallOnFakeBlock(material, viewer.getPlayer(), distance));
+    }
+
+    private static void fallOnFakeBlock(CollisionSurfaceMaterial material, Player player, double distance) {
+        BlockData data = material.getMaterial();
+        if (data == null) {
+            data = CollisionSurfaceMaterial.DEFAULT.getMaterial();
+        }
+        data.fallOnFakeBlock(player, distance);
     }
 
     private static boolean isPlayerCollidable(Player player) {
