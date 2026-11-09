@@ -27,6 +27,7 @@ class SimulatedPlayer {
     public Vector velocity;
     public CollisionSurface lastSurface;
     public boolean flying;
+    public float fallDistance;
     public boolean lastJumpInput;
     /**
      * When true, the next grounded update should reset the view-lock orientation
@@ -181,6 +182,17 @@ class SimulatedPlayer {
      */
     public void applyGravity() {
         this.velocity.setY(this.velocity.getY() - SIMULATED_GRAVITY);
+    }
+
+    /**
+     * Tracks descent independently of the server while movement control forces flight.
+     */
+    public void updateFallDistance(double fromY, double toY, boolean inWater) {
+        if (!flying || inWater) {
+            fallDistance = 0.0f;
+        } else if (toY < fromY) {
+            fallDistance += (float) (fromY - toY);
+        }
     }
 
     /**
