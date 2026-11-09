@@ -32,6 +32,7 @@ class PlayerMovementControllerSpectated extends PlayerMovementController {
 
     private final Object stateLock = new Object();
     private final SpectatedFakePlayer fakePlayer;
+    private final ArmorStandRotationInterpolation clientRotationInterpolation = new ArmorStandRotationInterpolation();
     private final boolean useClientTickEndPacket;
     private AttachmentViewer.Input input = AttachmentViewer.Input.ofPlayer(player);
     private ViewRotationTracker viewRotationTracker = null;
@@ -89,7 +90,9 @@ class PlayerMovementControllerSpectated extends PlayerMovementController {
 
             ensureStarted();
 
-            fakePlayer.updatePosition(createFakePlayerTransform());
+            ViewRotationTracker.Rotation clientRotation = clientRotationInterpolation.update(viewRotation);
+            fakePlayer.updatePosition(createFakePlayerTransform(
+                    Quaternion.fromYawPitchRoll(clientRotation.pitch, clientRotation.yaw, 0.0)));
             fakePlayer.syncPosition(true);
 
             ServerPlayerHandle sp = ServerPlayerHandle.fromBukkit(player);
@@ -113,7 +116,7 @@ class PlayerMovementControllerSpectated extends PlayerMovementController {
         viewRotationTracker.setUsePitchAdjustment(true);
         viewRotationTracker.enable();
 
-        fakePlayer.start(createFakePlayerTransform(), getInitialMotion());
+        fakePlayer.start(createFakePlayerTransform(requestedOrientation), getInitialMotion());
 
         started = true;
     }
@@ -219,10 +222,10 @@ class PlayerMovementControllerSpectated extends PlayerMovementController {
         requestedOrientation = Quaternion.fromYawPitchRoll(viewRotation.pitch, viewRotation.yaw, 0.0);
     }
 
-    private Matrix4x4 createFakePlayerTransform() {
+    private Matrix4x4 createFakePlayerTransform(Quaternion orientation) {
         Matrix4x4 transform = new Matrix4x4();
         transform.translate(requestedPosition);
-        transform.rotate(requestedOrientation);
+        transform.rotate(orientation);
         return transform;
     }
 
