@@ -7,6 +7,8 @@ import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.protocol.CommonPacket;
 import com.bergerkiller.bukkit.common.protocol.PacketType;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
+import com.bergerkiller.bukkit.common.wrappers.DataWatcher;
+import com.bergerkiller.bukkit.common.wrappers.EntityPose;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
@@ -37,6 +39,8 @@ import java.util.Objects;
  */
 public class SpectatedFakePlayer implements TrainCarts.Provider {
     private static final int[] NO_MOUNTS = new int[0];
+    private static final boolean HAS_GLIDING = Common.evaluateMCVersion(">=", "1.9");
+    private static final boolean HAS_ENTITY_POSE = Common.evaluateMCVersion(">=", "1.14");
 
     private final TrainCarts traincarts;
     private final TrainCartsAttachmentViewer player;
@@ -487,6 +491,9 @@ public class SpectatedFakePlayer implements TrainCarts.Provider {
             fakePlayerSpawner.spawnPlayer(viewer, viewer.getPlayer(), this.getEntityId(), orientation, meta -> {
                 meta.setFlag(EntityHandle.DATA_FLAGS, EntityHandle.DATA_FLAG_INVISIBLE, invisible);
                 meta.set(EntityHandle.DATA_NO_GRAVITY, true);
+                if (HAS_GLIDING) {
+                    suppressGliding(meta);
+                }
                 FakeVirtualPlayer.this.metaData = meta;
             });
 
@@ -508,6 +515,19 @@ public class SpectatedFakePlayer implements TrainCarts.Provider {
                     viewer.send(movePacket);
                 }
             }
+        }
+    }
+
+    static void suppressGliding(DataWatcher metadata) {
+        metadata.setFlag(EntityHandle.DATA_FLAGS, EntityHandle.DATA_FLAG_FLYING, false);
+        if (HAS_ENTITY_POSE) {
+            clearGlidingPose(metadata);
+        }
+    }
+
+    private static void clearGlidingPose(DataWatcher metadata) {
+        if (metadata.get(EntityHandle.DATA_POSE) == EntityPose.FALL_FLYING) {
+            metadata.set(EntityHandle.DATA_POSE, EntityPose.STANDING);
         }
     }
 }
