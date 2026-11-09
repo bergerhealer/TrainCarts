@@ -894,9 +894,14 @@ public class CollisionSurfaceTracker {
         return EntityUtil.isPushableBy(pusher, candidate);
     }
 
+    /** Whether the player is gliding with an elytra. Only call when HAS_PLAYER_GLIDING is true. */
+    private static boolean isGliding(Player player) {
+        return player.isGliding();
+    }
+
     /** Ends elytra gliding mode, so the player returns to walking after landing on a surface */
     private static void stopGliding(Player player) {
-        if (player.isGliding()) {
+        if (isGliding(player)) {
             player.setGliding(false);
         }
     }
@@ -1918,7 +1923,8 @@ public class CollisionSurfaceTracker {
 
         public void spawnOnShulkerGrid() {
             Vector playerPos = viewer.getPlayer().getLocation().toVector();
-            OBBSurfaceContext context = new OBBSurfaceContext(shape, playerPos, shulkerViewDistance);
+            OBBSurfaceContext context = new OBBSurfaceContext(shape, playerPos, shulkerViewDistance,
+                    HAS_PLAYER_GLIDING && isGliding(viewer.getPlayer()));
             if (context.isFullyClipped) {
                 return;
             }
