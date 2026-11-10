@@ -85,7 +85,7 @@ abstract class PlayerMovementControllerPredicted extends PlayerMovementControlle
     }
 
     @Override
-    protected final void syncPosition(Vector position, OrientationUpdate orientationUpdate) {
+    protected void syncPosition(Vector position, OrientationUpdate orientationUpdate) {
         // Place the new position + orientation for consumption
         // If orientation is never specified, it will remain null
         this.lastRequestedPosition.set(computeNextRequestedPosition(

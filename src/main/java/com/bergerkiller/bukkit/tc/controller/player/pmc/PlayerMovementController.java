@@ -765,14 +765,10 @@ public abstract class PlayerMovementController implements AttachmentViewer.Movem
          * @return ControllerType
          */
         public static ControllerType forViewer(AttachmentViewer viewer) {
-            return SPECTATED;
-
-            // Old predicted PMC logic
-            // if (HAS_INPUT_PACKET && viewer.evaluateGameVersion(">=", "1.21.2")) {
-            //     return MODERN;
-            // } else {
-            //     return LEGACY;
-            // }
+            if (HAS_INPUT_PACKET && viewer.evaluateGameVersion(">=", "1.21.2")) {
+                return SPECTATED;
+            }
+            return LEGACY;
         }
 
         public ControllerType(BiFunction<ControllerType, AttachmentViewer, ? extends PlayerMovementController> factory, PacketType... listenedPacketTypes) {
