@@ -232,7 +232,7 @@ public class SpectatedFakePlayer implements TrainCarts.Provider {
         mirroredStateUpdateTask.stop();
         stopRealPlayerMount(restorePlayerPosition);
         if (blindRespawn != null) {
-            blindRespawn.despawn();
+            blindRespawn.stopSpectatingAndDespawn();
             blindRespawn = null;
         }
         unmount();
@@ -460,9 +460,13 @@ public class SpectatedFakePlayer implements TrainCarts.Provider {
             player.send(ClientboundSetCameraPacketHandle.createNew(spectated.getEntityId()));
         }
 
-        public void despawn() {
+        public void stopSpectatingAndDespawn() {
             // Send camera packet to stop spectating by having the player spectate themselves
             player.send(ClientboundSetCameraPacketHandle.createNew(player.getEntityId()));
+            despawn();
+        }
+
+        public void despawn() {
             spectated.destroy(player);
         }
 
