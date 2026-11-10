@@ -210,7 +210,7 @@ final class CollisionWallTileGrid {
             }
 
             // Note: a guarantee is made that slots is not empty (tile column is removed then)
-            TileSlot firstSlot = slots.getFirst();
+            TileSlot firstSlot = slots.get(0);
 
             Shulker shulker = this.shulker;
             if (shulker == null) {
