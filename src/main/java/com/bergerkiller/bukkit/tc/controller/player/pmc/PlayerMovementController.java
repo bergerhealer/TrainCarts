@@ -8,11 +8,13 @@ import com.bergerkiller.bukkit.common.protocol.PacketListener;
 import com.bergerkiller.bukkit.common.protocol.PacketType;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
+import com.bergerkiller.bukkit.common.wrappers.PlayerAbilities;
 import com.bergerkiller.bukkit.common.wrappers.RelativeFlags;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentViewer;
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundPlayerPositionPacketHandle;
 import com.bergerkiller.generated.net.minecraft.server.level.ServerPlayerHandle;
 import com.bergerkiller.generated.net.minecraft.world.phys.AABBHandle;
+import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
@@ -20,6 +22,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 
 /**
  * Moves a player (in first person) to a target position using velocity updates.
@@ -37,9 +40,8 @@ public abstract class PlayerMovementController implements AttachmentViewer.Movem
     private final ControllerType type;
     protected final AttachmentViewer viewer;
     protected final Player player;
-    private boolean syncAsArmorstand = true;
+    private Vector initialMotion = null;
     private Vector prevPos = null;
-    private Vector lastSyncPos = null;
     private Quaternion lastAbsoluteOrientation = null;
     protected volatile boolean translateVehicleSteer = false;
     protected boolean isFlightForced = false;
@@ -63,10 +65,11 @@ public abstract class PlayerMovementController implements AttachmentViewer.Movem
 
     public void setOptions(AttachmentViewer.MovementController.Options options) {
         this.translateVehicleSteer = options.isPreserveInput();
-        this.syncAsArmorstand = options.isSyncAsArmorStand();
-        if (!this.syncAsArmorstand) {
-            lastSyncPos = null;
-        }
+        this.initialMotion = options.getInitialMotion();
+    }
+
+    protected final Vector getInitialMotion() {
+        return (initialMotion == null) ? new Vector() : initialMotion.clone();
     }
 
     /**
@@ -91,8 +94,39 @@ public abstract class PlayerMovementController implements AttachmentViewer.Movem
         return stopped;
     }
 
+    /**
+     * Runs server-side landing logic without the flight permission this controller
+     * temporarily granted. Does not change a player's own flight permission.
+     */
     @Override
-    public final boolean update(Vector position, OrientationMode orientationMode, Quaternion orientation, boolean stopOnBlockCollision) {
+    public final void runWithoutForcedFlight(Runnable action) {
+        if (!isFlightForced || stopped) {
+            action.run();
+            return;
+        }
+
+        PlayerAbilities abilities = ServerPlayerHandle.fromBukkit(player).getAbilities();
+        if (!abilities.canFly()) {
+            action.run();
+            return;
+        }
+        abilities.setCanFly(false);
+        try {
+            action.run();
+        } finally {
+            if (isFlightForced && !stopped && !player.isDead() && abilities.isFlying() && !abilities.canFly()) {
+                abilities.setCanFly(true);
+            }
+        }
+    }
+
+    @Override
+    public final boolean update(
+            Vector position,
+            OrientationMode orientationMode,
+            Quaternion orientation,
+            Consumer<BlockCollisionEvent> onBlockCollision
+    ) {
         if (stopped) {
             return false;
         }
@@ -131,27 +165,34 @@ public abstract class PlayerMovementController implements AttachmentViewer.Movem
         // Important player is set to fly mode regularly
         setFlightForced(true);
 
-        // If synchronizing as armor stand, modify the position to be 3/4th
-        if (syncAsArmorstand) {
-            if (lastSyncPos == null) {
-                lastSyncPos = position.clone();
-            } else {
-                lastSyncPos.add(position.clone().subtract(lastSyncPos).multiply(1.0 / 3.0));
-            }
-            position = lastSyncPos;
-        }
+        final Vector targetPosition = position.clone();
 
         // Ensure not null
         if (prevPos == null) {
             prevPos = player.getLocation().toVector();
         }
 
-        // If it should stop when a block collision is detected, handle that
-        if (stopOnBlockCollision && stopOnBlockCollisions(prevPos, position)) {
-            prevPos = null; // If restarting, use player position again instead of prevPos
-            return false;
+        BlockCollisionEvent collisionEvent = handleBlockCollisions(prevPos, targetPosition, onBlockCollision);
+
+        if (collisionEvent != null) {
+            if (collisionEvent.isStopSimulationRequested()) {
+                prevPos = null; // If restarting, use player position again instead of prevPos
+                return false;
+            }
+            if (collisionEvent.isCollisionHandlingCancelled()) {
+                // Surface simulation requested a retry with additional constraints.
+                // Do not mutate tracking state or send any sync yet; a later pass
+                // in the same tick will sweep again from the same start position and
+                // submit the final resolved position.
+                return true;
+            }
+            Vector collisionPosition = collisionEvent.getCollisionPosition();
+            MathUtil.setVector(prevPos, collisionPosition);
+            position = collisionPosition;
+        } else {
+            MathUtil.setVector(prevPos, targetPosition);
+            position = targetPosition;
         }
-        MathUtil.setVector(prevPos, position);
 
         syncPosition(position, orientationUpdate);
         return true;
@@ -184,16 +225,22 @@ public abstract class PlayerMovementController implements AttachmentViewer.Movem
     }
 
     /**
-     * Performs a ray-trace to see if the player collided with any blocks going from
-     * one position to another.
+     * Performs a sweep test to detect block collisions from one position to another.
+     * When a collision occurs, sends a correction packet to clamp movement at the
+     * collision point and fires the collision callback.
      *
      * @param from Previous position
      * @param to New position
-     * @return True if a block collision occurred
+     * @param onBlockCollision Callback fired when a block collision occurs
+     * @return Collision event, or null if no collision
      */
-    protected boolean stopOnBlockCollisions(Vector from, Vector to) {
+    protected BlockCollisionEvent handleBlockCollisions(
+            Vector from,
+            Vector to,
+            Consumer<BlockCollisionEvent> onBlockCollision
+    ) {
         if (from.equals(to)) {
-            return false;
+            return null;
         }
 
         AABBHandle playerBBOX = ServerPlayerHandle.fromBukkit(player).getBoundingBox();
@@ -222,13 +269,29 @@ public abstract class PlayerMovementController implements AttachmentViewer.Movem
             }
         }, viewer);
         if (result == null) {
-            return false;
+            return null;
         }
 
         // Collided with a block, put the player there and apply remainder movement as velocity
         Vector delta = to.clone().subtract(from);
-        Vector pos = from.add(delta.clone().multiply(result.theta));
+        Vector pos = from.clone().add(delta.clone().multiply(result.theta));
         Vector velocity = delta.clone().multiply(1.0 - result.theta);
+        BlockCollisionEvent collisionEvent = new BlockCollisionEvent(
+                result.block,
+                result.blockX,
+                result.blockY,
+                result.blockZ,
+                result.theta,
+                result.face,
+                findBlockAbove(result),
+                from,
+                to,
+                pos,
+                velocity
+        );
+        if (onBlockCollision != null) {
+            onBlockCollision.accept(collisionEvent);
+        }
 
         ClientboundPlayerPositionPacketHandle packet = ClientboundPlayerPositionPacketHandle.createNew(
                 pos.getX(), pos.getY(), pos.getZ(), 0.0f, 0.0f,
@@ -238,13 +301,171 @@ public abstract class PlayerMovementController implements AttachmentViewer.Movem
         // This must be in a synchronized block so that we do not send further packets accidentally that
         // undo our teleport sync.
         synchronized (this) {
-            stop();
-            viewer.send(packet);
+            if (collisionEvent.isStopSimulationRequested()) {
+                stop();
+                viewer.send(packet);
+            } else if (!collisionEvent.isCollisionHandlingCancelled()) {
+                viewer.send(packet);
+            }
         }
         if (DEBUG_MODE) {
-            player.sendMessage("Collided with block");
+            if (collisionEvent.isStopSimulationRequested()) {
+                player.sendMessage("Collided with block (stopping)");
+            } else if (collisionEvent.isCollisionHandlingCancelled()) {
+                player.sendMessage("Collided with block (callback cancelled)");
+            } else {
+                player.sendMessage("Collided with block (clamped)");
+            }
         }
-        return true;
+        return collisionEvent;
+    }
+
+    private AABBHandle findBlockAbove(SweptAABB.CollisionResult result) {
+        AABBHandle bounds = result.block;
+        double top = bounds.getMaxY();
+        final double eps = 1e-4;
+        int minX = MathUtil.floor(bounds.getMinX() + eps);
+        int maxX = MathUtil.floor(bounds.getMaxX() - eps);
+        int minZ = MathUtil.floor(bounds.getMinZ() + eps);
+        int maxZ = MathUtil.floor(bounds.getMaxZ() - eps);
+        int y = MathUtil.floor(top + eps);
+
+        for (int x = minX; x <= maxX; x++) {
+            for (int z = minZ; z <= maxZ; z++) {
+                AABBHandle bbox = BlockUtil.getBoundingBox(player.getWorld().getBlockAt(x, y, z));
+                if (bbox != null) {
+                    bbox = bbox.translate(x, y, z);
+                    if (overlapsAbove(bounds, bbox, top)) {
+                        return bbox;
+                    }
+                }
+            }
+        }
+
+        final AABBHandle[] found = new AABBHandle[1];
+        viewer.forAllStationaryCollisionElements(minX, y, minZ, maxX, y, maxZ, element -> {
+            AABBHandle bbox = element.getBoundingBox();
+            if (found[0] == null && overlapsAbove(bounds, bbox, top)) {
+                found[0] = bbox;
+            }
+        });
+        return found[0];
+    }
+
+    // Candidate must overlap the bounds horizontally and rest on or above the top of the bounds
+    private static boolean overlapsAbove(AABBHandle bounds, AABBHandle candidate, double top) {
+        return candidate != bounds
+                && candidate.getMinY() >= top - 1e-4
+                && candidate.getMinX() < bounds.getMaxX() && candidate.getMaxX() > bounds.getMinX()
+                && candidate.getMinZ() < bounds.getMaxZ() && candidate.getMaxZ() > bounds.getMinZ();
+    }
+
+    /**
+     * Event fired when moving the player collided with a block or stationary collision element.
+     * The callback can call {@link #stopSimulation()} to stop movement control.
+     */
+    public static final class BlockCollisionEvent {
+        private final AABBHandle blockBounds;
+        private final int blockX, blockY, blockZ;
+        private final double theta;
+        private final BlockFace face;
+        private final AABBHandle blockAboveBounds;
+        private final Vector fromPosition;
+        private final Vector toPosition;
+        private final Vector collisionPosition;
+        private final Vector remainderVelocity;
+        private boolean stopSimulationRequested;
+        private boolean collisionHandlingCancelled;
+
+        public BlockCollisionEvent(
+                AABBHandle blockBounds,
+                int blockX, int blockY, int blockZ,
+                double theta,
+                BlockFace face,
+                AABBHandle blockAboveBounds,
+                Vector fromPosition,
+                Vector toPosition,
+                Vector collisionPosition,
+                Vector remainderVelocity
+        ) {
+            this.blockBounds = blockBounds;
+            this.blockX = blockX;
+            this.blockY = blockY;
+            this.blockZ = blockZ;
+            this.theta = theta;
+            this.face = face;
+            this.blockAboveBounds = blockAboveBounds;
+            this.fromPosition = fromPosition.clone();
+            this.toPosition = toPosition.clone();
+            this.collisionPosition = collisionPosition.clone();
+            this.remainderVelocity = remainderVelocity.clone();
+            this.stopSimulationRequested = false;
+            this.collisionHandlingCancelled = false;
+        }
+
+        public AABBHandle getBlockBounds() {
+            return blockBounds;
+        }
+
+        public int getBlockX() {
+            return blockX;
+        }
+
+        public int getBlockY() {
+            return blockY;
+        }
+
+        public int getBlockZ() {
+            return blockZ;
+        }
+
+        public double getTheta() {
+            return theta;
+        }
+
+        /**
+         * Gets the bounds of a solid block or stationary collision element sitting directly
+         * on top of the collided block, or null if there is none.
+         */
+        public AABBHandle getBlockAboveBounds() {
+            return blockAboveBounds;
+        }
+
+        public BlockFace getFace() {
+            return face;
+        }
+
+        public Vector getFromPosition() {
+            return fromPosition.clone();
+        }
+
+        public Vector getToPosition() {
+            return toPosition.clone();
+        }
+
+        public Vector getCollisionPosition() {
+            return collisionPosition.clone();
+        }
+
+        public Vector getRemainderVelocity() {
+            return remainderVelocity.clone();
+        }
+
+        public boolean isStopSimulationRequested() {
+            return stopSimulationRequested;
+        }
+
+        public void stopSimulation() {
+            this.stopSimulationRequested = true;
+        }
+
+        public boolean isCollisionHandlingCancelled() {
+            return collisionHandlingCancelled;
+        }
+
+        public void cancelCollisionHandling() {
+            this.collisionHandlingCancelled = true;
+        }
     }
 
     /**
@@ -544,14 +765,10 @@ public abstract class PlayerMovementController implements AttachmentViewer.Movem
          * @return ControllerType
          */
         public static ControllerType forViewer(AttachmentViewer viewer) {
-            return SPECTATED;
-
-            // Old predicted PMC logic
-            // if (HAS_INPUT_PACKET && viewer.evaluateGameVersion(">=", "1.21.2")) {
-            //     return MODERN;
-            // } else {
-            //     return LEGACY;
-            // }
+            if (HAS_INPUT_PACKET && viewer.evaluateGameVersion(">=", "1.21.2")) {
+                return SPECTATED;
+            }
+            return LEGACY;
         }
 
         public ControllerType(BiFunction<ControllerType, AttachmentViewer, ? extends PlayerMovementController> factory, PacketType... listenedPacketTypes) {

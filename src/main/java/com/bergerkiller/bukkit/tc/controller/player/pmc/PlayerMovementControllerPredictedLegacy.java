@@ -17,16 +17,25 @@ import com.bergerkiller.generated.net.minecraft.server.level.ServerPlayerHandle;
 import org.bukkit.util.Vector;
 
 /**
- * Before Minecraft 1.21.2 there was no player input packet, and we had to
- * rely on motion prediction to detect the input the player sent. There was no tick_end
- * packet either, so synchronization occurs in handling the position packets
- * themselves as they come in.
+ * Before Minecraft 1.21.2 player input is only sent while riding, so motion
+ * prediction is used to detect input. There is no tick-end packet either, so
+ * input synchronization occurs when position packets are received.
  */
 class PlayerMovementControllerPredictedLegacy extends PlayerMovementControllerPredicted {
     private boolean lastPositionWasLook = false;
 
     protected PlayerMovementControllerPredictedLegacy(ControllerType type, AttachmentViewer viewer) {
         super(type, viewer);
+    }
+
+    @Override
+    protected synchronized void syncPosition(Vector position, OrientationUpdate orientationUpdate) {
+        super.syncPosition(position, orientationUpdate);
+        if (sentPositions.size() > 40) {
+            sentPositions.clear();
+            isSynchronized = false;
+        }
+        sendPosition(lastRequestedPosition.get().position);
     }
 
     protected synchronized void sendPosition(Vector position) {

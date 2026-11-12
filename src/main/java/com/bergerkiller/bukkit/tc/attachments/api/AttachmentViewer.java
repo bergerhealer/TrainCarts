@@ -12,6 +12,7 @@ import com.bergerkiller.bukkit.tc.attachments.surface.CollisionSurface;
 import com.bergerkiller.bukkit.tc.controller.player.SpectatedFakePlayer;
 import com.bergerkiller.bukkit.tc.controller.player.SpectatedFakePlayerHead;
 import com.bergerkiller.bukkit.tc.controller.player.TrainCartsAttachmentViewer;
+import com.bergerkiller.bukkit.tc.controller.player.pmc.PlayerMovementController;
 import com.bergerkiller.bukkit.tc.controller.player.network.PlayerClientSynchronizer;
 import com.bergerkiller.bukkit.tc.controller.player.network.PlayerPacketListener;
 import com.bergerkiller.bukkit.common.math.Quaternion;
@@ -647,6 +648,21 @@ public interface AttachmentViewer extends TrainCarts.Provider {
     }
 
     /**
+     * Takes the Player's Eye location and resolves the first collision found. This is used in debug surface
+     * commands to dump details about surfaces.
+     *
+     * @return CollisionSurface that was hit first in the sweep, or {@link CollisionSurface#DISABLED} if none are in view of the Player
+     */
+    default CollisionSurface debugFindCollisionSurface() {
+        TrainCarts plugin = getTrainCarts();
+        if (plugin.isEnabled() && isConnected()) {
+            return plugin.getAttachmentViewer(getPlayer()).debugFindCollisionSurface();
+        } else {
+            return CollisionSurface.DISABLED;
+        }
+    }
+
+    /**
      * Iterates all stationary collision surfaces using a range of absolute block coordinates
      * that intersect them. These surfaces are created when {@link #createCollisionSurface()} is called
      * but the surface does not move. These spawn actual surfaces the player can walk on. Use this method
@@ -790,7 +806,12 @@ public interface AttachmentViewer extends TrainCarts.Provider {
             }
 
             @Override
-            public boolean update(Vector position, OrientationMode orientationMode, Quaternion orientation, boolean stopOnCollision) {
+            public boolean update(
+                    Vector position,
+                    OrientationMode orientationMode,
+                    Quaternion orientation,
+                    Consumer<PlayerMovementController.BlockCollisionEvent> onBlockCollision
+            ) {
                 return false;
             }
         };
@@ -811,6 +832,16 @@ public interface AttachmentViewer extends TrainCarts.Provider {
         boolean hasStopped();
 
         /**
+         * Runs server-side logic without a flight permission temporarily granted
+         * by this controller.
+         *
+         * @param action Logic to run
+         */
+        default void runWithoutForcedFlight(Runnable action) {
+            action.run();
+        }
+
+        /**
          * Gets the latest input received from the player while controlling it. If this
          * controller {@link #hasStopped()}, returns no more inputs.
          *
@@ -826,25 +857,34 @@ public interface AttachmentViewer extends TrainCarts.Provider {
          * @param position New position for the Player viewer
          * @param orientationMode Mode by which the orientation parameter is used
          * @param orientation New look-orientation for the Player viewer.
-         * @param stopOnBlockCollision Whether to check for block collisions, and to stop movement
-         *                             control when such a block collision is identified.
+         * @param onBlockCollision Callback fired when movement collides with a block
+         *                         (or stationary collision element). The callback can call
+         *                         {@link PlayerMovementController.BlockCollisionEvent#stopSimulation()} to stop movement
+         *                         control and hand movement back.
          * @return True if the update was applied, False if the controller was/has been stopped
-         *         (due to block collision).
+         *         due to being stopped.
          */
-        boolean update(Vector position, OrientationMode orientationMode, Quaternion orientation, boolean stopOnBlockCollision);
+        boolean update(
+                Vector position,
+                OrientationMode orientationMode,
+                Quaternion orientation,
+                Consumer<PlayerMovementController.BlockCollisionEvent> onBlockCollision
+        );
 
         /**
          * Sends a new player position to the player. Look-orientation is not updated
          * and kept to the value of whatever it was before.
          *
          * @param position New position for the Player viewer
-         * @param stopOnBlockCollision Whether to check for block collisions, and to stop movement
-         *                             control when such a block collision is identified.
+         * @param onBlockCollision Callback fired when movement collides with a block
+         *                         (or stationary collision element). The callback can call
+         *                         {@link PlayerMovementController.BlockCollisionEvent#stopSimulation()} to stop movement
+         *                         control and hand movement back.
          * @return True if the update was applied, False if the controller was/has been stopped
-         *         (due to block collision).
+         *         due to being stopped.
          */
-        default boolean update(Vector position, boolean stopOnBlockCollision) {
-            return update(position, OrientationMode.NONE, null, stopOnBlockCollision);
+        default boolean update(Vector position, Consumer<PlayerMovementController.BlockCollisionEvent> onBlockCollision) {
+            return update(position, OrientationMode.NONE, null, onBlockCollision);
         }
 
         /**
@@ -858,7 +898,7 @@ public interface AttachmentViewer extends TrainCarts.Provider {
          * @return True if the update was applied, False if the controller was/has been stopped
          */
         default boolean update(Vector position, OrientationMode orientationMode, Quaternion orientation) {
-            return update(position, orientationMode, orientation, false);
+            return update(position, orientationMode, orientation, null);
         }
 
         /**
@@ -869,7 +909,7 @@ public interface AttachmentViewer extends TrainCarts.Provider {
          * @return True if the update was applied, False if the controller was/has been stopped
          */
         default boolean update(Vector position) {
-            return update(position, false);
+            return update(position, (Consumer<PlayerMovementController.BlockCollisionEvent>) null);
         }
 
         /**
@@ -905,6 +945,7 @@ public interface AttachmentViewer extends TrainCarts.Provider {
         final class Options {
             private boolean preserveInput = false;
             private boolean syncAsArmorStand = true;
+            private Vector initialMotion = null;
 
             /**
              * Creates new MovementController Options with the default configuration
@@ -933,14 +974,27 @@ public interface AttachmentViewer extends TrainCarts.Provider {
 
             /**
              * Sets whether position updates are synchronized as if the player is an Armorstand entity.
-             * This makes it so that the player moves in sync with surrounding armor stand entities.
-             * This is true by default.
+             * This makes it so that the client view moves in sync with surrounding armor stand entities.
+             * This applies to predicted movement controllers; spectated movement uses the normal
+             * client interpolation of virtual entities. This is true by default.
              *
              * @param sync Whether to sync as armorstand. True by default.
              * @return this
              */
             public Options syncAsArmorstand(boolean sync) {
                 syncAsArmorStand = sync;
+                return this;
+            }
+
+            /**
+             * Sets the initial motion to apply when movement control starts.
+             * If not set, defaults to no initial motion.
+             *
+             * @param initialMotion Initial motion vector
+             * @return this
+             */
+            public Options initialMotion(Vector initialMotion) {
+                this.initialMotion = (initialMotion == null) ? null : initialMotion.clone();
                 return this;
             }
 
@@ -960,6 +1014,15 @@ public interface AttachmentViewer extends TrainCarts.Provider {
              */
             public boolean isSyncAsArmorStand() {
                 return syncAsArmorStand;
+            }
+
+            /**
+             * Gets the configured initial motion to apply when movement control starts.
+             *
+             * @return Initial motion, or null if unset
+             */
+            public Vector getInitialMotion() {
+                return (initialMotion == null) ? null : initialMotion.clone();
             }
         }
     }
