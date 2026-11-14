@@ -736,6 +736,16 @@ class PlayerCollisionSolver {
                             && !surface.boxTouchesSurfaceFootprint(ctx.result)) {
                         continue;
                     }
+                    // Do not side-clamp against non-vertical surfaces that are merely near the
+                    // finite X/Z footprint but still clearly far away from the actual plane
+                    // along its normal. Near-vertical panels can satisfy footprint overlap while
+                    // being several blocks away on the normal axis, which caused long-distance
+                    // horizontal FEET snaps.
+                    double resultMinSigned = surface.minSignedDistanceToPlane(ctx.result);
+                    double resultMaxSigned = surface.maxSignedDistanceToPlane(ctx.result);
+                    if (resultMinSigned > CROSSING_MARGIN || resultMaxSigned < -CROSSING_MARGIN) {
+                        continue;
+                    }
                     PlayerBoundsState clamped = (startCenterSigned >= 0.0)
                             ? surface.clampToPositiveSideOfPlane(ctx.result)
                             : surface.clampToNegativeSideOfPlane(ctx.result);
