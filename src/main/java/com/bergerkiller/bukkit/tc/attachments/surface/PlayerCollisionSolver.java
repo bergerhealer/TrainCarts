@@ -736,6 +736,23 @@ class PlayerCollisionSolver {
                             && !surface.boxTouchesSurfaceFootprint(ctx.result)) {
                         continue;
                     }
+                    // Near-vertical (but not perfectly vertical) surfaces can still pass the
+                    // footprint overlap check while being nowhere near the player's sweep.
+                    // If both player endpoints are clearly on the same side of the plane,
+                    // skip this stabilization clamp to avoid long-distance horizontal snaps.
+                    if (surface.groundNormal.getY() <= 0.1) {
+                        double fromMinSigned = surface.minSignedDistanceToPlane(player.from);
+                        double fromMaxSigned = surface.maxSignedDistanceToPlane(player.from);
+                        double toMinSigned = surface.minSignedDistanceToPlane(player.to);
+                        double toMaxSigned = surface.maxSignedDistanceToPlane(player.to);
+                        boolean fromAllPositive = fromMinSigned > CROSSING_MARGIN;
+                        boolean fromAllNegative = fromMaxSigned < -CROSSING_MARGIN;
+                        boolean toAllPositive = toMinSigned > CROSSING_MARGIN;
+                        boolean toAllNegative = toMaxSigned < -CROSSING_MARGIN;
+                        if ((fromAllPositive && toAllPositive) || (fromAllNegative && toAllNegative)) {
+                            continue;
+                        }
+                    }
                     PlayerBoundsState clamped = (startCenterSigned >= 0.0)
                             ? surface.clampToPositiveSideOfPlane(ctx.result)
                             : surface.clampToNegativeSideOfPlane(ctx.result);
