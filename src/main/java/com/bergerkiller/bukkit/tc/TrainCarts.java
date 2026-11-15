@@ -810,7 +810,7 @@ public class TrainCarts extends PluginBase {
 
     @Override
     public int getMinimumLibVersion() {
-        return Common.VERSION;
+        return 20005; // Change when the minimum required BKCommonLib version changes
     }
 
     @Override
