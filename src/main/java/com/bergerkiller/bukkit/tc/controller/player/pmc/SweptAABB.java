@@ -91,6 +91,12 @@ class SweptAABB {
                 entry[axis] = (maxBlock[axis] - minMoving[axis]) / v[axis];
                 exit[axis]  = (minBlock[axis] - maxMoving[axis]) / v[axis];
             } else {
+                // Not moving along this axis: the boxes must overlap on it for the entire sweep.
+                // Merely touching (flush) is not a collision, so sliding along a wall does not
+                // collide with the faces of blocks neighbouring that wall.
+                if (maxMoving[axis] <= minBlock[axis] || minMoving[axis] >= maxBlock[axis]) {
+                    return null;
+                }
                 entry[axis] = Double.NEGATIVE_INFINITY;
                 exit[axis]  = Double.POSITIVE_INFINITY;
             }
@@ -104,7 +110,7 @@ class SweptAABB {
 
 
 
-        if (entryTime > exitTime || entryTime < 0.0 || entryTime > 1.0) {
+        if (entryTime >= exitTime || entryTime < 0.0 || entryTime > 1.0) {
             return null; // No collision
         }
 

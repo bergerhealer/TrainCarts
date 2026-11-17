@@ -202,6 +202,12 @@ public final class TrainCartsAttachmentViewer implements AttachmentViewer {
     }
 
     @Override
+    public CollisionSurface debugFindCollisionSurface() {
+        CollisionSurfaceTracker collisionSurfaceTracker = this.collisionSurfaceTracker;
+        return collisionSurfaceTracker == null ? CollisionSurface.DISABLED : collisionSurfaceTracker.findSurfaceLookingAt();
+    }
+
+    @Override
     public void forAllStationaryCollisionElements(int minX, int minY, int minZ, int maxX, int maxY, int maxZ, Consumer<StationaryCollisionElement> action) {
         CollisionSurfaceTracker collisionSurfaceTracker = this.collisionSurfaceTracker;
         if (collisionSurfaceTracker != null) {
@@ -502,13 +508,23 @@ public final class TrainCartsAttachmentViewer implements AttachmentViewer {
         }
 
         @Override
+        public void runWithoutForcedFlight(Runnable action) {
+            controller.get().runWithoutForcedFlight(action);
+        }
+
+        @Override
         public Input getInput() {
             return controller.get().getInput();
         }
 
         @Override
-        public boolean update(Vector position, OrientationMode orientationMode, Quaternion orientation, boolean stopOnCollision) {
-            return controller.get().update(position, orientationMode, orientation, stopOnCollision);
+        public boolean update(
+                Vector position,
+                OrientationMode orientationMode,
+                Quaternion orientation,
+                Consumer<PlayerMovementController.BlockCollisionEvent> onBlockCollision
+        ) {
+            return controller.get().update(position, orientationMode, orientation, onBlockCollision);
         }
 
     }
