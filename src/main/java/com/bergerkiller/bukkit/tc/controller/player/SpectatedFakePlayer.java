@@ -6,6 +6,9 @@ import com.bergerkiller.bukkit.common.controller.VehicleMountController;
 import com.bergerkiller.bukkit.common.math.Matrix4x4;
 import com.bergerkiller.bukkit.common.protocol.CommonPacket;
 import com.bergerkiller.bukkit.common.protocol.PacketType;
+import com.bergerkiller.bukkit.common.utils.EntityUtil;
+import com.bergerkiller.bukkit.common.wrappers.DataWatcher;
+import com.bergerkiller.bukkit.common.wrappers.EntityPose;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.Util;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
@@ -21,6 +24,7 @@ import com.bergerkiller.generated.net.minecraft.network.protocol.game.Clientboun
 import com.bergerkiller.generated.net.minecraft.network.protocol.game.ClientboundSetCameraPacketHandle;
 import com.bergerkiller.generated.net.minecraft.server.level.ServerPlayerHandle;
 import com.bergerkiller.generated.net.minecraft.world.entity.EntityHandle;
+import com.bergerkiller.generated.net.minecraft.world.entity.LivingEntityHandle;
 import org.bukkit.entity.EntityType;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
@@ -35,6 +39,8 @@ import java.util.Objects;
  */
 public class SpectatedFakePlayer implements TrainCarts.Provider {
     private static final int[] NO_MOUNTS = new int[0];
+    private static final boolean HAS_GLIDING = Common.evaluateMCVersion(">=", "1.9");
+    private static final boolean HAS_ENTITY_POSE = Common.evaluateMCVersion(">=", "1.14");
 
     private final TrainCarts traincarts;
     private final TrainCartsAttachmentViewer player;
@@ -51,12 +57,13 @@ public class SpectatedFakePlayer implements TrainCarts.Provider {
     /** If true, then when the fake player is spawned head is already aligned the right way (since 1.20.2) */
     private final boolean canSpawnWithoutHeadAnimation;
     private final EnumMap<EquipmentSlot, ItemStack> equipmentState = new EnumMap<>(EquipmentSlot.class);
-    private final Task equipmentUpdateTask;
+    private final Task mirroredStateUpdateTask;
     private double offsetX = 0.0;
     private double offsetY = 0.0;
     private double offsetZ = 0.0;
     private ItemStack skullItem = null;
     private boolean stopped = false;
+    private boolean sneaking = false;
 
     public SpectatedFakePlayer(TrainCartsAttachmentViewer player) {
         this(player, null);
@@ -67,9 +74,10 @@ public class SpectatedFakePlayer implements TrainCarts.Provider {
         this.player = player;
         this.spectatorInteractionSimulator = new SpectatorInteractionSimulator(this, player);
         this.manager = manager;
-        this.equipmentUpdateTask = new Task(player.getTrainCarts()) {
+        this.mirroredStateUpdateTask = new Task(player.getTrainCarts()) {
             @Override
             public void run() {
+                updateMirroredHealth();
                 updateMirroredEquipment();
             }
         };
@@ -118,6 +126,35 @@ public class SpectatedFakePlayer implements TrainCarts.Provider {
         this.offsetX = x;
         this.offsetY = y;
         this.offsetZ = z;
+    }
+
+    /**
+     * Sets whether the fake player is displayed sneaking (crouching)
+     *
+     * @param sneaking Whether sneaking
+     */
+    public void setSneaking(boolean sneaking) {
+        if (stopped || this.sneaking == sneaking) {
+            return;
+        }
+        this.sneaking = sneaking;
+        if (fakePlayer != null) {
+            applySneaking(fakePlayer.entity);
+            applySneaking(fakePlayer.entityAlt);
+            applySneaking(fakePlayer.entityAltFlip);
+        }
+    }
+
+    private void applySneaking(FakeVirtualPlayer target) {
+        applySneaking(target.getMetaData(), sneaking);
+        target.syncMetadata();
+    }
+
+    private static void applySneaking(DataWatcher metadata, boolean sneaking) {
+        metadata.setFlag(EntityHandle.DATA_FLAGS, EntityHandle.DATA_FLAG_SNEAKING, sneaking);
+        if (HAS_ENTITY_POSE) {
+            metadata.set(EntityHandle.DATA_POSE, sneaking ? EntityPose.CROUCHING : EntityPose.STANDING);
+        }
     }
 
     public void setForceAbsoluteSync(boolean forceAbsoluteSync) {
@@ -173,20 +210,29 @@ public class SpectatedFakePlayer implements TrainCarts.Provider {
         this.startRealPlayerMount(syncTransform);
         if (!isHeadOnly()) {
             initializeMirroredEquipmentState();
-            equipmentUpdateTask.start(1, 1);
         }
+        mirroredStateUpdateTask.start(1, 1);
         this.player.onSpectatedFakePlayerActive(this, true);
     }
 
     public void stop() {
+        stop(true);
+    }
+
+    /**
+     * Stops spectating, optionally restoring the server player to the fake player's position.
+     *
+     * @param restorePlayerPosition Whether to restore the server player position
+     */
+    public void stop(boolean restorePlayerPosition) {
         if (stopped) {
             return;
         }
         stopped = true;
-        equipmentUpdateTask.stop();
-        stopRealPlayerMount();
+        mirroredStateUpdateTask.stop();
+        stopRealPlayerMount(restorePlayerPosition);
         if (blindRespawn != null) {
-            blindRespawn.despawn();
+            blindRespawn.stopSpectatingAndDespawn();
             blindRespawn = null;
         }
         unmount();
@@ -320,7 +366,7 @@ public class SpectatedFakePlayer implements TrainCarts.Provider {
         player.getVehicleMountController().mount(playerMount.getEntityId(), player.getEntityId());
     }
 
-    private void stopRealPlayerMount() {
+    private void stopRealPlayerMount(boolean restorePlayerPosition) {
         if (playerMount != null) {
             player.getVehicleMountController().unmount(playerMount.getEntityId(), player.getEntityId());
             playerMount.destroy(player);
@@ -329,7 +375,7 @@ public class SpectatedFakePlayer implements TrainCarts.Provider {
             // After unmounting, make sure the real player is restored to where the spectated
             // fake player was, instead of being left up at the off-screen mount altitude.
             VirtualEntity entity = (fakePlayer != null) ? fakePlayer.entity : null;
-            if (entity != null) {
+            if (restorePlayerPosition && entity != null) {
                 Vector pos = entity.getSyncPos();
                 ServerPlayerHandle playerHandle = ServerPlayerHandle.fromBukkit(player.getPlayer());
                 playerHandle.setPositionRotation(pos.getX(), pos.getY(), pos.getZ(),
@@ -353,6 +399,21 @@ public class SpectatedFakePlayer implements TrainCarts.Provider {
             }
             player.sendSilent(Util.createPlayerEquipmentPacket(entityId, slot, item));
         }
+    }
+
+    private void updateMirroredHealth() {
+        if (fakePlayer == null || !player.isConnected()) {
+            return;
+        }
+        float health = EntityUtil.getDataWatcher(player.getPlayer()).get(LivingEntityHandle.DATA_HEALTH);
+        updateMirroredHealth(fakePlayer.entity, health);
+        updateMirroredHealth(fakePlayer.entityAlt, health);
+        updateMirroredHealth(fakePlayer.entityAltFlip, health);
+    }
+
+    private void updateMirroredHealth(FakeVirtualPlayer target, float health) {
+        target.getMetaData().set(LivingEntityHandle.DATA_HEALTH, health);
+        target.syncMetadata();
     }
 
     private void updateMirroredEquipment() {
@@ -399,9 +460,13 @@ public class SpectatedFakePlayer implements TrainCarts.Provider {
             player.send(ClientboundSetCameraPacketHandle.createNew(spectated.getEntityId()));
         }
 
-        public void despawn() {
+        public void stopSpectatingAndDespawn() {
             // Send camera packet to stop spectating by having the player spectate themselves
             player.send(ClientboundSetCameraPacketHandle.createNew(player.getEntityId()));
+            despawn();
+        }
+
+        public void despawn() {
             spectated.destroy(player);
         }
 
@@ -460,6 +525,12 @@ public class SpectatedFakePlayer implements TrainCarts.Provider {
             fakePlayerSpawner.spawnPlayer(viewer, viewer.getPlayer(), this.getEntityId(), orientation, meta -> {
                 meta.setFlag(EntityHandle.DATA_FLAGS, EntityHandle.DATA_FLAG_INVISIBLE, invisible);
                 meta.set(EntityHandle.DATA_NO_GRAVITY, true);
+                if (HAS_GLIDING) {
+                    suppressGliding(meta);
+                }
+                if (sneaking) {
+                    applySneaking(meta, true);
+                }
                 FakeVirtualPlayer.this.metaData = meta;
             });
 
@@ -481,6 +552,19 @@ public class SpectatedFakePlayer implements TrainCarts.Provider {
                     viewer.send(movePacket);
                 }
             }
+        }
+    }
+
+    static void suppressGliding(DataWatcher metadata) {
+        metadata.setFlag(EntityHandle.DATA_FLAGS, EntityHandle.DATA_FLAG_FLYING, false);
+        if (HAS_ENTITY_POSE) {
+            clearGlidingPose(metadata);
+        }
+    }
+
+    private static void clearGlidingPose(DataWatcher metadata) {
+        if (metadata.get(EntityHandle.DATA_POSE) == EntityPose.FALL_FLYING) {
+            metadata.set(EntityHandle.DATA_POSE, EntityPose.STANDING);
         }
     }
 }

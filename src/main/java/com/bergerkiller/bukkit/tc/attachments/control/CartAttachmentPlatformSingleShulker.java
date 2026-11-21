@@ -12,7 +12,7 @@ import org.bukkit.util.Vector;
 /**
  * Used when no size is configured ("Shulker mode")
  */
-public class CartAttachmentPlatformShulker extends CartAttachmentPlatform {
+public class CartAttachmentPlatformSingleShulker extends CartAttachmentPlatform {
     private VirtualEntity actual;
     private VirtualEntity entity;
 
@@ -48,20 +48,6 @@ public class CartAttachmentPlatformShulker extends CartAttachmentPlatform {
     }
 
     @Override
-    public boolean checkCanReload(ConfigurationNode config) {
-        if (!super.checkCanReload(config)) {
-            return false;
-        }
-
-        // Switches between attachment implementation class
-        if (readPlatformMode(config) != PlatformMode.SHULKER) {
-            return false;
-        }
-
-        return true;
-    }
-
-    @Override
     public boolean containsEntityId(int entityId) {
         return this.entity.getEntityId() == entityId ||
                 this.actual.getEntityId() == entityId;
@@ -92,6 +78,18 @@ public class CartAttachmentPlatformShulker extends CartAttachmentPlatform {
         // Send entity destroy packet
         actual.destroy(viewer);
         entity.destroy(viewer);
+    }
+
+    @Override
+    public void onFocus() {
+        actual.getMetaData().setFlag(EntityHandle.DATA_FLAGS, EntityHandle.DATA_FLAG_INVISIBLE, false);
+        actual.getMetaData().setFlag(EntityHandle.DATA_FLAGS, EntityHandle.DATA_FLAG_GLOWING, true);
+    }
+
+    @Override
+    public void onBlur() {
+        actual.getMetaData().setFlag(EntityHandle.DATA_FLAGS, EntityHandle.DATA_FLAG_INVISIBLE, true);
+        actual.getMetaData().setFlag(EntityHandle.DATA_FLAGS, EntityHandle.DATA_FLAG_GLOWING, false);
     }
 
     @Override

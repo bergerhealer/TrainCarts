@@ -3,6 +3,7 @@ package com.bergerkiller.bukkit.tc.attachments.surface;
 import com.bergerkiller.bukkit.common.collections.FastTrackedUpdateSet;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.wrappers.LongHashMap;
+import com.bergerkiller.bukkit.tc.attachments.control.CartAttachmentPlatform;
 import org.bukkit.block.BlockFace;
 
 import java.util.ArrayList;
@@ -144,10 +145,18 @@ final class CollisionWallTileGrid {
             for (TileSlot slot : slots) {
                 if (slot.surface == surface) {
                     slot.token = surface.getUpdateCounter();
+
                     if (slot.value != value) {
                         slot.value = value;
                         notifyChanged();
                     }
+
+                    CartAttachmentPlatform.Color shulkerColor = surface.getShulkerColor();
+                    if (slot.shulkerColor != shulkerColor) {
+                        slot.shulkerColor = shulkerColor;
+                        notifyChanged();
+                    }
+
                     return;
                 }
             }
@@ -194,31 +203,38 @@ final class CollisionWallTileGrid {
         }
 
         public void updateShulkers(ShulkerTracker shulkerCache, WallAxisLogic axisLogic) {
-            Shulker shulker = this.shulker;
-            if (shulker == null) {
-                this.shulker = shulker = shulkerCache.spawn(axisLogic.getPushAxis());
-                axisLogic.applyShulkerTile(shulker, tile_x, tile_y);
-            }
-
             // If more than one slot (and thus mutable), sort it based on value nearest-first
             // If the axis modifier is negative, perform the sort in reverse (highest value is nearest)
             if (slots.size() > 1) {
                 axisLogic.sortNearest(slots);
             }
 
+            // Note: a guarantee is made that slots is not empty (tile column is removed then)
+            TileSlot firstSlot = slots.get(0);
+
+            Shulker shulker = this.shulker;
+            if (shulker == null) {
+                this.shulker = shulker = shulkerCache.spawn(axisLogic.getPushAxis(), firstSlot.shulkerColor);
+                axisLogic.applyShulkerTile(shulker, tile_x, tile_y);
+            } else {
+                shulker.updateShulkerColor(firstSlot.shulkerColor);
+            }
+
             // Apply value of the first slot (nearest)
-            axisLogic.applyShulkerValue(shulker, slots.get(0).value);
+            axisLogic.applyShulkerValue(shulker, firstSlot.value);
             shulker.scheduleMovement();
         }
     }
 
     public static final class TileSlot implements Comparable<TileSlot> {
         public final CollisionSurface surface;
+        public CartAttachmentPlatform.Color shulkerColor;
         public int token;
         public double value;
 
         public TileSlot(CollisionSurface surface, double value) {
             this.surface = surface;
+            this.shulkerColor = surface.getShulkerColor();
             this.token = surface.getUpdateCounter();
             this.value = value;
         }
