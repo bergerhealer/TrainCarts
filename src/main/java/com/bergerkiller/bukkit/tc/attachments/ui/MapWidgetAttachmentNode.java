@@ -28,7 +28,6 @@ import com.bergerkiller.bukkit.common.map.MapPlayerInput.Key;
 import com.bergerkiller.bukkit.common.map.widgets.MapWidget;
 import com.bergerkiller.bukkit.common.resources.SoundEffect;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
-import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.attachments.api.Attachment;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentType;
 import com.bergerkiller.bukkit.tc.attachments.api.AttachmentTypeRegistry;
@@ -44,7 +43,9 @@ import com.bergerkiller.bukkit.tc.controller.MinecartMember;
  * A single attachment node in the attachment node tree, containing
  * the configuration for the node.
  */
-public class MapWidgetAttachmentNode extends MapWidget implements ItemDropTarget, BlockDataDropTarget {
+public class MapWidgetAttachmentNode extends MapWidget
+        implements ItemDropTarget, BlockDataDropTarget, CachedAttachmentIcon.TypeConfigAccessor
+{
     private static final int COL_WIDTH = 17;
     private final MapWidgetAttachmentTree tree;
     private static MapTexture expanded_icon = null;
@@ -53,7 +54,7 @@ public class MapWidgetAttachmentNode extends MapWidget implements ItemDropTarget
     private final List<MapWidgetAttachmentNode> attachments = new ArrayList<>();
     private MapWidgetAttachmentNode parentAttachment = null;
     private int col, row;
-    private MapTexture icon = null;
+    private final CachedAttachmentIcon cachedIcon = new CachedAttachmentIcon(this);
     private boolean changingOrder = false;
     private boolean expanded = true;
     private MapWidgetMenuButton appearanceMenuButton;
@@ -598,7 +599,7 @@ public class MapWidgetAttachmentNode extends MapWidget implements ItemDropTarget
     }
 
     public void resetIcon() {
-        this.icon = null;
+        this.cachedIcon.invalidate();
     }
 
     public void setChangingOrder(boolean changing) {
@@ -630,15 +631,7 @@ public class MapWidgetAttachmentNode extends MapWidget implements ItemDropTarget
     }
 
     private MapTexture getIcon() {
-        if (this.icon == null) {
-            AttachmentType type = this.getType();
-            if (type == null) {
-                this.icon = MapTexture.loadPluginResource(TrainCarts.plugin, "com/bergerkiller/bukkit/tc/textures/attachments/missing.png");
-            } else {
-                this.icon = this.getType().getIcon(this.getConfig());
-            }
-        }
-        return this.icon;
+        return this.cachedIcon.getIcon();
     }
 
     @Override
