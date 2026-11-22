@@ -47,6 +47,11 @@ public abstract class CartAttachmentPlatform extends CartAttachment {
         }
 
         @Override
+        public void getDefaultConfig(ConfigurationNode config) {
+            config.set("platformMode", PlatformMode.SIMULATED_WITH_SHULKER_GRID);
+        }
+
+        @Override
         public void createAppearanceTab(MapWidgetTabView.Tab tab, MapWidgetAttachmentNode attachment) {
             final MapWidgetSurfaceAnimation surfaceAnimation = new MapWidgetSurfaceAnimation();
             surfaceAnimation.setBounds(-5, 16, 110, 70);
