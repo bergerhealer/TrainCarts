@@ -24,6 +24,7 @@ import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetAttachmentNode;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetMenu;
 import com.bergerkiller.bukkit.tc.attachments.ui.MapWidgetSelectionBox;
 import com.bergerkiller.bukkit.tc.attachments.ui.BlockDataDropTarget;
+import com.bergerkiller.bukkit.tc.attachments.ui.menus.general.TypeSelectionDialog;
 
 public class AppearanceMenu extends MapWidgetMenu implements ItemDropTarget, BlockDataDropTarget {
     private final MapWidgetTabView tabView = new MapWidgetTabView();
@@ -66,7 +67,20 @@ public class AppearanceMenu extends MapWidgetMenu implements ItemDropTarget, Blo
         MapWidgetSelectionBox typeSelectionBox = this.addWidget(new MapWidgetSelectionBox() {
             @Override
             public void onKeyPressed(MapKeyEvent event) {
-                if (event.getKey() == MapPlayerInput.Key.DOWN) {
+                if (event.getKey() == MapPlayerInput.Key.ENTER) {
+                    List<AttachmentType> listedTypes = new ArrayList<>(pages.size());
+                    for (TypePage page : pages) {
+                        listedTypes.add(page.type);
+                    }
+
+                    AppearanceMenu.this.addWidget(new TypeSelectionDialog(
+                            5, 12, AppearanceMenu.this.getWidth() - 10, AppearanceMenu.this.getHeight() - 17,
+                            getAttachment().getConfig(),
+                            listedTypes,
+                            this.getSelectedIndex(),
+                            this::setSelectedIndex));
+                    return;
+                } else if (event.getKey() == MapPlayerInput.Key.DOWN) {
                     List<MapWidget> focusableWidgets = MapWidgetNavigator.getFocusableWidgets(AppearanceMenu.this);
                     List<MapWidget> primaryFocusWidgets = new ArrayList<MapWidget>(focusableWidgets.size());
                     for (MapWidget widget : focusableWidgets) {
