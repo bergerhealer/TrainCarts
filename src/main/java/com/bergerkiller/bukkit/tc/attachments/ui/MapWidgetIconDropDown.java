@@ -250,7 +250,14 @@ public abstract class MapWidgetIconDropDown extends MapWidgetBlinkyButton {
 
         byte outlineColor = selected ? MapColorPalette.COLOR_RED : MapColorPalette.COLOR_BLACK;
         MapWidgetButton.fillBackground(view.getView(iconOffset, 1, view.getWidth() - 1 - iconOffset, view.getHeight() - 2), true, selected);
-        view.drawRectangle(0, 0, view.getWidth(), view.getHeight(), outlineColor);
+        view.drawLine(0, 0, 0, view.getHeight() - 1, outlineColor);
+        view.drawLine(view.getWidth() - 1, 0, view.getWidth() - 1, view.getHeight() - 1, outlineColor);
+        byte topLineColor = (selected || (itemIndex > 0 && selectedIndex == (itemIndex - 1)))
+                ? MapColorPalette.COLOR_RED : MapColorPalette.COLOR_BLACK;
+        view.drawLine(0, 0, view.getWidth() - 1, 0, topLineColor);
+        if (itemIndex == (items.size() - 1)) {
+            view.drawLine(0, view.getHeight() - 1, view.getWidth() - 1, view.getHeight() - 1, outlineColor);
+        }
         if (iconOffset > 0) {
             view.drawLine(iconOffset - 1, 1, iconOffset - 1, view.getHeight() - 2, outlineColor);
         }
@@ -352,9 +359,10 @@ public abstract class MapWidgetIconDropDown extends MapWidgetBlinkyButton {
         void updateBounds() {
             int visibleCount = Math.min(maxVisibleItems, Math.max(1, items.size()));
             int itemHeight = Math.max(1, MapWidgetIconDropDown.this.getHeight());
+            int itemStep = Math.max(1, itemHeight - 1);
             int safeBoundary = Math.max(1, itemHeight / 2);
             int width = Math.max(1, dropDownWidth);
-            int height = visibleCount * itemHeight;
+            int height = itemHeight + ((visibleCount - 1) * itemStep);
 
             int absParentX = MapWidgetIconDropDown.this.getAbsoluteX();
             int absParentCenterX = absParentX + (MapWidgetIconDropDown.this.getWidth() / 2);
@@ -386,9 +394,10 @@ public abstract class MapWidgetIconDropDown extends MapWidgetBlinkyButton {
             }
 
             int itemHeight = Math.max(1, MapWidgetIconDropDown.this.getHeight());
+            int itemStep = Math.max(1, itemHeight - 1);
             for (int i = 0; i < items.size(); i++) {
                 DropDownItemWidget itemWidget = getItemWidget(i);
-                itemWidget.setBounds(0, i * itemHeight, Math.max(1, this.getWidth()), itemHeight);
+                itemWidget.setBounds(0, i * itemStep, Math.max(1, this.getWidth()), itemHeight);
                 itemWidget.setItem(i, items.get(i));
             }
 
@@ -423,9 +432,10 @@ public abstract class MapWidgetIconDropDown extends MapWidgetBlinkyButton {
             }
 
             int itemHeight = Math.max(1, MapWidgetIconDropDown.this.getHeight());
+            int itemStep = Math.max(1, itemHeight - 1);
             int listHeight = this.scroller.getHeight();
             int safeBoundary = Math.max(1, Math.min(itemHeight / 2, Math.max(0, (listHeight - itemHeight) / 2)));
-            int itemTop = selectedIndex * itemHeight;
+            int itemTop = selectedIndex * itemStep;
             int itemBottom = itemTop + itemHeight;
             int currentScroll = -this.scroller.getContainer().getY();
             int nextScroll = currentScroll;
