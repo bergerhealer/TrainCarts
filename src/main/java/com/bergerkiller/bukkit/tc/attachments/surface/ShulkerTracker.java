@@ -86,7 +86,8 @@ final class ShulkerTracker {
             // For all shulkers to spawn, send them to the player pusher to displace the player
             // This prevents players from clipping through newly spawned shulkers
             // We repeat this in a loop in case both an upwards and sideways adjustment is needed.
-            // The player pusher has logic to avoid infinite loops (only allows pushing into one direction)
+            // The player pusher detects conflicting pushes (opposite directions on the same axis),
+            // which would otherwise repeat forever. In that case the player is not pushed at all.
             if (!shulkersToSpawn.isEmpty()) {
                 pusher.reset();
 
@@ -96,9 +97,13 @@ final class ShulkerTracker {
                     for (Shulker shulker : shulkersToSpawn) {
                         wasPushed |= pusher.shulkerSpawned(shulker);
                     }
-                } while (wasPushed);
+                } while (wasPushed && !pusher.hasConflict());
 
-                pusher.sendPush();
+                if (pusher.hasConflict()) {
+                    pusher.cancelPush();
+                } else {
+                    pusher.sendPush();
+                }
             }
 
             // Now actually spawn the shulkers

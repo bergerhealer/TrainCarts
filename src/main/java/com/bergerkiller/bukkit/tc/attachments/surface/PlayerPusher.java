@@ -24,6 +24,12 @@ final class PlayerPusher {
     private double pushX = 0.0;
     private double pushY = 0.0;
     private double pushZ = 0.0;
+    /** Push direction per axis: -1 negative, 0 none, 1 positive. Used to detect conflicting pushes */
+    private int dirX = 0;
+    private int dirY = 0;
+    private int dirZ = 0;
+    /** Set when shulkers attempt to push the player in opposite directions on the same axis */
+    private boolean conflict = false;
 
     public PlayerPusher(AttachmentViewer viewer) {
         this.viewer = viewer;
@@ -39,6 +45,29 @@ final class PlayerPusher {
     public void reset() {
         bbox = handle.getBoundingBox();
         viewer.getPlayer().getLocation(viewerLocation);
+        pushX = 0.0;
+        pushY = 0.0;
+        pushZ = 0.0;
+        dirX = 0;
+        dirY = 0;
+        dirZ = 0;
+        conflict = false;
+    }
+
+    /**
+     * Returns true if shulkers tried to push the player in opposite directions on the same axis.
+     * Such pushes can never be satisfied and would repeat forever, so no push should be sent.
+     *
+     * @return True if a conflicting push was detected
+     */
+    public boolean hasConflict() {
+        return conflict;
+    }
+
+    /**
+     * Discards all pending pushes, so that {@link #sendPush()} sends nothing.
+     */
+    public void cancelPush() {
         pushX = 0.0;
         pushY = 0.0;
         pushZ = 0.0;
@@ -100,6 +129,11 @@ final class PlayerPusher {
             case NORTH:
                 newPushZ = (shulker.z - 0.5 - 0.5 * (bbox.getMaxZ() - bbox.getMinZ())) - viewerLocation.getZ() + PUSH_EXTRA;
                 if (newPushZ < pushZ) {
+                    if (dirZ > 0) {
+                        conflict = true;
+                        return false;
+                    }
+                    dirZ = -1;
                     pushZ = newPushZ;
                     return true;
                 } else {
@@ -108,6 +142,11 @@ final class PlayerPusher {
             case SOUTH:
                 newPushZ = (shulker.z + 0.5 + 0.5 * (bbox.getMaxZ() - bbox.getMinZ())) - viewerLocation.getZ() - PUSH_EXTRA;
                 if (newPushZ > pushZ) {
+                    if (dirZ < 0) {
+                        conflict = true;
+                        return false;
+                    }
+                    dirZ = 1;
                     pushZ = newPushZ;
                     return true;
                 } else {
@@ -116,6 +155,11 @@ final class PlayerPusher {
             case WEST:
                 newPushX = (shulker.x - 0.5 - 0.5 * (bbox.getMaxX() - bbox.getMinX())) - viewerLocation.getX() - PUSH_EXTRA;
                 if (newPushX < pushX) {
+                    if (dirX > 0) {
+                        conflict = true;
+                        return false;
+                    }
+                    dirX = -1;
                     pushX = newPushX;
                     return true;
                 } else {
@@ -124,6 +168,11 @@ final class PlayerPusher {
             case EAST:
                 newPushX = (shulker.x + 0.5 + 0.5 * (bbox.getMaxX() - bbox.getMinX())) - viewerLocation.getX() + PUSH_EXTRA;
                 if (newPushX > pushX) {
+                    if (dirX < 0) {
+                        conflict = true;
+                        return false;
+                    }
+                    dirX = 1;
                     pushX = newPushX;
                     return true;
                 } else {
@@ -132,6 +181,11 @@ final class PlayerPusher {
             case DOWN:
                 newPushY = (shulker.y - 0.5 - (bbox.getMaxY() - bbox.getMinY())) - viewerLocation.getY() - PUSH_EXTRA;
                 if (newPushY < pushY) {
+                    if (dirY > 0) {
+                        conflict = true;
+                        return false;
+                    }
+                    dirY = -1;
                     pushY = newPushY;
                     return true;
                 } else {
@@ -140,6 +194,11 @@ final class PlayerPusher {
             case UP:
                 newPushY = (shulker.y + 0.5) - viewerLocation.getY() + PUSH_EXTRA;
                 if (newPushY > pushY) {
+                    if (dirY < 0) {
+                        conflict = true;
+                        return false;
+                    }
+                    dirY = 1;
                     pushY = newPushY;
                     return true;
                 } else {
